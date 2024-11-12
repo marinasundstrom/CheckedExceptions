@@ -1,6 +1,6 @@
 namespace System;
 
-[AttributeUsage(AttributeTargets.Method | AttributeTargets.Property, AllowMultiple = true)]
+[AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor, AllowMultiple = true)]
 public class ThrowsAttribute : Attribute
 {
     public Type ExceptionType { get; }

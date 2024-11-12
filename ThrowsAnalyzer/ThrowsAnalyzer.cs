@@ -13,7 +13,7 @@ public class ThrowsAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor Rule = new(
         "THROW001",
         "Unhandled exception",
-        "Method '{0}' throws exception '{1}' which is not handled",
+        "{0} throws exception '{1}' which is not handled",
         "Usage",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
@@ -26,8 +26,17 @@ public class ThrowsAnalyzer : DiagnosticAnalyzer
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
         context.EnableConcurrentExecution();
 
-        // Register action for invocation expressions
+        // Register action for method invocations
         context.RegisterSyntaxNodeAction(AnalyzeMethodCall, SyntaxKind.InvocationExpression);
+
+        // Register action for object creation expressions (constructors)
+        context.RegisterSyntaxNodeAction(AnalyzeObjectCreation, SyntaxKind.ObjectCreationExpression);
+
+        // Register action for member access expressions (properties)
+        context.RegisterSyntaxNodeAction(AnalyzeMemberAccess, SyntaxKind.SimpleMemberAccessExpression);
+
+        // Register action for element access expressions (indexers)
+        context.RegisterSyntaxNodeAction(AnalyzeElementAccess, SyntaxKind.ElementAccessExpression);
     }
 
     private void AnalyzeMethodCall(SyntaxNodeAnalysisContext context)
@@ -37,6 +46,74 @@ public class ThrowsAnalyzer : DiagnosticAnalyzer
         // Get the symbol of the invoked method
         var symbolInfo = context.SemanticModel.GetSymbolInfo(invocation);
         if (symbolInfo.Symbol is not IMethodSymbol methodSymbol)
+            return;
+
+        AnalyzeCalledMethod(context, invocation, methodSymbol);
+    }
+
+    private void AnalyzeObjectCreation(SyntaxNodeAnalysisContext context)
+    {
+        var objectCreation = (ObjectCreationExpressionSyntax)context.Node;
+
+        // Get the symbol of the constructor being called
+        var symbolInfo = context.SemanticModel.GetSymbolInfo(objectCreation);
+        if (symbolInfo.Symbol is not IMethodSymbol methodSymbol)
+            return;
+
+        AnalyzeCalledMethod(context, objectCreation, methodSymbol);
+    }
+
+    private void AnalyzeMemberAccess(SyntaxNodeAnalysisContext context)
+    {
+        var memberAccess = (MemberAccessExpressionSyntax)context.Node;
+
+        // Get the symbol of the member
+        var symbolInfo = context.SemanticModel.GetSymbolInfo(memberAccess);
+        if (symbolInfo.Symbol is not IPropertySymbol propertySymbol)
+            return;
+
+        // Handle getter and setter
+        var isGetter = IsPropertyGetter(memberAccess);
+        var isSetter = IsPropertySetter(memberAccess);
+
+        if (isGetter && propertySymbol.GetMethod != null)
+        {
+            AnalyzeCalledMethod(context, memberAccess, propertySymbol.GetMethod);
+        }
+
+        if (isSetter && propertySymbol.SetMethod != null)
+        {
+            AnalyzeCalledMethod(context, memberAccess, propertySymbol.SetMethod);
+        }
+    }
+
+    private void AnalyzeElementAccess(SyntaxNodeAnalysisContext context)
+    {
+        var elementAccess = (ElementAccessExpressionSyntax)context.Node;
+
+        // Get the symbol of the indexer
+        var symbolInfo = context.SemanticModel.GetSymbolInfo(elementAccess);
+        if (symbolInfo.Symbol is not IPropertySymbol propertySymbol)
+            return;
+
+        // Handle getter and setter
+        var isGetter = IsPropertyGetter(elementAccess);
+        var isSetter = IsPropertySetter(elementAccess);
+
+        if (isGetter && propertySymbol.GetMethod != null)
+        {
+            AnalyzeCalledMethod(context, elementAccess, propertySymbol.GetMethod);
+        }
+
+        if (isSetter && propertySymbol.SetMethod != null)
+        {
+            AnalyzeCalledMethod(context, elementAccess, propertySymbol.SetMethod);
+        }
+    }
+
+    private void AnalyzeCalledMethod(SyntaxNodeAnalysisContext context, SyntaxNode node, IMethodSymbol methodSymbol)
+    {
+        if (methodSymbol == null)
             return;
 
         // Get the ThrowsAttribute applied to the method
@@ -53,24 +130,55 @@ public class ThrowsAnalyzer : DiagnosticAnalyzer
             .Where(exType => exType != null)
             .ToArray();
 
+        // Generate method description
+        string methodDescription = GetMethodDescription(methodSymbol);
+
         // Check if exceptions are handled or declared
         foreach (var exceptionType in exceptionTypes)
         {
-            var isHandled = IsExceptionHandledInTryCatch(context, invocation, exceptionType);
-            var isDeclared = IsExceptionDeclaredInMethod(context, invocation, exceptionType);
+            var isHandled = IsExceptionHandledInTryCatch(context, node, exceptionType);
+            var isDeclared = IsExceptionDeclaredInMethod(context, node, exceptionType);
 
             if (!isHandled && !isDeclared)
             {
-                var diagnostic = Diagnostic.Create(Rule, invocation.GetLocation(), methodSymbol.Name, exceptionType.Name);
+                var diagnostic = Diagnostic.Create(Rule, node.GetLocation(), methodDescription, exceptionType.Name);
                 context.ReportDiagnostic(diagnostic);
             }
         }
     }
 
-    private bool IsExceptionHandledInTryCatch(SyntaxNodeAnalysisContext context, InvocationExpressionSyntax invocation, INamedTypeSymbol exceptionType)
+    private string GetMethodDescription(IMethodSymbol methodSymbol)
+    {
+        switch (methodSymbol.MethodKind)
+        {
+            case MethodKind.Constructor:
+                // For constructors, display "Constructor 'ClassName'"
+                return $"Constructor '{methodSymbol.ContainingType.Name}'";
+
+            case MethodKind.PropertyGet:
+            case MethodKind.PropertySet:
+                // For property accessors, display "Property 'PropertyName' getter/setter"
+                var propertySymbol = methodSymbol.AssociatedSymbol as IPropertySymbol;
+                if (propertySymbol != null)
+                {
+                    string accessorType = methodSymbol.MethodKind == MethodKind.PropertyGet ? "getter" : "setter";
+                    return $"Property '{propertySymbol.Name}' {accessorType}";
+                }
+                break;
+
+            default:
+                // For regular methods, display "Method 'MethodName'"
+                return $"Method '{methodSymbol.Name}'";
+        }
+
+        // Fallback to method name if none of the above
+        return $"Method '{methodSymbol.Name}'";
+    }
+
+    private bool IsExceptionHandledInTryCatch(SyntaxNodeAnalysisContext context, SyntaxNode node, INamedTypeSymbol exceptionType)
     {
         // Traverse up the syntax tree to find enclosing try-catch blocks
-        foreach (var ancestor in invocation.Ancestors())
+        foreach (var ancestor in node.Ancestors())
         {
             if (ancestor is TryStatementSyntax tryStatement)
             {
@@ -104,10 +212,10 @@ public class ThrowsAnalyzer : DiagnosticAnalyzer
         return false;
     }
 
-    private bool IsExceptionDeclaredInMethod(SyntaxNodeAnalysisContext context, InvocationExpressionSyntax invocation, INamedTypeSymbol exceptionType)
+    private bool IsExceptionDeclaredInMethod(SyntaxNodeAnalysisContext context, SyntaxNode node, INamedTypeSymbol exceptionType)
     {
         // Get the containing method
-        var containingMethod = invocation.Ancestors().OfType<MethodDeclarationSyntax>().FirstOrDefault();
+        var containingMethod = node.Ancestors().OfType<MethodDeclarationSyntax>().FirstOrDefault();
         if (containingMethod != null)
         {
             var containingMethodSymbol = context.SemanticModel.GetDeclaredSymbol(containingMethod);
@@ -123,6 +231,26 @@ public class ThrowsAnalyzer : DiagnosticAnalyzer
                     exceptionType.IsOrInheritsFrom(callerExType));
             }
         }
+
+        return false;
+    }
+
+    private bool IsPropertyGetter(ExpressionSyntax expression)
+    {
+        // Check if the expression is being read (RHS of an assignment or in an expression)
+        var parent = expression.Parent;
+        if (parent is AssignmentExpressionSyntax assignment && assignment.Left == expression)
+            return false; // It's a setter
+
+        return true; // Assume getter in other cases
+    }
+
+    private bool IsPropertySetter(ExpressionSyntax expression)
+    {
+        // Check if the expression is being assigned a value
+        var parent = expression.Parent;
+        if (parent is AssignmentExpressionSyntax assignment && assignment.Left == expression)
+            return true; // It's a setter
 
         return false;
     }
