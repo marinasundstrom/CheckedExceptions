@@ -26,7 +26,7 @@ public class ThrowsAnalyzer : DiagnosticAnalyzer
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
         context.EnableConcurrentExecution();
 
-        // Register action for method invocations
+        // Register action for method invocations (includes local function calls and delegate invocations)
         context.RegisterSyntaxNodeAction(AnalyzeMethodCall, SyntaxKind.InvocationExpression);
 
         // Register action for object creation expressions (constructors)
@@ -48,7 +48,63 @@ public class ThrowsAnalyzer : DiagnosticAnalyzer
         if (symbolInfo.Symbol is not IMethodSymbol methodSymbol)
             return;
 
+        // Handle delegate invokes by getting the target method symbol
+        if (methodSymbol.MethodKind == MethodKind.DelegateInvoke)
+        {
+            var targetMethodSymbol = GetTargetMethodSymbol(context, invocation);
+            if (targetMethodSymbol != null)
+            {
+                methodSymbol = targetMethodSymbol;
+            }
+            else
+            {
+                // Could not find the target method symbol
+                return;
+            }
+        }
+
         AnalyzeCalledMethod(context, invocation, methodSymbol);
+    }
+
+    private IMethodSymbol GetTargetMethodSymbol(SyntaxNodeAnalysisContext context, InvocationExpressionSyntax invocation)
+    {
+        var expression = invocation.Expression;
+
+        // Get the symbol of the expression being invoked
+        var symbolInfo = context.SemanticModel.GetSymbolInfo(expression);
+        var symbol = symbolInfo.Symbol ?? symbolInfo.CandidateSymbols.FirstOrDefault();
+
+        if (symbol == null)
+            return null;
+
+        if (symbol is ILocalSymbol localSymbol)
+        {
+            // Get the syntax node where the local variable is declared
+            var declaringSyntaxReference = localSymbol.DeclaringSyntaxReferences.FirstOrDefault();
+            if (declaringSyntaxReference != null)
+            {
+                var syntaxNode = declaringSyntaxReference.GetSyntax();
+
+                if (syntaxNode is VariableDeclaratorSyntax variableDeclarator)
+                {
+                    var initializer = variableDeclarator.Initializer?.Value;
+
+                    if (initializer != null)
+                    {
+                        // Get the method symbol of the initializer (lambda expression or method group)
+                        var initializerSymbolInfo = context.SemanticModel.GetSymbolInfo(initializer);
+                        var initializerSymbol = initializerSymbolInfo.Symbol ?? initializerSymbolInfo.CandidateSymbols.FirstOrDefault();
+
+                        if (initializerSymbol is IMethodSymbol targetMethodSymbol)
+                        {
+                            return targetMethodSymbol;
+                        }
+                    }
+                }
+            }
+        }
+
+        return null;
     }
 
     private void AnalyzeObjectCreation(SyntaxNodeAnalysisContext context)
@@ -152,12 +208,10 @@ public class ThrowsAnalyzer : DiagnosticAnalyzer
         switch (methodSymbol.MethodKind)
         {
             case MethodKind.Constructor:
-                // For constructors, display "Constructor 'ClassName'"
                 return $"Constructor '{methodSymbol.ContainingType.Name}'";
 
             case MethodKind.PropertyGet:
             case MethodKind.PropertySet:
-                // For property accessors, display "Property 'PropertyName' getter/setter"
                 var propertySymbol = methodSymbol.AssociatedSymbol as IPropertySymbol;
                 if (propertySymbol != null)
                 {
@@ -166,12 +220,16 @@ public class ThrowsAnalyzer : DiagnosticAnalyzer
                 }
                 break;
 
+            case MethodKind.LocalFunction:
+                return $"Local function '{methodSymbol.Name}'";
+
+            case MethodKind.AnonymousFunction:
+                return $"Lambda expression";
+
             default:
-                // For regular methods, display "Method 'MethodName'"
                 return $"Method '{methodSymbol.Name}'";
         }
 
-        // Fallback to method name if none of the above
         return $"Method '{methodSymbol.Name}'";
     }
 
@@ -200,12 +258,7 @@ public class ThrowsAnalyzer : DiagnosticAnalyzer
                 }
             }
 
-            // Stop traversal if we reach an outer method or lambda expression
-            if (ancestor is MethodDeclarationSyntax || ancestor is AnonymousFunctionExpressionSyntax)
-            {
-                // Do not break here; continue traversal to check for outer try-catch blocks
-                // Optionally, you can break if you want to limit the scope to the current method
-            }
+            // Do not break; continue traversal to check for outer try-catch blocks
         }
 
         // Exception is not handled
@@ -214,24 +267,47 @@ public class ThrowsAnalyzer : DiagnosticAnalyzer
 
     private bool IsExceptionDeclaredInMethod(SyntaxNodeAnalysisContext context, SyntaxNode node, INamedTypeSymbol exceptionType)
     {
-        // Get the containing method
-        var containingMethod = node.Ancestors().OfType<MethodDeclarationSyntax>().FirstOrDefault();
-        if (containingMethod != null)
+        // Traverse up through methods, local functions, and anonymous functions
+        foreach (var ancestor in node.Ancestors())
         {
-            var containingMethodSymbol = context.SemanticModel.GetDeclaredSymbol(containingMethod);
-            if (containingMethodSymbol != null)
-            {
-                var callerThrowsAttributes = containingMethodSymbol.GetAttributes()
-                    .Where(attr => attr.AttributeClass?.Name == "ThrowsAttribute")
-                    .Select(attr => attr.ConstructorArguments[0].Value as INamedTypeSymbol)
-                    .Where(exType => exType != null)
-                    .ToArray();
+            IMethodSymbol methodSymbol = null;
 
-                return callerThrowsAttributes.Any(callerExType =>
-                    exceptionType.IsOrInheritsFrom(callerExType));
+            if (ancestor is MethodDeclarationSyntax methodDeclaration)
+            {
+                methodSymbol = context.SemanticModel.GetDeclaredSymbol(methodDeclaration);
+            }
+            else if (ancestor is LocalFunctionStatementSyntax localFunction)
+            {
+                methodSymbol = context.SemanticModel.GetDeclaredSymbol(localFunction);
+            }
+            else if (ancestor is AnonymousFunctionExpressionSyntax anonymousFunction)
+            {
+                methodSymbol = context.SemanticModel.GetSymbolInfo(anonymousFunction).Symbol as IMethodSymbol;
+            }
+
+            if (methodSymbol != null)
+            {
+                if (IsExceptionDeclaredInSymbol(methodSymbol, exceptionType))
+                    return true;
             }
         }
 
+        // Exception is not declared in any enclosing method, local function, or anonymous function
+        return false;
+    }
+
+    private bool IsExceptionDeclaredInSymbol(IMethodSymbol methodSymbol, INamedTypeSymbol exceptionType)
+    {
+        if (methodSymbol != null)
+        {
+            var throwsAttributes = methodSymbol.GetAttributes()
+                .Where(attr => attr.AttributeClass?.Name == "ThrowsAttribute")
+                .Select(attr => attr.ConstructorArguments[0].Value as INamedTypeSymbol)
+                .Where(exType => exType != null);
+
+            return throwsAttributes.Any(declaredException =>
+                exceptionType.IsOrInheritsFrom(declaredException));
+        }
         return false;
     }
 
@@ -264,13 +340,15 @@ public static class TypeSymbolExtensions
         if (type == null || baseType == null)
             return false;
 
-        var current = type;
-        while (current != null)
-        {
-            if (SymbolEqualityComparer.Default.Equals(current, baseType))
-                return true;
+        return type.Equals(baseType, SymbolEqualityComparer.Default) || type.InheritsFrom(baseType);
+    }
 
-            current = current.BaseType;
+    public static bool InheritsFrom(this INamedTypeSymbol type, INamedTypeSymbol baseType)
+    {
+        for (var t = type.BaseType; t != null; t = t.BaseType)
+        {
+            if (t.Equals(baseType, SymbolEqualityComparer.Default))
+                return true;
         }
         return false;
     }

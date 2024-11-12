@@ -2,7 +2,7 @@
 
 Adds checked exceptions to C#/.NET via the ``ThrowsAttribute`` and an analyzer. Similar to in Java. As a warning by default.
 
-Works for methods, properties (accessors), and constructors.
+Works for methods, properties (accessors), constructors, lambda expressions, and local functions.
 
 Supports propagation of the warnings.
 

@@ -1,5 +1,6 @@
-namespace System;
+namespace ECommerceSystem;
 
+// Your version of ThrowsAttribute
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Delegate, AllowMultiple = true)]
 public class ThrowsAttribute : Attribute
 {
