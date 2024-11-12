@@ -4,7 +4,9 @@ using Microsoft.CodeAnalysis.Testing;
 
 namespace ThrowsAnalyzer.Test;
 
-public class ThrowsAnalyzerTests : CSharpAnalyzerTest<ThrowsAnalyzer, DefaultVerifier>
+using Verifier = CSharpAnalyzerVerifier<ThrowsAnalyzer, DefaultVerifier>;
+
+public class ThrowsAnalyzerTests
 {
     [Fact]
     public async Task MethodWithoutHandlingThrowsException_ShouldTriggerWarning()
@@ -12,7 +14,7 @@ public class ThrowsAnalyzerTests : CSharpAnalyzerTest<ThrowsAnalyzer, DefaultVer
         var testCode = @"
 using System;
 
-[AttributeUsage(AttributeTargets.Method, AllowMultiple = true)]
+[AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Delegate, AllowMultiple = true)]
 public class ThrowsAttribute : Attribute
 {
     public Type ExceptionType { get; }
@@ -46,9 +48,8 @@ public class Example
 
         var expectedDiagnostic = new DiagnosticResult("THROW001", DiagnosticSeverity.Warning)
             .WithMessage("Method 'FetchData' throws exception 'NullReferenceException' which is not handled")
-            .WithSpan(22, 9, 22, 27); // Span points to fetcher.FetchData();
+            .WithSpan(32, 9, 32, 28); // Span points to fetcher.FetchData();
 
-        await AnalyzerVerifier<ThrowsAnalyzer, ThrowsAnalyzerTests,
-            DefaultVerifier>.VerifyAnalyzerAsync(testCode, expectedDiagnostic);
+        await Verifier.VerifyAnalyzerAsync(testCode, expectedDiagnostic);
     }
 }
