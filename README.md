@@ -8,7 +8,7 @@ Similar to Checked Exceptions in Java. But as Warnings by default.
 
 Works for: Methods, properties (accessors), constructors, lambda expressions, and local functions.
 
-Supports propagation of the warnings. Also deals with inheritance for exceptions.
+Supports propagation of the warnings. Also deals with inheritance hierarchies for exceptions.
 
 Examples below, and in the "Test" project.
 
@@ -50,7 +50,7 @@ public class ThrowsAttribute : Attribute
 
 ## Annotating methods
 
-Annotate methods with one or more ``ThrowsAttribute`` to indicate what exceptions it might throw:
+Annotate a method with one or more ``ThrowsAttribute`` to indicate what exceptions it might throw:
 
 ```csharp
 public class DataFetcher
@@ -91,7 +91,7 @@ catch (NullReferenceException ex)
 
 Now the warnings won't propagate.
 
-Also handles inheritance, such as base class ``Exception``:
+Also handles inheritance hierarchies, such as base class ``Exception``:
 
 ```csharp
 try
@@ -106,7 +106,7 @@ catch (Exception ex)
 
 ### Multiple attributes
 
-Here is a method throwing two exceptions:
+A method throwing two exceptions:
 
 ```csharp
 public class DataFetcher2
@@ -123,7 +123,7 @@ public class DataFetcher2
 When you don't handle all exceptions:
 
 ```csharp
-var fetcher = new DataFetcher();
+var fetcher = new DataFetcher2();
 
 try
 {
@@ -139,7 +139,7 @@ catch (NullReferenceException ex)
 Handling all exceptions:
 
 ```csharp
-var fetcher = new DataFetcher();
+var fetcher = new DataFetcher2();
 
 try
 {
@@ -155,10 +155,10 @@ catch (ArgumentException ex)
 }
 ```
 
-Or catch a base class, such as ``Exception``.
+Or catch a base class covering all exceptions, such as ``Exception``.
 
 ```csharp
-var fetcher = new DataFetcher();
+var fetcher = new DataFetcher2();
 
 try
 {
@@ -176,9 +176,7 @@ Investigate if it is possible to add support to existing framework type members 
 
 ## Proposed syntax
 
-This would integrate the analyzer into the programming language.
-
-There could be syntax added to the C# programming language.
+The analyzer could be added to C# and there could be special syntax:
 
 ```csharp
 public class DataFetcher
