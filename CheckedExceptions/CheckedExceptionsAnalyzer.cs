@@ -13,9 +13,9 @@ public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 {
     public const string DiagnosticId = "THROW001";
 
-    private static readonly LocalizableString Title = "Exception not handled or declared";
-    private static readonly LocalizableString MessageFormat = "{0} throws exception '{1}' which is not handled";
-    private static readonly LocalizableString Description = "Exceptions thrown by method calls should be handled or declared";
+    private static readonly LocalizableString Title = new LocalizableResourceString(nameof(Resources.AnalyzerTitle), Resources.ResourceManager, typeof(Resources));
+    private static readonly LocalizableString MessageFormat = new LocalizableResourceString(nameof(Resources.AnalyzerMessageFormat), Resources.ResourceManager, typeof(Resources));
+    private static readonly LocalizableString Description = new LocalizableResourceString(nameof(Resources.AnalyzerDescription), Resources.ResourceManager, typeof(Resources));
     private const string Category = "Usage";
 
     private static readonly DiagnosticDescriptor Rule = new(
