@@ -2,11 +2,23 @@
 
 Adds checked exceptions to C#/.NET via the ``ThrowsAttribute`` and analyzers and code fixes. 
 
-Similar to in Java. Warnings by default.
+Generated with help from ChatGPT.
+
+Similar to Checked Exceptions in Java. But as Warnings by default.
 
 Works for: Methods, properties (accessors), constructors, lambda expressions, and local functions.
 
 Supports propagation of the warnings. Also deals with inheritance for exceptions.
+
+Examples below, and in the "Test" project.
+
+## Purpose
+
+Being explicit about the exceptions being thrown, and letting the compiler guide you in catching them.
+
+Since .NET already uses exceptions.
+
+## Contents
 
 Analyzers:
 * Unhandled exception (THROW001)
@@ -15,8 +27,6 @@ Analyzers:
 Code fixes:
 * Add ThrowsAttribute
 * Add try-catch block
-
-Generated with help from ChatGPT.
 
 ## ``ThrowsAttribute``
 
