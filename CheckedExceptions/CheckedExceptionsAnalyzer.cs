@@ -6,15 +6,16 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Xml.Linq;
 
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 {
     public const string DiagnosticId = "THROW001";
 
-    private static readonly LocalizableString Title = new LocalizableResourceString(nameof(Resources.AnalyzerTitle), Resources.ResourceManager, typeof(Resources));
-    private static readonly LocalizableString MessageFormat = new LocalizableResourceString(nameof(Resources.AnalyzerMessageFormat), Resources.ResourceManager, typeof(Resources));
-    private static readonly LocalizableString Description = new LocalizableResourceString(nameof(Resources.AnalyzerDescription), Resources.ResourceManager, typeof(Resources));
+    private static readonly LocalizableString Title = "Exception not handled or declared";
+    private static readonly LocalizableString MessageFormat = "{0} throws exception '{1}' which is not handled";
+    private static readonly LocalizableString Description = "Exceptions thrown by method calls should be handled or declared";
     private const string Category = "Usage";
 
     private static readonly DiagnosticDescriptor Rule = new(
@@ -26,7 +27,8 @@ public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         isEnabledByDefault: true,
         description: Description);
 
-    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
+        ImmutableArray.Create(Rule);
 
     public override void Initialize(AnalysisContext context)
     {
@@ -34,7 +36,7 @@ public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
         context.EnableConcurrentExecution();
 
-        // Register action for method invocations (includes local function calls and delegate invocations)
+        // Register action for method invocations
         context.RegisterSyntaxNodeAction(AnalyzeMethodCall, SyntaxKind.InvocationExpression);
 
         // Register action for object creation expressions (constructors)
@@ -57,7 +59,9 @@ public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
         // Get the symbol of the invoked method
         var symbolInfo = context.SemanticModel.GetSymbolInfo(invocation);
-        if (symbolInfo.Symbol is not IMethodSymbol methodSymbol)
+        var methodSymbol = symbolInfo.Symbol as IMethodSymbol;
+
+        if (methodSymbol == null)
             return;
 
         // Handle delegate invokes by getting the target method symbol
@@ -125,7 +129,9 @@ public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
         // Get the symbol of the constructor being called
         var symbolInfo = context.SemanticModel.GetSymbolInfo(objectCreation);
-        if (symbolInfo.Symbol is not IMethodSymbol methodSymbol)
+        var methodSymbol = symbolInfo.Symbol as IMethodSymbol;
+
+        if (methodSymbol == null)
             return;
 
         AnalyzeCalledMethod(context, objectCreation, methodSymbol);
@@ -137,22 +143,28 @@ public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
         // Get the symbol of the member
         var symbolInfo = context.SemanticModel.GetSymbolInfo(memberAccess);
-        if (symbolInfo.Symbol is not IPropertySymbol propertySymbol)
+        var symbol = symbolInfo.Symbol;
+
+        if (symbol == null)
             return;
 
-        // Handle getter and setter
-        var isGetter = IsPropertyGetter(memberAccess);
-        var isSetter = IsPropertySetter(memberAccess);
-
-        if (isGetter && propertySymbol.GetMethod != null)
+        if (symbol is IPropertySymbol propertySymbol)
         {
-            AnalyzeCalledMethod(context, memberAccess, propertySymbol.GetMethod);
-        }
+            // Handle getter and setter
+            var isGetter = IsPropertyGetter(memberAccess);
+            var isSetter = IsPropertySetter(memberAccess);
 
-        if (isSetter && propertySymbol.SetMethod != null)
-        {
-            AnalyzeCalledMethod(context, memberAccess, propertySymbol.SetMethod);
+            if (isGetter && propertySymbol.GetMethod != null)
+            {
+                AnalyzeCalledMethod(context, memberAccess, propertySymbol.GetMethod);
+            }
+
+            if (isSetter && propertySymbol.SetMethod != null)
+            {
+                AnalyzeCalledMethod(context, memberAccess, propertySymbol.SetMethod);
+            }
         }
+        // Do not analyze methods here to prevent duplicate diagnostics
     }
 
     private void AnalyzeElementAccess(SyntaxNodeAnalysisContext context)
@@ -161,7 +173,9 @@ public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
         // Get the symbol of the indexer
         var symbolInfo = context.SemanticModel.GetSymbolInfo(elementAccess);
-        if (symbolInfo.Symbol is not IPropertySymbol propertySymbol)
+        var propertySymbol = symbolInfo.Symbol as IPropertySymbol;
+
+        if (propertySymbol == null)
             return;
 
         // Handle getter and setter
@@ -185,7 +199,9 @@ public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
         // Check if the left side is an event
         var symbolInfo = context.SemanticModel.GetSymbolInfo(assignment.Left);
-        if (symbolInfo.Symbol is not IEventSymbol eventSymbol)
+        var eventSymbol = symbolInfo.Symbol as IEventSymbol;
+
+        if (eventSymbol == null)
             return;
 
         // Get the method symbol for the add or remove accessor
@@ -211,26 +227,25 @@ public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         if (methodSymbol == null)
             return;
 
-        // Get the ThrowsAttribute applied to the method
-        var throwsAttributes = methodSymbol.GetAttributes()
-            .Where(attr => attr.AttributeClass?.Name == "ThrowsAttribute")
-            .ToArray();
+        // Get exceptions from ThrowsAttribute
+        var exceptionTypes = GetExceptionTypesFromThrowsAttribute(methodSymbol).ToList();
 
-        if (!throwsAttributes.Any())
+        // Get exceptions from XML documentation
+        var xmlExceptionTypes = GetExceptionTypesFromDocumentation(methodSymbol);
+        exceptionTypes.AddRange(xmlExceptionTypes);
+
+        if (!exceptionTypes.Any())
             return;
-
-        // Get the exception types specified in ThrowsAttribute
-        var exceptionTypes = throwsAttributes
-            .Select(attr => attr.ConstructorArguments[0].Value as INamedTypeSymbol)
-            .Where(exType => exType != null)
-            .ToArray();
 
         // Generate method description
         string methodDescription = GetMethodDescription(methodSymbol);
 
         // Check if exceptions are handled or declared
-        foreach (var exceptionType in exceptionTypes)
+        foreach (var exceptionType in exceptionTypes.Distinct(SymbolEqualityComparer.Default).OfType<INamedTypeSymbol>())
         {
+            if (exceptionType == null)
+                continue;
+
             var isHandled = IsExceptionHandledInTryCatch(context, node, exceptionType);
             var isDeclared = IsExceptionDeclaredInMethod(context, node, exceptionType);
 
@@ -238,6 +253,57 @@ public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             {
                 var diagnostic = Diagnostic.Create(Rule, node.GetLocation(), methodDescription, exceptionType.Name);
                 context.ReportDiagnostic(diagnostic);
+            }
+        }
+    }
+
+    private IEnumerable<INamedTypeSymbol> GetExceptionTypesFromThrowsAttribute(IMethodSymbol methodSymbol)
+    {
+        var throwsAttributes = methodSymbol.GetAttributes()
+            .Where(attr => attr.AttributeClass?.Name == "ThrowsAttribute");
+
+        foreach (var attr in throwsAttributes)
+        {
+            if (attr.ConstructorArguments.Length > 0)
+            {
+                var exceptionType = attr.ConstructorArguments[0].Value as INamedTypeSymbol;
+                if (exceptionType != null)
+                {
+                    yield return exceptionType;
+                }
+            }
+        }
+    }
+
+    private IEnumerable<INamedTypeSymbol> GetExceptionTypesFromDocumentation(IMethodSymbol methodSymbol)
+    {
+        var xmlDocumentation = methodSymbol.GetDocumentationCommentXml(expandIncludes: true, cancellationToken: default);
+        if (string.IsNullOrWhiteSpace(xmlDocumentation))
+            yield break;
+
+        var xml = XDocument.Parse(xmlDocumentation);
+
+        // Get all <exception> tags
+        var exceptionElements = xml.Descendants("exception");
+
+        foreach (var exceptionElement in exceptionElements)
+        {
+            var crefAttribute = exceptionElement.Attribute("cref");
+            if (crefAttribute != null)
+            {
+                var crefValue = crefAttribute.Value;
+
+                // Remove 'T:' prefix if present
+                if (crefValue.StartsWith("T:"))
+                    crefValue = crefValue.Substring(2);
+
+                var exceptionType = methodSymbol.ContainingAssembly.GetTypeByMetadataName(crefValue) ??
+                                    methodSymbol.ContainingAssembly.GetTypeByMetadataName(crefValue.Split('.').Last());
+
+                if (exceptionType != null)
+                {
+                    yield return exceptionType;
+                }
             }
         }
     }
@@ -258,7 +324,7 @@ public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
                     if (propertySymbol.IsIndexer)
                     {
                         // Include parameter types in the indexer description
-                        string parameters = string.Join(", ", propertySymbol.Parameters.Select(p => p.Type.ToDisplayString()));
+                        string parameters = string.Join(", ", propertySymbol.Parameters.Select(p => p.Type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)));
                         return $"Indexer '{methodSymbol.ContainingType.Name}[{parameters}]' {accessorType}";
                     }
                     else
@@ -379,22 +445,48 @@ public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
     private bool IsPropertyGetter(ExpressionSyntax expression)
     {
-        // Check if the expression is being read (RHS of an assignment or in an expression)
         var parent = expression.Parent;
-        if (parent is AssignmentExpressionSyntax assignment && assignment.Left == expression)
-            return false; // It's a setter
+
+        if (parent is AssignmentExpressionSyntax assignment)
+        {
+            if (assignment.Left == expression)
+                return false; // It's a setter
+        }
+        else if (parent is PrefixUnaryExpressionSyntax prefixUnary)
+        {
+            if (prefixUnary.IsKind(SyntaxKind.PreIncrementExpression) || prefixUnary.IsKind(SyntaxKind.PreDecrementExpression))
+                return false; // It's a setter
+        }
+        else if (parent is PostfixUnaryExpressionSyntax postfixUnary)
+        {
+            if (postfixUnary.IsKind(SyntaxKind.PostIncrementExpression) || postfixUnary.IsKind(SyntaxKind.PostDecrementExpression))
+                return false; // It's a setter
+        }
 
         return true; // Assume getter in other cases
     }
 
     private bool IsPropertySetter(ExpressionSyntax expression)
     {
-        // Check if the expression is being assigned a value
         var parent = expression.Parent;
-        if (parent is AssignmentExpressionSyntax assignment && assignment.Left == expression)
-            return true; // It's a setter
 
-        return false;
+        if (parent is AssignmentExpressionSyntax assignment)
+        {
+            if (assignment.Left == expression)
+                return true; // It's a setter
+        }
+        else if (parent is PrefixUnaryExpressionSyntax prefixUnary)
+        {
+            if (prefixUnary.IsKind(SyntaxKind.PreIncrementExpression) || prefixUnary.IsKind(SyntaxKind.PreDecrementExpression))
+                return true; // It's a setter
+        }
+        else if (parent is PostfixUnaryExpressionSyntax postfixUnary)
+        {
+            if (postfixUnary.IsKind(SyntaxKind.PostIncrementExpression) || postfixUnary.IsKind(SyntaxKind.PostDecrementExpression))
+                return true; // It's a setter
+        }
+
+        return false; // Assume getter in other cases
     }
 }
 

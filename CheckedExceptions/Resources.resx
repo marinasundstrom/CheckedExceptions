@@ -127,7 +127,7 @@
     <comment>The title of the diagnostic.</comment>
   </data>
   <data name="AnalyzerDescription" xml:space="preserve">
-    <value>An unhandled exception has been thrown.</value>
+    <value>Exceptions thrown by method calls should be handled or declared.</value>
     <comment>An optional longer localizable description of the diagnostic.</comment>
   </data>
   <data name="AnalyzerMessageFormat" xml:space="preserve">

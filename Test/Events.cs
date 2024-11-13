@@ -38,7 +38,7 @@ public class EventPublisher
             handlers += value;
         }
 
-        //[Throws(typeof(InvalidOperationException))]
+        [Throws(typeof(InvalidOperationException))]
         remove
         {
             Foo();
