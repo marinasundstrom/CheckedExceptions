@@ -231,7 +231,7 @@ public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         var exceptionTypes = GetExceptionTypesFromThrowsAttribute(methodSymbol).ToList();
 
         // Get exceptions from XML documentation
-        var xmlExceptionTypes = GetExceptionTypesFromDocumentation(methodSymbol);
+        var xmlExceptionTypes = GetExceptionTypesFromDocumentation(context.Compilation, methodSymbol);
         exceptionTypes.AddRange(xmlExceptionTypes);
 
         if (!exceptionTypes.Any())
@@ -275,13 +275,24 @@ public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         }
     }
 
-    private IEnumerable<INamedTypeSymbol> GetExceptionTypesFromDocumentation(IMethodSymbol methodSymbol)
+    private IEnumerable<INamedTypeSymbol> GetExceptionTypesFromDocumentation(Compilation compilation, IMethodSymbol methodSymbol)
     {
-        var xmlDocumentation = methodSymbol.GetDocumentationCommentXml(expandIncludes: true, cancellationToken: default);
-        if (string.IsNullOrWhiteSpace(xmlDocumentation))
-            yield break;
+        var xmlDocumentation = methodSymbol.GetDocumentationCommentXml(expandIncludes: true);
 
-        var xml = XDocument.Parse(xmlDocumentation);
+        if (string.IsNullOrWhiteSpace(xmlDocumentation)) return Enumerable.Empty<INamedTypeSymbol>();
+
+        XDocument xml;
+        try
+        {
+            xml = XDocument.Parse(xmlDocumentation);
+        }
+        catch (Exception ex)
+        {
+            // Handle or log the parsing error
+            return Enumerable.Empty<INamedTypeSymbol>();
+        }
+
+        List<INamedTypeSymbol> exceptionTypes = new List<INamedTypeSymbol>();
 
         // Get all <exception> tags
         var exceptionElements = xml.Descendants("exception");
@@ -297,15 +308,17 @@ public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
                 if (crefValue.StartsWith("T:"))
                     crefValue = crefValue.Substring(2);
 
-                var exceptionType = methodSymbol.ContainingAssembly.GetTypeByMetadataName(crefValue) ??
-                                    methodSymbol.ContainingAssembly.GetTypeByMetadataName(crefValue.Split('.').Last());
+                var exceptionType = compilation.GetTypeByMetadataName(crefValue) ??
+                                    compilation.GetTypeByMetadataName(crefValue.Split('.').Last());
 
                 if (exceptionType != null)
                 {
-                    yield return exceptionType;
+                    exceptionTypes.Add(exceptionType);
                 }
             }
         }
+
+        return exceptionTypes;
     }
 
     private string GetMethodDescription(IMethodSymbol methodSymbol)

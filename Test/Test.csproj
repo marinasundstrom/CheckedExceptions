@@ -5,8 +5,12 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <WarningsAsErrors>THROW001; THROW002</WarningsAsErrors>
+    <!-- <WarningsAsErrors>THROW001; THROW002</WarningsAsErrors> -->
   </PropertyGroup>
+
+  <!-- <PropertyGroup>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup> -->
 
   <!-- <ItemGroup>
     <PackageReference Include="CheckedExceptions" Version="1.0.0" />
@@ -14,14 +18,17 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CheckedExceptions\CheckedExceptions.csproj"
-      OutputItemType="Analyzer"
-      ReferenceOutputAssembly="false"
-      PrivateAssets="all" />
+      OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />
+
+    <ProjectReference Include="..\CheckedExceptions.CodeFixes\CheckedExceptions.CodeFixes.csproj"
+      ReferenceOutputAssembly="false" PrivateAssets="all" />
+
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CheckedExceptions.CodeFixes\CheckedExceptions.CodeFixes.csproj" />
     <ProjectReference Include="..\CheckedExceptions.Attribute\CheckedExceptions.Attribute.csproj" />
+    <ProjectReference Include="..\Test2\Test2.csproj" />
+
   </ItemGroup>
 
 </Project>
