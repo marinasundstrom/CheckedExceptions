@@ -5,7 +5,7 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <!-- <WarningsAsErrors>THROW001; THROW002</WarningsAsErrors> -->
+    <WarningsAsErrors>THROW001; THROW002</WarningsAsErrors>
   </PropertyGroup>
 
   <!-- <ItemGroup>

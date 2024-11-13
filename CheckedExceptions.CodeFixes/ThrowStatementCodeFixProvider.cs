@@ -137,8 +137,10 @@ public class ThrowStatementCodeFixProvider : CodeFixProvider
         foreach (var ancestor in node.Ancestors())
         {
             if (ancestor is MethodDeclarationSyntax ||
+                ancestor is ConstructorDeclarationSyntax ||
                 ancestor is AccessorDeclarationSyntax ||
                 ancestor is LocalFunctionStatementSyntax ||
+                ancestor is ParenthesizedLambdaExpressionSyntax ||
                 ancestor is LambdaExpressionSyntax)
             {
                 return ancestor;

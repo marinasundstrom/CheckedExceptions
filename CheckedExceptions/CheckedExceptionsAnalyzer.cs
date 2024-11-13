@@ -45,6 +45,10 @@ public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
         // Register action for element access expressions (indexers)
         context.RegisterSyntaxNodeAction(AnalyzeElementAccess, SyntaxKind.ElementAccessExpression);
+
+        // Register action for event assignments (+= and -=)
+        context.RegisterSyntaxNodeAction(AnalyzeEventAssignment, SyntaxKind.AddAssignmentExpression);
+        context.RegisterSyntaxNodeAction(AnalyzeEventAssignment, SyntaxKind.SubtractAssignmentExpression);
     }
 
     private void AnalyzeMethodCall(SyntaxNodeAnalysisContext context)
@@ -172,6 +176,33 @@ public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         if (isSetter && propertySymbol.SetMethod != null)
         {
             AnalyzeCalledMethod(context, elementAccess, propertySymbol.SetMethod);
+        }
+    }
+
+    private void AnalyzeEventAssignment(SyntaxNodeAnalysisContext context)
+    {
+        var assignment = (AssignmentExpressionSyntax)context.Node;
+
+        // Check if the left side is an event
+        var symbolInfo = context.SemanticModel.GetSymbolInfo(assignment.Left);
+        if (symbolInfo.Symbol is not IEventSymbol eventSymbol)
+            return;
+
+        // Get the method symbol for the add or remove accessor
+        IMethodSymbol methodSymbol = null;
+
+        if (assignment.IsKind(SyntaxKind.AddAssignmentExpression) && eventSymbol.AddMethod != null)
+        {
+            methodSymbol = eventSymbol.AddMethod;
+        }
+        else if (assignment.IsKind(SyntaxKind.SubtractAssignmentExpression) && eventSymbol.RemoveMethod != null)
+        {
+            methodSymbol = eventSymbol.RemoveMethod;
+        }
+
+        if (methodSymbol != null)
+        {
+            AnalyzeCalledMethod(context, assignment, methodSymbol);
         }
     }
 
