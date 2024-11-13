@@ -1,39 +1,46 @@
 ﻿using Test;
 
-Console.Write("Write number: ");
-
-var number = Console.ReadLine();
-
 try
 {
-    var parsedNumber = int.Parse(number);
+    Console.Write("Write number: ");
+
+    var number = Console.ReadLine();
+
+    if (number is null)
+    {
+        throw new InvalidOperationException("Argument is null");
+    }
+
+    var parsedNumber = Process(number);
 
     Console.WriteLine($"The number was: {parsedNumber}");
 }
 catch (IOException e) { }
-catch (ArgumentException e) { }
-catch (FormatException e) { }
-catch (OverflowException e) { }
-
-/*
-MultipleThrows multipleThrows = new MultipleThrows();
-multipleThrows.ProcessData1();
-
-DateTime.Parse("s")
-
-Foo();
-
-try
+catch (OutOfMemoryException e) { }
+catch (ArgumentOutOfRangeException e) { }
+catch (InvalidOperationException e)
 {
-    throw new InvalidOperationException();
-}
-catch (InvalidOperationException)
-{
-    throw;
+    Console.WriteLine(e.Message);
 }
 
-static void Foo()
+[Throws(typeof(InvalidOperationException))]
+static double Process(string value)
 {
-    throw new NotImplementedException();
+    try
+    {
+        var no = double.Parse(value);
+        return no * 10;
+    }
+    catch (ArgumentNullException e)
+    {
+        throw new InvalidOperationException("Argument is null");
+    }
+    catch (FormatException e)
+    {
+        throw new InvalidOperationException("Format is invalid");
+    }
+    catch (OverflowException e)
+    {
+        throw new InvalidOperationException("Number exceeds values");
+    }
 }
-*/
