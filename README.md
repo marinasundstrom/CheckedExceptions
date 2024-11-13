@@ -8,6 +8,8 @@ Similar to Checked Exceptions in Java. But as Warnings by default.
 
 Works for: Methods, properties (accessors), constructors, lambda expressions, and local functions.
 
+Even works on members that have been annotated with XML doc, having ``<exception>`` element, such as ``int.Parse``.
+
 Supports propagation of the warnings. Also deals with inheritance hierarchies for exceptions.
 
 Examples below, and in the "Test" project.
@@ -172,7 +174,7 @@ catch (Exception ex)
 
 ## To do
 
-Investigate if it is possible to add support to existing framework type members by parsing MS Doc for exceptions.
+Handle rethrow.
 
 ## Proposed syntax
 
