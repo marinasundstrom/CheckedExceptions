@@ -313,7 +313,8 @@ public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         switch (methodSymbol.MethodKind)
         {
             case MethodKind.Constructor:
-                return $"Constructor '{methodSymbol.ContainingType.Name}'";
+                string constructorParameters = string.Join(", ", methodSymbol.Parameters.Select(p => p.Type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)));
+                return $"Constructor '{methodSymbol.ContainingType.Name}({constructorParameters})'";
 
             case MethodKind.PropertyGet:
             case MethodKind.PropertySet:
@@ -324,8 +325,8 @@ public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
                     if (propertySymbol.IsIndexer)
                     {
                         // Include parameter types in the indexer description
-                        string parameters = string.Join(", ", propertySymbol.Parameters.Select(p => p.Type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)));
-                        return $"Indexer '{methodSymbol.ContainingType.Name}[{parameters}]' {accessorType}";
+                        string propertyParameters = string.Join(", ", propertySymbol.Parameters.Select(p => p.Type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)));
+                        return $"Indexer '{methodSymbol.ContainingType.Name}[{propertyParameters}]' {accessorType}";
                     }
                     else
                     {
@@ -345,16 +346,19 @@ public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
                 break;
 
             case MethodKind.LocalFunction:
-                return $"Local function '{methodSymbol.Name}'";
+                string localFunctionParameters = string.Join(", ", methodSymbol.Parameters.Select(p => p.Type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)));
+                return $"Local function '{methodSymbol.Name}({localFunctionParameters})'";
 
             case MethodKind.AnonymousFunction:
                 return $"Lambda expression";
 
             default:
-                return $"Method '{methodSymbol.Name}'";
+                string methodParameters = string.Join(", ", methodSymbol.Parameters.Select(p => p.Type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)));
+                return $"Method '{methodSymbol.Name}({methodParameters})'";
         }
 
-        return $"Method '{methodSymbol.Name}'";
+        string methodParameters2 = string.Join(", ", methodSymbol.Parameters.Select(p => p.Type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)));
+        return $"Method '{methodSymbol.Name}({methodParameters2})'";
     }
 
     private bool IsExceptionHandledInTryCatch(SyntaxNodeAnalysisContext context, SyntaxNode node, INamedTypeSymbol exceptionType)
