@@ -123,7 +123,7 @@
       Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
   <data name="AnalyzerTitle" xml:space="preserve">
-    <value>Unhandled exception</value>
+    <value>Checked exception</value>
     <comment>The title of the diagnostic.</comment>
   </data>
   <data name="AnalyzerDescription" xml:space="preserve">

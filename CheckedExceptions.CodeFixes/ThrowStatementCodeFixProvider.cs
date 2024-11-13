@@ -8,7 +8,7 @@ using Microsoft.CodeAnalysis.Editing;
 using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.Formatting;
 
-namespace ThrowsAnalyzer;
+namespace CheckedExceptions;
 
 [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(ThrowStatementCodeFixProvider)), Shared]
 public class ThrowStatementCodeFixProvider : CodeFixProvider

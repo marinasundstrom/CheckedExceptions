@@ -2,7 +2,7 @@ using System.Linq;
 
 using Microsoft.CodeAnalysis;
 
-namespace ThrowsAnalyzer;
+namespace CheckedExceptions;
 
 
 // Extension method for checking type inheritance

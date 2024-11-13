@@ -22,7 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ThrowsAnalyzer\ThrowsAnalyzer.csproj" />
+    <ProjectReference Include="..\CheckedExceptions\CheckedExceptions.csproj" />
   </ItemGroup>
 
 </Project>

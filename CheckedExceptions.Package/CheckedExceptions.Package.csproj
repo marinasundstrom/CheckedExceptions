@@ -32,8 +32,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\ThrowsAnalyzer.CodeFixes\ThrowsAnalyzer.CodeFixes.csproj" />
-    <ProjectReference Include="..\ThrowsAnalyzer\ThrowsAnalyzer.csproj" />
+    <ProjectReference Include="..\CheckedExceptions.CodeFixes\CheckedExceptions.CodeFixes.csproj" />
+    <ProjectReference Include="..\CheckedExceptions\CheckedExceptions.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -42,9 +42,9 @@
 
   <Target Name="_AddAnalyzersToOutput">
     <ItemGroup>
-      <TfmSpecificPackageFile Include="$(OutputPath)\ThrowsAnalyzer.dll"
+      <TfmSpecificPackageFile Include="$(OutputPath)\CheckedExceptions.dll"
         PackagePath="analyzers/dotnet/cs" />
-      <TfmSpecificPackageFile Include="$(OutputPath)\ThrowsAnalyzer.CodeFixes.dll"
+      <TfmSpecificPackageFile Include="$(OutputPath)\CheckedExceptions.CodeFixes.dll"
         PackagePath="analyzers/dotnet/cs" />
     </ItemGroup>
   </Target>

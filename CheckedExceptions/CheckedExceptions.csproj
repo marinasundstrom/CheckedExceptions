@@ -6,7 +6,10 @@
     <Nullable>enable</Nullable>
     <LangVersion>Latest</LangVersion>
     <IsPackable>false</IsPackable>
-    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <!-- <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules> -->
+
+    <!-- Avoid ID conflicts with the package project. -->
+    <PackageId>*$(MSBuildProjectFile)*</PackageId>
   </PropertyGroup>
 
   <ItemGroup>

@@ -2,11 +2,11 @@
 using Microsoft.CodeAnalysis.CSharp.Testing;
 using Microsoft.CodeAnalysis.Testing;
 
-namespace ThrowsAnalyzer.Test;
+namespace CheckedExceptions.Test;
 
-using Verifier = CSharpAnalyzerVerifier<ThrowsAnalyzer, DefaultVerifier>;
+using Verifier = CSharpAnalyzerVerifier<CheckedExceptions, DefaultVerifier>;
 
-public class ThrowsAnalyzerTests
+public class CheckedExceptionsTests
 {
     [Fact]
     public async Task MethodWithoutHandlingThrowsException_ShouldTriggerWarning()

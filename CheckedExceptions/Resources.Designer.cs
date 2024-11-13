@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace ThrowsAnalyzer
+namespace CheckedExceptions
 {
     using System;
 
@@ -23,7 +23,7 @@ namespace ThrowsAnalyzer
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("System.Resources.Tools.StronglyTypedResourceBuilder", "16.0.0.0")]
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
-    internal class CodeFixResources
+    internal class Resources
     {
 
         private static global::System.Resources.ResourceManager resourceMan;
@@ -31,7 +31,7 @@ namespace ThrowsAnalyzer
         private static global::System.Globalization.CultureInfo resourceCulture;
 
         [global::System.Diagnostics.CodeAnalysis.SuppressMessageAttribute("Microsoft.Performance", "CA1811:AvoidUncalledPrivateCode")]
-        internal CodeFixResources()
+        internal Resources()
         {
         }
 
@@ -45,7 +45,7 @@ namespace ThrowsAnalyzer
             {
                 if (object.ReferenceEquals(resourceMan, null))
                 {
-                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("ThrowsAnalyzer.CodeFixResources", typeof(CodeFixResources).Assembly);
+                    global::System.Resources.ResourceManager temp = new global::System.Resources.ResourceManager("CheckedExceptions.Resources", typeof(Resources).Assembly);
                     resourceMan = temp;
                 }
                 return resourceMan;
@@ -72,11 +72,33 @@ namespace ThrowsAnalyzer
         /// <summary>
         /// ///   Looks up a localized string similar to Make constant.
         /// </summary>
-        internal static string CodeFixTitle
+        internal static string AnalyzerTitle
         {
             get
             {
-                return ResourceManager.GetString("CodeFixTitle", resourceCulture);
+                return ResourceManager.GetString("AnalyzerTitle", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        /// ///   Looks up a localized string similar to Make constant.
+        /// </summary>
+        internal static string AnalyzerDescription
+        {
+            get
+            {
+                return ResourceManager.GetString("AnalyzerDescription", resourceCulture);
+            }
+        }
+
+        /// <summary>
+        /// ///   Looks up a localized string similar to Make constant.
+        /// </summary>
+        internal static string AnalyzerMessageFormat
+        {
+            get
+            {
+                return ResourceManager.GetString("AnalyzerMessageFormat", resourceCulture);
             }
         }
     }

@@ -1,4 +1,4 @@
-﻿namespace ThrowsAnalyzer;
+﻿namespace CheckedExceptions;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -8,7 +8,7 @@ using System.Collections.Immutable;
 using System.Linq;
 
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
-public class ThrowsAnalyzer : DiagnosticAnalyzer
+public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 {
     public const string DiagnosticId = "THROW001";
 
