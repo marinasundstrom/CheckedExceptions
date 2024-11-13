@@ -4,7 +4,7 @@ Adds checked exceptions to C#/.NET via the ``ThrowsAttribute`` and analyzers and
 
 Generated with help from ChatGPT.
 
-Similar to Checked Exceptions in Java. But as Warnings by default.
+Similar to Checked Exceptions in Java. But as Warnings by default. And it's opt-in.
 
 Works for: Methods, properties (accessors), constructors, lambda expressions, and local functions.
 

@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CheckedExceptions.CodeFixes\CheckedExceptions.CodeFixes.csproj" />
+    <ProjectReference Include="..\CheckedExceptions.Attribute\CheckedExceptions.Attribute.csproj" />
   </ItemGroup>
 
 </Project>
