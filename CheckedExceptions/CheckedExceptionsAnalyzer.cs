@@ -255,7 +255,26 @@ public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
                 if (propertySymbol != null)
                 {
                     string accessorType = methodSymbol.MethodKind == MethodKind.PropertyGet ? "getter" : "setter";
-                    return $"Property '{propertySymbol.Name}' {accessorType}";
+                    if (propertySymbol.IsIndexer)
+                    {
+                        // Include parameter types in the indexer description
+                        string parameters = string.Join(", ", propertySymbol.Parameters.Select(p => p.Type.ToDisplayString()));
+                        return $"Indexer '{methodSymbol.ContainingType.Name}[{parameters}]' {accessorType}";
+                    }
+                    else
+                    {
+                        return $"Property '{propertySymbol.Name}' {accessorType}";
+                    }
+                }
+                break;
+
+            case MethodKind.EventAdd:
+            case MethodKind.EventRemove:
+                var eventSymbol = methodSymbol.AssociatedSymbol as IEventSymbol;
+                if (eventSymbol != null)
+                {
+                    string accessorType = methodSymbol.MethodKind == MethodKind.EventAdd ? "adder" : "remover";
+                    return $"Event '{eventSymbol.Name}' {accessorType}";
                 }
                 break;
 
