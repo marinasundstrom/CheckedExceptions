@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis.Testing;
 
 namespace CheckedExceptions.Test;
 
-using Verifier = CSharpAnalyzerVerifier<CheckedExceptions, DefaultVerifier>;
+using Verifier = CSharpAnalyzerVerifier<CheckedExceptionsAnalyzer, DefaultVerifier>;
 
 public class CheckedExceptionsTests
 {
