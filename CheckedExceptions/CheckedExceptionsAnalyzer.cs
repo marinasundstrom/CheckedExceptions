@@ -275,7 +275,7 @@ public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
     private bool IsExceptionDeclaredInMethod(SyntaxNodeAnalysisContext context, SyntaxNode node, INamedTypeSymbol exceptionType)
     {
-        // Traverse up through methods, local functions, and anonymous functions
+        // Traverse up through methods, constructors, property accessors, local functions, and anonymous functions
         foreach (var ancestor in node.Ancestors())
         {
             IMethodSymbol methodSymbol = null;
@@ -283,6 +283,14 @@ public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             if (ancestor is MethodDeclarationSyntax methodDeclaration)
             {
                 methodSymbol = context.SemanticModel.GetDeclaredSymbol(methodDeclaration);
+            }
+            else if (ancestor is ConstructorDeclarationSyntax constructorDeclaration)
+            {
+                methodSymbol = context.SemanticModel.GetDeclaredSymbol(constructorDeclaration);
+            }
+            else if (ancestor is AccessorDeclarationSyntax accessorDeclaration)
+            {
+                methodSymbol = context.SemanticModel.GetDeclaredSymbol(accessorDeclaration);
             }
             else if (ancestor is LocalFunctionStatementSyntax localFunction)
             {
@@ -300,7 +308,7 @@ public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             }
         }
 
-        // Exception is not declared in any enclosing method, local function, or anonymous function
+        // Exception is not declared in any enclosing method, constructor, property accessor, local function, or anonymous function
         return false;
     }
 

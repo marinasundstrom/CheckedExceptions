@@ -94,7 +94,7 @@ public class ThrowStatementAnalyzer : DiagnosticAnalyzer
 
     private bool IsExceptionDeclaredInMethodOrConstruct(SyntaxNodeAnalysisContext context, SyntaxNode node, INamedTypeSymbol exceptionType)
     {
-        // Traverse up the syntax tree to find the containing method, property accessor, lambda, or local function
+        // Traverse up the syntax tree to find the containing method, constructor, property accessor, lambda, or local function
         foreach (var ancestor in node.Ancestors())
         {
             IMethodSymbol methodSymbol = null;
@@ -102,6 +102,10 @@ public class ThrowStatementAnalyzer : DiagnosticAnalyzer
             if (ancestor is MethodDeclarationSyntax methodDeclaration)
             {
                 methodSymbol = context.SemanticModel.GetDeclaredSymbol(methodDeclaration);
+            }
+            else if (ancestor is ConstructorDeclarationSyntax constructorDeclaration)
+            {
+                methodSymbol = context.SemanticModel.GetDeclaredSymbol(constructorDeclaration);
             }
             else if (ancestor is AccessorDeclarationSyntax accessorDeclaration)
             {
@@ -125,7 +129,7 @@ public class ThrowStatementAnalyzer : DiagnosticAnalyzer
                     .Select(attr => attr.ConstructorArguments[0].Value as INamedTypeSymbol)
                     .Where(exType => exType != null);
 
-                if (throwsAttributes.Any(declaredException => exceptionType.IsOrInheritsFrom2(declaredException)))
+                if (throwsAttributes.Any(declaredException => exceptionType.IsOrInheritsFrom(declaredException)))
                 {
                     return true; // Exception is declared via ThrowsAttribute
                 }

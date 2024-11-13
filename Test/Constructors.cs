@@ -9,6 +9,21 @@ public class DataFetcher3
     }
 }
 
+public class DataFetcher3_2
+{
+    [Throws(typeof(InvalidOperationException))]
+    public void Foo()
+    {
+        throw new InvalidOperationException();
+    }
+
+    [Throws(typeof(InvalidOperationException))]
+    public DataFetcher3_2()
+    {
+        Foo();
+    }
+}
+
 public class Example
 {
     public void ProcessData()

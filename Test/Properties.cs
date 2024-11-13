@@ -14,6 +14,26 @@ public class PropertyGetter
         }
     }
 
+    public class DataProvider2
+    {
+        [Throws(typeof(InvalidOperationException))]
+        public void Foo()
+        {
+            throw new InvalidOperationException();
+        }
+
+        public string Data
+        {
+            [Throws(typeof(InvalidOperationException))]
+            get
+            {
+                Foo();
+
+                return null;
+            }
+        }
+    }
+
 
     public void DisplayData()
     {
