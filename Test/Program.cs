@@ -10,6 +10,7 @@ try
 
     Console.WriteLine($"The number was: {parsedNumber}");
 }
+catch (IOException e) { }
 catch (ArgumentException e) { }
 catch (FormatException e) { }
 catch (OverflowException e) { }

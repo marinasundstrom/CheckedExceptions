@@ -11,6 +11,7 @@
     <PackageReference Include="coverlet.collector" Version="6.0.2" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" Version="4.11.0" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Analyzer.Testing" Version="1.1.2" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.CodeFix.Testing" Version="1.1.2" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.11.0" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.11.1" />
     <PackageReference Include="xunit" Version="2.9.0" />
@@ -23,6 +24,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CheckedExceptions\CheckedExceptions.csproj" />
+    <ProjectReference Include="..\CheckedExceptions.CodeFixes\CheckedExceptions.CodeFixes.csproj" />
   </ItemGroup>
 
 </Project>

@@ -6,7 +6,7 @@ namespace CheckedExceptions.Test;
 
 using Verifier = CSharpAnalyzerVerifier<CheckedExceptionsAnalyzer, DefaultVerifier>;
 
-public class CheckedExceptionsTests
+public class CheckedExceptionsAnalyzerTests
 {
     [Fact]
     public async Task MethodWithoutHandlingThrowsException_ShouldTriggerWarning()

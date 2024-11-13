@@ -54,6 +54,7 @@ public class MultipleThrows
         }
     }
 
+    [Throws(typeof(IOException))]
     public void ProcessData6()
     {
         var fetcher = new DataFetcher2();

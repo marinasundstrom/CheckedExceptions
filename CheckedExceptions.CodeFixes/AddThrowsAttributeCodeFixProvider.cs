@@ -10,11 +10,10 @@ using Microsoft.CodeAnalysis.Formatting;
 
 namespace CheckedExceptions;
 
-[ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(ThrowStatementCodeFixProvider)), Shared]
-public class ThrowStatementCodeFixProvider : CodeFixProvider
+[ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(AddThrowsAttributeCodeFixProvider)), Shared]
+public class AddThrowsAttributeCodeFixProvider : CodeFixProvider
 {
     private const string TitleAddThrowsAttribute = "Add ThrowsAttribute";
-    private const string TitleAddTryCatch = "Add try-catch block";
 
     public sealed override ImmutableArray<string> FixableDiagnosticIds =>
         ImmutableArray.Create(ThrowStatementAnalyzer.DiagnosticId);
@@ -37,13 +36,6 @@ public class ThrowStatementCodeFixProvider : CodeFixProvider
                 createChangedDocument: c => AddThrowsAttributeAsync(context.Document, node, c),
                 equivalenceKey: TitleAddThrowsAttribute),
             diagnostic);
-
-        context.RegisterCodeFix(
-            CodeAction.Create(
-                title: TitleAddTryCatch,
-                createChangedDocument: c => AddTryCatchAsync(context.Document, node, c),
-                equivalenceKey: TitleAddTryCatch),
-            diagnostic);
     }
 
     private async Task<Document> AddThrowsAttributeAsync(Document document, SyntaxNode node, CancellationToken cancellationToken)
@@ -53,6 +45,10 @@ public class ThrowStatementCodeFixProvider : CodeFixProvider
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
 
         var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+
+        if (throwStatement.Expression == null)
+            return document;
+
         var exceptionType = semanticModel.GetTypeInfo(throwStatement.Expression).Type as INamedTypeSymbol;
 
         if (exceptionType == null)
@@ -100,36 +96,6 @@ public class ThrowStatementCodeFixProvider : CodeFixProvider
         }
 
         return document;
-    }
-
-    private async Task<Document> AddTryCatchAsync(Document document, SyntaxNode node, CancellationToken cancellationToken)
-    {
-        var throwStatement = node as ThrowStatementSyntax;
-        var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-
-        var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
-        var exceptionType = semanticModel.GetTypeInfo(throwStatement.Expression).Type as INamedTypeSymbol;
-
-        if (exceptionType == null)
-            return document;
-
-        // Create a try-catch block
-        var tryBlock = SyntaxFactory.Block(throwStatement);
-
-        var catchClause = SyntaxFactory.CatchClause()
-            .WithDeclaration(
-                SyntaxFactory.CatchDeclaration(
-                    SyntaxFactory.ParseTypeName(exceptionType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)))
-                .WithIdentifier(SyntaxFactory.Identifier("ex")))
-            .WithBlock(SyntaxFactory.Block());
-
-        var tryCatchStatement = SyntaxFactory.TryStatement()
-            .WithBlock(tryBlock)
-            .WithCatches(SyntaxFactory.SingletonList(catchClause));
-
-        var newRoot = root.ReplaceNode(throwStatement, tryCatchStatement.WithAdditionalAnnotations(Formatter.Annotation));
-
-        return document.WithSyntaxRoot(newRoot);
     }
 
     private SyntaxNode GetContainingMethodOrConstruct(SyntaxNode node)
