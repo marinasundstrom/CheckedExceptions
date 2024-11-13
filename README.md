@@ -1,4 +1,4 @@
-# Checked exceptions analyzer
+# Checked exceptions for C#/.NET
 
 Adds checked exceptions to C#/.NET via the ``ThrowsAttribute`` and analyzers and code fixes. 
 
