@@ -1,16 +1,26 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <ItemGroup>
-    <ProjectReference Include="..\ThrowsAnalyzer\ThrowsAnalyzer.csproj"
-      OutputItemType="Analyzer"
-      ReferenceOutputAssembly="true" />
-  </ItemGroup>
-
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <!-- <WarningsAsErrors>THROW001; THROW002</WarningsAsErrors> -->
   </PropertyGroup>
+
+  <!-- <ItemGroup>
+    <PackageReference Include="CheckedExceptions" Version="1.0.0" />
+  </ItemGroup> -->
+
+  <ItemGroup>
+    <ProjectReference Include="..\ThrowsAnalyzer\ThrowsAnalyzer.csproj"
+      OutputItemType="Analyzer"
+      ReferenceOutputAssembly="false"
+      PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ThrowsAnalyzer.CodeFixes\ThrowsAnalyzer.CodeFixes.csproj" />
+  </ItemGroup>
 
 </Project>

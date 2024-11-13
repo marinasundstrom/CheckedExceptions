@@ -10,13 +10,21 @@ using System.Linq;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public class ThrowsAnalyzer : DiagnosticAnalyzer
 {
+    public const string DiagnosticId = "THROW001";
+
+    private static readonly LocalizableString Title = new LocalizableResourceString(nameof(Resources.AnalyzerTitle), Resources.ResourceManager, typeof(Resources));
+    private static readonly LocalizableString MessageFormat = new LocalizableResourceString(nameof(Resources.AnalyzerMessageFormat), Resources.ResourceManager, typeof(Resources));
+    private static readonly LocalizableString Description = new LocalizableResourceString(nameof(Resources.AnalyzerDescription), Resources.ResourceManager, typeof(Resources));
+    private const string Category = "Usage";
+
     private static readonly DiagnosticDescriptor Rule = new(
-        "THROW001",
-        "Unhandled exception",
-        "{0} throws exception '{1}' which is not handled",
-        "Usage",
+        DiagnosticId,
+        Title,
+        MessageFormat,
+        Category,
         DiagnosticSeverity.Warning,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true,
+        description: Description);
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => ImmutableArray.Create(Rule);
 

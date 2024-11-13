@@ -1,14 +1,44 @@
 # Checked exceptions analyzer
 
-Adds checked exceptions to C#/.NET via the ``ThrowsAttribute`` and an analyzer. Similar to in Java. As a warning by default.
+Adds checked exceptions to C#/.NET via the ``ThrowsAttribute`` and analyzers and code fixes. 
 
-Works for methods, properties (accessors), constructors, lambda expressions, and local functions.
+Similar to in Java. Warnings by default.
 
-Supports propagation of the warnings.
+Works for: Methods, properties (accessors), constructors, lambda expressions, and local functions.
+
+Supports propagation of the warnings. Also deals with inheritance for exceptions.
+
+Analyzers:
+* Unhandled exception (THROW001)
+* Unhandled exception thrown (THROW002)
+
+Code fixes:
+* Add ThrowsAttribute
+* Add try-catch block
 
 Generated with help from ChatGPT.
 
-## Annotation
+## ``ThrowsAttribute``
+
+This can be (re-)defined and used:
+
+```csharp
+[AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Delegate, AllowMultiple = true)]
+public class ThrowsAttribute : Attribute
+{
+    public Type ExceptionType { get; }
+
+    public ThrowsAttribute(Type exceptionType)
+    {
+        if (!typeof(Exception).IsAssignableFrom(exceptionType))
+            throw new ArgumentException("ExceptionType must be an Exception type.");
+
+        ExceptionType = exceptionType;
+    }
+}
+```
+
+## Annotating methods
 
 Annotate methods with one or more ``ThrowsAttribute`` to indicate what exceptions it might throw:
 
@@ -131,9 +161,8 @@ catch (Exception ex)
 ```
 
 ## To do
-Add support for:
 
-* Lambdas
+Investigate if it is possible to add support to existing framework type members by parsing MS Doc for exceptions.
 
 ## Proposed syntax
 

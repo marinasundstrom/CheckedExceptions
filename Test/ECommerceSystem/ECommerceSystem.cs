@@ -181,7 +181,9 @@ public class OrderService
 
 class Program
 {
-    static void Main(string[] args)
+    [Throws(typeof(InvalidStockException))]
+    [Throws(typeof(UnauthorizedAccessException))]
+    static void Main2(string[] args)
     {
         var service = new OrderService();
 
