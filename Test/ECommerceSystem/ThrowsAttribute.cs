@@ -9,7 +9,9 @@ public class ThrowsAttribute : Attribute
     public ThrowsAttribute(Type exceptionType)
     {
         if (!typeof(Exception).IsAssignableFrom(exceptionType))
+#pragma warning disable THROW002 // Unhandled exception thrown
             throw new ArgumentException("ExceptionType must be an Exception type.");
+#pragma warning restore THROW002 // Unhandled exception thrown
 
         ExceptionType = exceptionType;
     }

@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+
 namespace ECommerceSystem;
 
 public class InsufficientInventoryException : Exception { }
@@ -71,8 +74,23 @@ public class OrderProcessor
     [Throws(typeof(PaymentProcessingException))]
     [Throws(typeof(InvalidStockException))]
     [Throws(typeof(UnauthorizedAccessException))]
-    public void ProcessOrder(int quantity)
+    [Throws(typeof(FormatException))]
+    [Throws(typeof(OverflowException))]
+    [Throws(typeof(ArgumentNullException))]
+    public void ProcessOrder(string quantityInput)
     {
+        // Parse the quantity input
+        int quantity;
+        try
+        {
+            quantity = int.Parse(quantityInput); // May throw FormatException
+        }
+        catch (FormatException ex)
+        {
+            Console.WriteLine("Invalid quantity format.");
+            throw; // Re-throw the exception to be handled or declared
+        }
+
         // Check access
         if (!HasUserAccess())
             throw new UnauthorizedAccessException("User is not authorized to process orders.");
@@ -106,14 +124,20 @@ public class OrderProcessor
     [Throws(typeof(OrderNotFoundException))]
     [Throws(typeof(InvalidStockException))]
     [Throws(typeof(UnauthorizedAccessException))]
-    public void ProcessBatchOrders()
+    [Throws(typeof(FormatException))]
+    [Throws(typeof(ArgumentNullException))]
+    [Throws(typeof(OverflowException))]
+    public void ProcessBatchOrders(List<string> orderIds)
     {
         // Lambda expression that may throw OrderNotFoundException and UnauthorizedAccessException
         var batchProcessor = [Throws(typeof(OrderNotFoundException)), Throws(typeof(UnauthorizedAccessException))] () =>
         {
-            FetchOrder(123); // May throw OrderNotFoundException
-            if (!HasUserAccess())
-                throw new UnauthorizedAccessException("User is not authorized to fetch orders.");
+            foreach (var id in orderIds)
+            {
+                FetchOrder(id); // May throw OrderNotFoundException and ArgumentNullException
+                if (!HasUserAccess())
+                    throw new UnauthorizedAccessException("User is not authorized to fetch orders.");
+            }
         };
 
         try
@@ -133,23 +157,38 @@ public class OrderProcessor
         [Throws(typeof(InsufficientInventoryException))]
         [Throws(typeof(InvalidStockException))]
         [Throws(typeof(UnauthorizedAccessException))]
-        void AdjustInventory(int adjustment)
+        [Throws(typeof(OverflowException))]
+        void AdjustInventory(string adjustmentInput)
         {
+            // Parse the adjustment input
+            int adjustment;
+            try
+            {
+                adjustment = int.Parse(adjustmentInput); // May throw FormatException
+            }
+            catch (FormatException ex)
+            {
+                Console.WriteLine("Invalid adjustment format.");
+                throw; // Re-throw the exception to be handled or declared
+            }
+
             if (_product.Stock + adjustment < 0)
                 throw new InsufficientInventoryException();
 
             _product.Stock += adjustment; // May throw InvalidStockException
         }
 
-        AdjustInventory(-5); // Analyzer should ensure exceptions are handled or declared
-
-        // Since AdjustInventory may throw exceptions and they're not caught within ProcessBatchOrders,
-        // the method must declare both exceptions via ThrowsAttribute
+        AdjustInventory("-5"); // Analyzer should ensure exceptions are handled or declared
     }
 
     [Throws(typeof(OrderNotFoundException))]
-    public void FetchOrder(int orderId)
+    [Throws(typeof(ArgumentNullException))]
+    public void FetchOrder(string orderId)
     {
+        if (string.IsNullOrEmpty(orderId))
+            throw new ArgumentNullException(nameof(orderId));
+
+        // Simulate order retrieval failure
         throw new OrderNotFoundException();
     }
 }
@@ -163,9 +202,12 @@ public class OrderService
     [Throws(typeof(PaymentProcessingException))]
     [Throws(typeof(UnauthorizedAccessException))]
     [Throws(typeof(InvalidStockException))]
+    [Throws(typeof(FormatException))]
+    [Throws(typeof(ArgumentNullException))]
+    [Throws(typeof(OverflowException))]
     public void StartOrderProcessing()
     {
-        _processor.ProcessOrder(5); // Exceptions may be propagated here
+        _processor.ProcessOrder("5"); // Exceptions may be propagated here
     }
 
     // Method may throw multiple exceptions
@@ -173,9 +215,13 @@ public class OrderService
     [Throws(typeof(OrderNotFoundException))]
     [Throws(typeof(InvalidStockException))]
     [Throws(typeof(UnauthorizedAccessException))]
+    [Throws(typeof(FormatException))]
+    [Throws(typeof(ArgumentNullException))]
+    [Throws(typeof(OverflowException))]
     public void StartBatchProcessing()
     {
-        _processor.ProcessBatchOrders(); // Exceptions may be propagated here
+        var orderIds = new List<string> { "123", null, "abc" };
+        _processor.ProcessBatchOrders(orderIds); // Exceptions may be propagated here
     }
 }
 
@@ -183,7 +229,10 @@ class Program
 {
     [Throws(typeof(InvalidStockException))]
     [Throws(typeof(UnauthorizedAccessException))]
-    static void Main2(string[] args)
+    [Throws(typeof(FormatException))]
+    [Throws(typeof(OverflowException))]
+    [Throws(typeof(ArgumentNullException))]
+    static void Main(string[] args)
     {
         var service = new OrderService();
 
@@ -203,6 +252,10 @@ class Program
         {
             Console.WriteLine("Unauthorized access during order processing.");
         }
+        catch (FormatException ex)
+        {
+            Console.WriteLine("Invalid input format during order processing.");
+        }
 
         try
         {
@@ -219,6 +272,18 @@ class Program
         catch (InvalidStockException ex)
         {
             Console.WriteLine("Invalid stock during batch processing.");
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            Console.WriteLine("Unauthorized access during batch processing.");
+        }
+        catch (FormatException ex)
+        {
+            Console.WriteLine("Invalid input format during batch processing.");
+        }
+        catch (ArgumentNullException ex)
+        {
+            Console.WriteLine("Null order ID during batch processing.");
         }
     }
 }
