@@ -12,6 +12,9 @@ using System.Xml.Linq;
 public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 {
     public const string DiagnosticId = "THROW001";
+    public const string DiagnosticId2 = "THROW002";
+    public const string DiagnosticId3 = "THROW003";
+    public const string DiagnosticId4 = "THROW004";
 
     private static readonly LocalizableString Title = new LocalizableResourceString(nameof(Resources.AnalyzerTitle), Resources.ResourceManager, typeof(Resources));
     private static readonly LocalizableString MessageFormat = new LocalizableResourceString(nameof(Resources.AnalyzerMessageFormat), Resources.ResourceManager, typeof(Resources));
@@ -27,8 +30,6 @@ public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         isEnabledByDefault: true,
         description: Description);
 
-    public const string DiagnosticId2 = "THROW002";
-
     private static readonly DiagnosticDescriptor Rule2 = new DiagnosticDescriptor(
         DiagnosticId2,
         "Unhandled exception thrown",
@@ -37,8 +38,24 @@ public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
 
+    private static readonly DiagnosticDescriptor Rule3 = new DiagnosticDescriptor(
+        DiagnosticId3,
+        "Avoid declaring Throws(typeof(Exception))",
+        "Declaring Throws(typeof(Exception)) is too general; use a more specific exception type",
+        "Usage",
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
+    private static readonly DiagnosticDescriptor Rule4 = new DiagnosticDescriptor(
+        DiagnosticId4,
+        "Avoid throwing general Exception",
+        "Throwing 'Exception' is too general; use a more specific exception type",
+        "Usage",
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
-        ImmutableArray.Create(Rule, Rule2);
+        ImmutableArray.Create(Rule, Rule2, Rule3, Rule4);
 
     public override void Initialize(AnalysisContext context)
     {
@@ -64,11 +81,57 @@ public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
         // Register action for throw statements
         context.RegisterSyntaxNodeAction(AnalyzeThrowStatement, SyntaxKind.ThrowStatement);
+
+        // Register action for analyzing method attributes
+        context.RegisterSyntaxNodeAction(AnalyzeMethodAttributes, SyntaxKind.MethodDeclaration);
+    }
+
+    private void AnalyzeMethodAttributes(SyntaxNodeAnalysisContext context)
+    {
+        var methodDeclaration = (MethodDeclarationSyntax)context.Node;
+
+        // Retrieve the method symbol
+        var methodSymbol = context.SemanticModel.GetDeclaredSymbol(methodDeclaration);
+        if (methodSymbol == null)
+            return;
+
+        // Find all [Throws] attributes on the method
+        var throwsAttributes = methodSymbol.GetAttributes()
+            .Where(attr => attr.AttributeClass?.Name == "ThrowsAttribute");
+
+        foreach (var attribute in throwsAttributes)
+        {
+            // Check if the attribute argument is Exception
+            var exceptionType = attribute.ConstructorArguments[0].Value as INamedTypeSymbol;
+            if (exceptionType?.Name == "Exception")
+            {
+                // Get the syntax node directly from the attribute's ApplicationSyntaxReference
+                var attributeSyntax = attribute.ApplicationSyntaxReference?.GetSyntax(context.CancellationToken) as AttributeSyntax;
+
+                if (attributeSyntax != null)
+                {
+                    // Report diagnostic on [Throws(typeof(Exception))] location
+                    var diagnostic = Diagnostic.Create(Rule3, attributeSyntax.GetLocation());
+                    context.ReportDiagnostic(diagnostic);
+                }
+            }
+        }
     }
 
     private void AnalyzeThrowStatement(SyntaxNodeAnalysisContext context)
     {
         var throwStatement = (ThrowStatementSyntax)context.Node;
+
+        // Check for throw new Exception()
+        if (throwStatement.Expression is ObjectCreationExpressionSyntax creationExpression)
+        {
+            var exceptionType = context.SemanticModel.GetTypeInfo(creationExpression).Type as INamedTypeSymbol;
+            if (exceptionType != null && exceptionType.Name == "Exception")
+            {
+                var diagnostic = Diagnostic.Create(Rule4, throwStatement.GetLocation());
+                context.ReportDiagnostic(diagnostic);
+            }
+        }
 
         // Check if this is a rethrow (throw;) within a catch block
         if (throwStatement.Expression == null && IsWithinCatchBlock(throwStatement))
@@ -101,6 +164,18 @@ public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         if (!isHandled && !isDeclaredRegular)
         {
             var diagnostic = Diagnostic.Create(Rule2, throwStatement.GetLocation(), thrownExceptionType.Name);
+            context.ReportDiagnostic(diagnostic);
+        }
+    }
+
+    private void CheckForGeneralThrows(SyntaxNodeAnalysisContext context, IMethodSymbol methodSymbol, AttributeSyntax throwsAttribute)
+    {
+        var exceptionType = throwsAttribute.ArgumentList.Arguments[0].Expression;
+        var typeInfo = context.SemanticModel.GetTypeInfo(exceptionType).Type as INamedTypeSymbol;
+
+        if (typeInfo != null && typeInfo.Name == "Exception")
+        {
+            var diagnostic = Diagnostic.Create(Rule3, throwsAttribute.GetLocation());
             context.ReportDiagnostic(diagnostic);
         }
     }
