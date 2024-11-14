@@ -381,12 +381,18 @@ public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         {
             if (ancestor is TryStatementSyntax tryStatement)
             {
+                // If the node is inside a catch block, we need different logic
+                if (IsNodeInCatchBlock(node, tryStatement))
+                {
+                    // When in a catch block, we need to find the next outer try-catch
+                    continue;
+                }
+
                 foreach (var catchClause in tryStatement.Catches)
                 {
                     // Handle catch without exception type (catch all)
                     if (catchClause.Declaration == null)
                     {
-                        // Catching all exceptions
                         return true;
                     }
 
@@ -398,11 +404,21 @@ public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
                     }
                 }
             }
-
-            // Do not break; continue traversal to check for outer try-catch blocks
         }
 
         // Exception is not handled
+        return false;
+    }
+
+    private bool IsNodeInCatchBlock(SyntaxNode node, TryStatementSyntax tryStatement)
+    {
+        foreach (var catchClause in tryStatement.Catches)
+        {
+            if (catchClause.Block.Contains(node))
+            {
+                return true;
+            }
+        }
         return false;
     }
 

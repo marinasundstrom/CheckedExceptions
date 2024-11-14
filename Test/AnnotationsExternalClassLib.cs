@@ -46,8 +46,17 @@ public class AnnotationsExternalClassLib
         }
         catch (StackOverflowException exc)
         {
-
+            TestFoo();
         }
     }
 
+    /// <summary>
+    /// Test
+    /// </summary> 
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when age is set to be more than 70 years.</exception>
+    /// <exception cref="StackOverflowException">Thrown when age is set to be more than 70 years.</exception>
+    public void TestFoo()
+    {
+
+    }
 }
