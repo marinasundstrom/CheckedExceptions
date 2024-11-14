@@ -172,6 +172,18 @@ catch (Exception ex)
 }
 ```
 
+### Opt-in and Disable warning
+
+If methods are not annotated with ``ThrowsAttribute``, or don't they declare exceptions via XML doc, they will not cause any errors for callers. But the analyzer will warn that you have not applied matching attributes for any exception thrown in that method.
+
+But you can disable warnings like so:
+
+```csharp
+#pragma warning disable THROW001 // Checked exception
+            TestFoo();
+#pragma warning restore THROW001 // Checked exception
+```
+
 ## To do
 
 Handle rethrow.
