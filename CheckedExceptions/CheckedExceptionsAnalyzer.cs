@@ -82,6 +82,9 @@ public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         // Register action for throw statements
         context.RegisterSyntaxNodeAction(AnalyzeThrowStatement, SyntaxKind.ThrowStatement);
 
+        // Register action for throw expressions
+        context.RegisterSyntaxNodeAction(AnalyzeThrowExpression, SyntaxKind.ThrowExpression);
+
         // Register action for analyzing method attributes
         context.RegisterSyntaxNodeAction(AnalyzeMethodAttributes, SyntaxKind.MethodDeclaration);
     }
@@ -114,6 +117,39 @@ public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
                     var diagnostic = Diagnostic.Create(Rule3, attributeSyntax.GetLocation());
                     context.ReportDiagnostic(diagnostic);
                 }
+            }
+        }
+    }
+
+    private void AnalyzeThrowExpression(SyntaxNodeAnalysisContext context)
+    {
+        var throwExpression = (ThrowExpressionSyntax)context.Node;
+
+        // Get the exception type being thrown
+        if (throwExpression.Expression is ObjectCreationExpressionSyntax creationExpression)
+        {
+            var exceptionType = context.SemanticModel.GetTypeInfo(creationExpression).Type as INamedTypeSymbol;
+            if (exceptionType == null)
+                return;
+
+            // Report diagnostic if throwing "Exception" directly (as before)
+            if (exceptionType.Name == "Exception")
+            {
+                var diagnostic = Diagnostic.Create(Rule4, throwExpression.GetLocation());
+                context.ReportDiagnostic(diagnostic);
+            }
+
+            // Check if the exception is handled in a try-catch block
+            var isHandled = IsExceptionHandledInTryCatch(context, throwExpression, exceptionType);
+
+            // Check if the exception is declared with [Throws] in the containing method
+            var isDeclared = IsExceptionDeclaredInMethod(context, throwExpression, exceptionType);
+
+            // Report diagnostic if the exception is neither handled nor declared
+            if (!isHandled && !isDeclared)
+            {
+                var diagnostic = Diagnostic.Create(Rule2, throwExpression.GetLocation(), exceptionType.Name);
+                context.ReportDiagnostic(diagnostic);
             }
         }
     }

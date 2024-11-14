@@ -2,7 +2,7 @@ namespace Test;
 
 public class ThrowingExceptionBaseClass
 {
-    public void Foo1()
+    public void Foo0()
     {
         throw new Exception("Data source is null.");
     }
@@ -22,5 +22,36 @@ public class ThrowingExceptionBaseClass
     public void Test()
     {
         Foo2();
+    }
+}
+
+public class ThrowExpressions
+{
+    public void FooBar1(int? x)
+    {
+        var z = x ?? throw new Exception(nameof(x));
+    }
+
+    [Throws(typeof(Exception))]
+    public void FooBar12(int? x)
+    {
+        var z = x ?? throw new Exception(nameof(x));
+    }
+
+    public void FooBar2(int? x)
+    {
+        var z = x ?? throw new ArgumentNullException(nameof(x));
+    }
+
+    [Throws(typeof(ArgumentNullException))]
+    public void FooBar21(int? x)
+    {
+        var z = x ?? throw new ArgumentNullException(nameof(x));
+    }
+
+    [Throws(typeof(Exception))]
+    public void FooBar22(int? x)
+    {
+        var z = x ?? throw new ArgumentNullException(nameof(x));
     }
 }
