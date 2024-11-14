@@ -20,7 +20,9 @@ catch (OutOfMemoryException e) { }
 catch (ArgumentOutOfRangeException e) { }
 catch (InvalidOperationException e)
 {
+#pragma warning disable THROW001 // Checked exception
     Console.WriteLine(e.Message);
+#pragma warning restore THROW001 // Checked exception
 }
 
 [Throws(typeof(InvalidOperationException))]

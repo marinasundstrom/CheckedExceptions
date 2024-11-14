@@ -16,7 +16,7 @@ public class AddThrowsAttributeCodeFixProvider : CodeFixProvider
     private const string TitleAddThrowsAttribute = "Add ThrowsAttribute";
 
     public sealed override ImmutableArray<string> FixableDiagnosticIds =>
-        ImmutableArray.Create(ThrowStatementAnalyzer.DiagnosticId);
+        ImmutableArray.Create(CheckedExceptionsAnalyzer.DiagnosticId2);
 
     public sealed override FixAllProvider GetFixAllProvider() =>
         WellKnownFixAllProviders.BatchFixer;

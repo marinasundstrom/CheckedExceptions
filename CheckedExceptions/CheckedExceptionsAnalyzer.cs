@@ -27,8 +27,18 @@ public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         isEnabledByDefault: true,
         description: Description);
 
+    public const string DiagnosticId2 = "THROW002";
+
+    private static readonly DiagnosticDescriptor Rule2 = new DiagnosticDescriptor(
+        DiagnosticId2,
+        "Unhandled exception thrown",
+        "Exception '{0}' is thrown but not handled or declared via ThrowsAttribute",
+        "Usage",
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
-        ImmutableArray.Create(Rule);
+        ImmutableArray.Create(Rule, Rule2);
 
     public override void Initialize(AnalysisContext context)
     {
@@ -51,6 +61,33 @@ public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         // Register action for event assignments (+= and -=)
         context.RegisterSyntaxNodeAction(AnalyzeEventAssignment, SyntaxKind.AddAssignmentExpression);
         context.RegisterSyntaxNodeAction(AnalyzeEventAssignment, SyntaxKind.SubtractAssignmentExpression);
+
+        // Register action for throw statements
+        context.RegisterSyntaxNodeAction(AnalyzeThrowStatement, SyntaxKind.ThrowStatement);
+    }
+
+    private void AnalyzeThrowStatement(SyntaxNodeAnalysisContext context)
+    {
+        var throwStatement = (ThrowStatementSyntax)context.Node;
+
+        // Skip rethrows
+        if (throwStatement.Expression == null)
+            return;
+
+        // Get the exception type being thrown
+        var exceptionType = context.SemanticModel.GetTypeInfo(throwStatement.Expression).Type as INamedTypeSymbol;
+        if (exceptionType == null)
+            return;
+
+        // Check if exception is handled or declared
+        var isHandled = IsExceptionHandledInTryCatch(context, throwStatement, exceptionType);
+        var isDeclared = IsExceptionDeclaredInMethod(context, throwStatement, exceptionType);
+
+        if (!isHandled && !isDeclared)
+        {
+            var diagnostic = Diagnostic.Create(Rule2, throwStatement.GetLocation(), exceptionType.Name);
+            context.ReportDiagnostic(diagnostic);
+        }
     }
 
     private void AnalyzeMethodCall(SyntaxNodeAnalysisContext context)
