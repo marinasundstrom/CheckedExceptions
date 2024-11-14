@@ -15,6 +15,7 @@ public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     public const string DiagnosticId2 = "THROW002";
     public const string DiagnosticId3 = "THROW003";
     public const string DiagnosticId4 = "THROW004";
+    public const string DiagnosticIdInfo = "THROWINFO001";
 
     private static readonly LocalizableString Title = new LocalizableResourceString(nameof(Resources.AnalyzerTitle), Resources.ResourceManager, typeof(Resources));
     private static readonly LocalizableString MessageFormat = new LocalizableResourceString(nameof(Resources.AnalyzerMessageFormat), Resources.ResourceManager, typeof(Resources));
@@ -54,8 +55,16 @@ public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
 
+    private static readonly DiagnosticDescriptor InfoRule = new DiagnosticDescriptor(
+        DiagnosticIdInfo,
+        "Rethrowing exceptions",
+        "Rethrowing the following exceptions: {0}",
+        "Usage",
+        DiagnosticSeverity.Info,
+        isEnabledByDefault: true);
+
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
-        ImmutableArray.Create(Rule, Rule2, Rule3, Rule4);
+        ImmutableArray.Create(Rule, Rule2, Rule3, Rule4, InfoRule);
 
     public override void Initialize(AnalysisContext context)
     {
@@ -125,14 +134,60 @@ public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     {
         var throwExpression = (ThrowExpressionSyntax)context.Node;
 
-        // Get the exception type being thrown
+        // Check if the throw expression is in a catch block and rethrows exceptions
+        if (IsWithinCatchBlock(throwExpression, out var tryStatement, out var catchClause))
+        {
+            // Handle rethrow in catch {} (catch without specified exception type)
+            if (catchClause?.Declaration == null)
+            {
+                if (tryStatement != null && _tryBlockExceptions.TryGetValue(tryStatement, out var exceptions))
+                {
+                    // Filter out exceptions already handled in preceding catch clauses
+                    var unhandledExceptions = GetUnhandledExceptions(exceptions, tryStatement, context);
+
+                    // Use a HashSet to collect unique exception names for the informational diagnostic
+                    var uniqueExceptionNames = new HashSet<string>(unhandledExceptions.Select(ex => ex.Name));
+                    var exceptionNames = string.Join(", ", uniqueExceptionNames);
+
+                    // Report informational diagnostic listing the unique rethrown exceptions at the throw expression location
+                    var infoDiagnostic = Diagnostic.Create(InfoRule, throwExpression.GetLocation(), exceptionNames);
+                    context.ReportDiagnostic(infoDiagnostic);
+
+                    // Ensure we have a set to track reported exceptions for this specific catch block
+                    if (!_reportedExceptionsPerCatch.ContainsKey(catchClause))
+                    {
+                        _reportedExceptionsPerCatch[catchClause] = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
+                    }
+
+                    var reportedExceptions = _reportedExceptionsPerCatch[catchClause];
+
+                    // Report unhandled exceptions if not declared
+                    foreach (var exceptionType in unhandledExceptions)
+                    {
+                        if (reportedExceptions.Contains(exceptionType))
+                            continue;
+
+                        var isDeclared = IsExceptionDeclaredInMethod(context, throwExpression, exceptionType);
+                        if (!isDeclared)
+                        {
+                            var diagnostic = Diagnostic.Create(Rule2, throwExpression.GetLocation(), exceptionType.Name);
+                            context.ReportDiagnostic(diagnostic);
+                            reportedExceptions.Add(exceptionType);
+                        }
+                    }
+                }
+            }
+            return; // No further analysis for rethrows
+        }
+
+        // For regular throw expressions (not rethrows), analyze normally
         if (throwExpression.Expression is ObjectCreationExpressionSyntax creationExpression)
         {
             var exceptionType = context.SemanticModel.GetTypeInfo(creationExpression).Type as INamedTypeSymbol;
             if (exceptionType == null)
                 return;
 
-            // Report diagnostic if throwing "Exception" directly (as before)
+            // Report diagnostic if throwing "Exception" directly
             if (exceptionType.Name == "Exception")
             {
                 var diagnostic = Diagnostic.Create(Rule4, throwExpression.GetLocation());
@@ -151,57 +206,160 @@ public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
                 var diagnostic = Diagnostic.Create(Rule2, throwExpression.GetLocation(), exceptionType.Name);
                 context.ReportDiagnostic(diagnostic);
             }
+
+            // Track exception for potential rethrow in the associated try block
+            TrackExceptionInTryBlock(throwExpression, exceptionType);
         }
     }
 
+    // Dictionary to track exceptions that could be thrown in try blocks
+    private readonly Dictionary<TryStatementSyntax, List<INamedTypeSymbol>> _tryBlockExceptions = new();
+
+    // Dictionary to track exceptions that have already been reported per try-catch rethrow
+    private readonly Dictionary<CatchClauseSyntax, HashSet<INamedTypeSymbol>> _reportedExceptionsPerCatch = new();
     private void AnalyzeThrowStatement(SyntaxNodeAnalysisContext context)
     {
         var throwStatement = (ThrowStatementSyntax)context.Node;
 
-        // Check for throw new Exception()
-        if (throwStatement.Expression is ObjectCreationExpressionSyntax creationExpression)
-        {
-            var exceptionType = context.SemanticModel.GetTypeInfo(creationExpression).Type as INamedTypeSymbol;
-            if (exceptionType != null && exceptionType.Name == "Exception")
-            {
-                var diagnostic = Diagnostic.Create(Rule4, throwStatement.GetLocation());
-                context.ReportDiagnostic(diagnostic);
-            }
-        }
-
         // Check if this is a rethrow (throw;) within a catch block
-        if (throwStatement.Expression == null && IsWithinCatchBlock(throwStatement))
+        if (throwStatement.Expression == null && IsWithinCatchBlock(throwStatement, out var tryStatement, out var catchClause))
         {
-            // Find the exception type being rethrown by analyzing the catch block
-            var exceptionType = GetExceptionTypeFromCatchBlock(context, throwStatement);
-            if (exceptionType == null)
-                return;
-
-            // Check if exception is declared via ThrowsAttribute
-            var isDeclared = IsExceptionDeclaredInMethod(context, throwStatement, exceptionType);
-
-            if (!isDeclared)
+            // Handle rethrow in specific catch (ExceptionType) block
+            if (catchClause?.Declaration != null)
             {
-                // Issue a diagnostic if the rethrown exception is not declared
-                var diagnostic = Diagnostic.Create(Rule2, throwStatement.GetLocation(), exceptionType.Name);
-                context.ReportDiagnostic(diagnostic);
+                // Get the type of the caught exception in this specific catch clause
+                var caughtExceptionType = context.SemanticModel.GetTypeInfo(catchClause.Declaration.Type).Type as INamedTypeSymbol;
+                if (caughtExceptionType == null)
+                    return;
+
+                // Check if this caught exception type is declared in the method's ThrowsAttribute
+                var isDeclared = IsExceptionDeclaredInMethod(context, throwStatement, caughtExceptionType);
+                if (!isDeclared)
+                {
+                    // Report diagnostic if the exception is not declared
+                    var diagnostic = Diagnostic.Create(Rule2, throwStatement.GetLocation(), caughtExceptionType.Name);
+                    context.ReportDiagnostic(diagnostic);
+                }
+                return; // No further analysis needed for specific catch rethrow
+            }
+
+            // Handle rethrow in general catch {} (catch without specified exception type)
+            if (catchClause?.Declaration == null)
+            {
+                if (tryStatement != null && _tryBlockExceptions.TryGetValue(tryStatement, out var exceptions))
+                {
+                    // Filter out exceptions already handled in preceding catch clauses
+                    var unhandledExceptions = GetUnhandledExceptions(exceptions, tryStatement, context);
+
+                    // Use a HashSet to collect unique exception names for the informational diagnostic
+                    var uniqueExceptionNames = new HashSet<string>(unhandledExceptions.Select(ex => ex.Name));
+                    var exceptionNames = string.Join(", ", uniqueExceptionNames);
+
+                    // Report informational diagnostic listing the unique rethrown exceptions at the throw; statement
+                    var infoDiagnostic = Diagnostic.Create(InfoRule, throwStatement.GetLocation(), exceptionNames);
+                    context.ReportDiagnostic(infoDiagnostic);
+
+                    // Ensure a set for tracking reported exceptions for this specific catch block
+                    if (!_reportedExceptionsPerCatch.ContainsKey(catchClause))
+                    {
+                        _reportedExceptionsPerCatch[catchClause] = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
+                    }
+
+                    var reportedExceptions = _reportedExceptionsPerCatch[catchClause];
+
+                    // Report unhandled exceptions if not declared
+                    foreach (var exceptionType in unhandledExceptions)
+                    {
+                        if (reportedExceptions.Contains(exceptionType))
+                            continue;
+
+                        var isDeclared = IsExceptionDeclaredInMethod(context, throwStatement, exceptionType);
+                        if (!isDeclared)
+                        {
+                            var diagnostic = Diagnostic.Create(Rule2, throwStatement.GetLocation(), exceptionType.Name);
+                            context.ReportDiagnostic(diagnostic);
+                            reportedExceptions.Add(exceptionType);
+                        }
+                    }
+                }
             }
             return; // No further analysis for rethrows
         }
 
-        // For regular throw statements (not rethrows), analyze normally
-        var thrownExceptionType = context.SemanticModel.GetTypeInfo(throwStatement.Expression).Type as INamedTypeSymbol;
-        if (thrownExceptionType == null)
+        // For throw statements within specific catch blocks (e.g., throw new FormatException())
+        if (throwStatement.Expression is ObjectCreationExpressionSyntax creationExpression)
+        {
+            var exceptionType = context.SemanticModel.GetTypeInfo(creationExpression).Type as INamedTypeSymbol;
+            if (exceptionType == null)
+                return;
+
+            // Do not track the exception for the try block if it is thrown in a specific catch clause
+            if (!IsWithinCatchBlock(throwStatement, out _, out var specificCatchClause) || specificCatchClause.Declaration == null)
+            {
+                TrackExceptionInTryBlock(throwStatement, exceptionType);
+            }
+
+            // Report diagnostic if the exception type is neither handled nor declared
+            var isDeclaredRegular = IsExceptionDeclaredInMethod(context, throwStatement, exceptionType);
+
+            if (!isDeclaredRegular)
+            {
+                var diagnostic = Diagnostic.Create(Rule2, throwStatement.GetLocation(), exceptionType.Name);
+                context.ReportDiagnostic(diagnostic);
+            }
+        }
+    }
+
+    // Helper method to determine if a throw is in a catch block and retrieve the associated try statement and catch clause
+    private bool IsWithinCatchBlock(SyntaxNode throwStatement, out TryStatementSyntax tryStatement, out CatchClauseSyntax catchClause)
+    {
+        catchClause = throwStatement.Ancestors().OfType<CatchClauseSyntax>().FirstOrDefault();
+        tryStatement = catchClause?.Ancestors().OfType<TryStatementSyntax>().FirstOrDefault();
+        return catchClause != null && tryStatement != null;
+    }
+
+    // Track the exception type in the associated try block
+    private void TrackExceptionInTryBlock(SyntaxNode throwNode, INamedTypeSymbol exceptionType)
+    {
+        var tryStatement = throwNode.Ancestors().OfType<TryStatementSyntax>().FirstOrDefault();
+        if (tryStatement == null)
             return;
 
-        var isHandled = IsExceptionHandledInTryCatch(context, throwStatement, thrownExceptionType);
-        var isDeclaredRegular = IsExceptionDeclaredInMethod(context, throwStatement, thrownExceptionType);
-
-        if (!isHandled && !isDeclaredRegular)
+        if (!_tryBlockExceptions.ContainsKey(tryStatement))
         {
-            var diagnostic = Diagnostic.Create(Rule2, throwStatement.GetLocation(), thrownExceptionType.Name);
-            context.ReportDiagnostic(diagnostic);
+            _tryBlockExceptions[tryStatement] = new List<INamedTypeSymbol>();
         }
+
+        _tryBlockExceptions[tryStatement].Add(exceptionType);
+    }
+
+    // Helper method to get unhandled exceptions for a general catch {} block
+    private List<INamedTypeSymbol> GetUnhandledExceptions(
+        List<INamedTypeSymbol> exceptions,
+        TryStatementSyntax tryStatement,
+        SyntaxNodeAnalysisContext context)
+    {
+        var handledExceptions = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
+
+        // Collect exceptions handled in preceding catch clauses
+        foreach (var catchClause in tryStatement.Catches)
+        {
+            if (catchClause.Declaration != null)
+            {
+                var catchType = context.SemanticModel.GetTypeInfo(catchClause.Declaration.Type).Type as INamedTypeSymbol;
+                if (catchType != null)
+                {
+                    handledExceptions.Add(catchType);
+                }
+            }
+
+            // Stop at the general catch {} block
+            if (catchClause.Declaration == null)
+                break;
+        }
+
+        // Return exceptions that haven't been handled in preceding catch clauses
+        return exceptions.Where(ex => !handledExceptions.Any(handled => ex.IsOrInheritsFrom(handled))).ToList();
     }
 
     private void CheckForGeneralThrows(SyntaxNodeAnalysisContext context, IMethodSymbol methodSymbol, AttributeSyntax throwsAttribute)
@@ -265,7 +423,34 @@ public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             }
         }
 
+        // Track exceptions thrown by the method within the try block, if any
+        if (IsWithinTryBlock(invocation, out var tryStatement))
+        {
+            var exceptions = GetExceptionTypesFromThrowsAttribute(methodSymbol).ToList();
+            foreach (var exceptionType in exceptions)
+            {
+                TrackExceptionInTryBlock(tryStatement, exceptionType);
+            }
+        }
+
         AnalyzeCalledMethod(context, invocation, methodSymbol);
+    }
+
+    // Helper method to check if a node is within a try block and retrieve the associated try statement
+    private bool IsWithinTryBlock(SyntaxNode node, out TryStatementSyntax tryStatement)
+    {
+        tryStatement = node.Ancestors().OfType<TryStatementSyntax>().FirstOrDefault();
+        return tryStatement != null;
+    }
+
+    // Track the exception type in the associated try block
+    private void TrackExceptionInTryBlock(TryStatementSyntax tryStatement, INamedTypeSymbol exceptionType)
+    {
+        if (!_tryBlockExceptions.ContainsKey(tryStatement))
+        {
+            _tryBlockExceptions[tryStatement] = new List<INamedTypeSymbol>();
+        }
+        _tryBlockExceptions[tryStatement].Add(exceptionType);
     }
 
     private IMethodSymbol GetTargetMethodSymbol(SyntaxNodeAnalysisContext context, InvocationExpressionSyntax invocation)
@@ -568,33 +753,29 @@ public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             {
                 foreach (var catchClause in tryStatement.Catches)
                 {
-                    // Handle catch without exception type (catch all)
+                    // Handle catch without exception type (catch-all)
                     if (catchClause.Declaration == null)
                     {
                         return true;
                     }
 
+                    // Get the type of exception specified in the catch clause
                     var catchType = context.SemanticModel.GetTypeInfo(catchClause.Declaration.Type).Type as INamedTypeSymbol;
+
+                    // Check if the catch type matches or is a base type of the exception being thrown
                     if (catchType != null && exceptionType.IsOrInheritsFrom(catchType))
                     {
-                        return true; // Exception is handled
+                        return true; // Exception is handled by this catch clause
                     }
                 }
             }
         }
-        return false;
+        return false; // No matching catch clause found
     }
 
-    private bool IsNodeInCatchBlock(SyntaxNode node, TryStatementSyntax tryStatement)
+    private bool IsNodeInCatchBlock(SyntaxNode node, CatchClauseSyntax catchClause)
     {
-        foreach (var catchClause in tryStatement.Catches)
-        {
-            if (catchClause.Block.Contains(node))
-            {
-                return true;
-            }
-        }
-        return false;
+        return catchClause.Block.Contains(node);
     }
 
     private bool IsExceptionDeclaredInMethod(SyntaxNodeAnalysisContext context, SyntaxNode node, INamedTypeSymbol exceptionType)

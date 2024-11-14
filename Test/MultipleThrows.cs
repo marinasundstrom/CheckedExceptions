@@ -1,6 +1,5 @@
 namespace Test;
 
-
 public class MultipleThrows
 {
     [Throws(typeof(NullReferenceException))]

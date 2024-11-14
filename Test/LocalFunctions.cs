@@ -47,4 +47,35 @@ public class LocalFunctions
             Foo2();
         };
     }
+
+    public void Unhandled3()
+    {
+        Foo();
+
+        [Throws(typeof(InvalidOperationException))]
+        [Throws(typeof(FormatException))]
+        static void Foo()
+        {
+            Foo2();
+        };
+    }
+
+    public void Unhandled4()
+    {
+        try
+        {
+            Foo();
+        }
+        catch
+        {
+            throw;
+        }
+
+        [Throws(typeof(InvalidOperationException))]
+        [Throws(typeof(FormatException))]
+        static void Foo()
+        {
+            Foo2();
+        };
+    }
 }

@@ -67,7 +67,7 @@ public class Product
 
 public class OrderProcessor
 {
-    private Product _product = new Product(10);
+    private readonly Product _product = new Product(10);
 
     // Method may throw multiple exceptions
     [Throws(typeof(InsufficientInventoryException))]

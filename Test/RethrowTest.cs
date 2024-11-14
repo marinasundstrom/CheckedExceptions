@@ -8,6 +8,12 @@ public class RethrowTest
         throw new InvalidOperationException();
     }
 
+    [Throws(typeof(ArgumentException))]
+    public void MethodThatThrows2()
+    {
+        throw new ArgumentException();
+    }
+
     //[Throws(typeof(InvalidOperationException))]
     public void Foo1()
     {
@@ -56,6 +62,75 @@ public class RethrowTest
         catch
         {
             throw;
+        }
+    }
+
+    public void Foo31()
+    {
+        try
+        {
+            MethodThatThrows();
+        }
+        catch
+        {
+            throw;
+        }
+    }
+
+    public void Foo32()
+    {
+        try
+        {
+            MethodThatThrows2();
+            MethodThatThrows();
+        }
+        catch
+        {
+            throw;
+        }
+    }
+
+    [Throws(typeof(ArgumentException))]
+    [Throws(typeof(InvalidOperationException))]
+    public void Foo33()
+    {
+        try
+        {
+            MethodThatThrows2();
+            MethodThatThrows();
+        }
+        catch (InvalidOperationException)
+        {
+
+        }
+        catch
+        {
+            throw;
+        }
+    }
+
+    public void Foo34()
+    {
+        try
+        {
+            MethodThatThrows();
+            MethodThatThrows();
+        }
+        catch
+        {
+            throw;
+        }
+    }
+
+    public void Foo4()
+    {
+        try
+        {
+            MethodThatThrows();
+        }
+        catch (InvalidOperationException exc)
+        {
+
         }
     }
 }
