@@ -25,10 +25,12 @@ Since .NET already uses exceptions.
 Analyzers:
 * Unhandled exception (THROW001)
 * Unhandled exception thrown (THROW002)
+* Avoid declaring Throws(typeof(Exception)) (THROW003)
+* Avoid throwing general Exception (THROW004)
 
 Code fixes:
-* Add ThrowsAttribute
-* Add try-catch block
+* Add ThrowsAttribute (for propagated exceptions)
+* Add try-catch block (to handle exceptions)
 
 ## ``ThrowsAttribute``
 
