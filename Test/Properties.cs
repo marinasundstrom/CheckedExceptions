@@ -38,6 +38,9 @@ public class PropertyGetter
     public void DisplayData()
     {
         var provider = new DataProvider();
+
+        var x = provider.Data;
+
         Console.WriteLine(provider.Data);
     }
 
@@ -46,6 +49,8 @@ public class PropertyGetter
         var provider = new DataProvider();
         try
         {
+            var x = provider.Data;
+
             Console.WriteLine(provider.Data);
         }
         catch (ArgumentNullException ex)

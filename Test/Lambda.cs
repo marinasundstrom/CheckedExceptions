@@ -12,6 +12,17 @@ public class Lambda
         fetcher();
     }
 
+    [Throws(typeof(NullReferenceException))]
+    public void Unhandled2()
+    {
+        var fetcher = [Throws(typeof(NullReferenceException))] () =>
+        {
+            throw new NullReferenceException();
+        };
+
+        fetcher();
+    }
+
     public void Handled()
     {
         try
@@ -35,9 +46,9 @@ public class Lambda
         throw new InvalidOperationException();
     }
 
-    public void Unhandled2()
+    public void Unhandled3()
     {
-        var fetcher = [Throws(typeof(InvalidOperationException))] () =>
+        var fetcher = [Throws(typeof(Exception))] () =>
         {
             Foo();
         };

@@ -31,6 +31,12 @@ public class Example
         var fetcher = new DataFetcher3();
     }
 
+    [Throws(typeof(InvalidOperationException))]
+    public void ProcessData1()
+    {
+        var fetcher = new DataFetcher3();
+    }
+
     public void ProcessData2()
     {
         try
