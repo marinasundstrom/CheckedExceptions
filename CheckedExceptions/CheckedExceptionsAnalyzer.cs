@@ -78,44 +78,19 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     private void AnalyzeLambdaExpression(SyntaxNodeAnalysisContext context)
     {
         var lambdaExpression = (LambdaExpressionSyntax)context.Node;
-
-        // Retrieve all attribute lists attached to the lambda expression
-        var attributeLists = lambdaExpression.AttributeLists;
-
-        if (attributeLists.Count == 0)
-            return; // No attributes to analyze
-
-        // Extract ThrowsAttribute instances
-        var throwsAttributes = attributeLists
-            .SelectMany(attrList => attrList.Attributes)
-            .Where(attr => IsThrowsAttribute(attr, context.SemanticModel))
-            .ToList();
-
-        if (throwsAttributes.Count == 0)
-            return;
-
-        CheckForGeneralExceptionThrows(context, throwsAttributes);
-
-        if (throwsAttributes.Count() > 1)
-        {
-            CheckForDuplicateThrowsAttributes(throwsAttributes, context);
-        }
+        AnalyzeFunctionAttributes(lambdaExpression, lambdaExpression.AttributeLists.SelectMany(a => a.Attributes), context.SemanticModel, context);
     }
 
     private void AnalyzeLocalFunctionStatement(SyntaxNodeAnalysisContext context)
     {
-        var localFunctionStatement = (LocalFunctionStatementSyntax)context.Node;
+        var localFunction = (LocalFunctionStatementSyntax)context.Node;
+        AnalyzeFunctionAttributes(localFunction, localFunction.AttributeLists.SelectMany(a => a.Attributes), context.SemanticModel, context);
+    }
 
-        // Retrieve all attribute lists attached to the local function statement
-        var attributeLists = localFunctionStatement.AttributeLists;
-
-        if (attributeLists.Count == 0)
-            return; // No attributes to analyze
-
-        // Extract ThrowsAttribute instances
-        var throwsAttributes = attributeLists
-            .SelectMany(attrList => attrList.Attributes)
-            .Where(attr => IsThrowsAttribute(attr, context.SemanticModel))
+    private void AnalyzeFunctionAttributes(SyntaxNode node, IEnumerable<AttributeSyntax> attributes, SemanticModel semanticModel, SyntaxNodeAnalysisContext context)
+    {
+        var throwsAttributes = attributes
+            .Where(attr => IsThrowsAttribute(attr, semanticModel))
             .ToList();
 
         if (throwsAttributes.Count == 0)
@@ -123,7 +98,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
         CheckForGeneralExceptionThrows(context, throwsAttributes);
 
-        if (throwsAttributes.Count() > 1)
+        if (throwsAttributes.Count > 1)
         {
             CheckForDuplicateThrowsAttributes(throwsAttributes, context);
         }
@@ -534,10 +509,13 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
                 foreach (var catchClause in tryStatement.Catches)
                 {
                     if (catchClause.Declaration == null)
-                        return true;
+                        return true; // Catch-all
 
                     var catchType = context.SemanticModel.GetTypeInfo(catchClause.Declaration.Type).Type as INamedTypeSymbol;
-                    if (catchType != null && exceptionType.IsOrInheritsFrom(catchType))
+                    if (catchType != null && exceptionType.Equals(catchType, SymbolEqualityComparer.Default))
+                        return true;
+
+                    if (catchType != null && exceptionType.InheritsFrom(catchType))
                         return true;
                 }
             }
@@ -602,8 +580,11 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             if (declaredExceptionType == null)
                 continue;
 
-            // Check if the declared exception is the same as or a base type of the thrown exception
-            if (exceptionType.IsOrInheritsFrom(declaredExceptionType))
+            if (exceptionType.Equals(declaredExceptionType, SymbolEqualityComparer.Default))
+                return true;
+
+            // Check if the declared exception is a base type of the thrown exception
+            if (exceptionType.InheritsFrom(declaredExceptionType))
                 return true;
         }
 
