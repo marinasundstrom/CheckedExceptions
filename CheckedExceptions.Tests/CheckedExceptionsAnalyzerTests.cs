@@ -5,7 +5,7 @@ namespace CheckedExceptions.Test;
 
 using Verifier = CSharpAnalyzerVerifier<CheckedExceptionsAnalyzer, DefaultVerifier>;
 
-public class CheckedExceptionsAnalyzerTests
+public partial class CheckedExceptionsAnalyzerTests
 {
     // Test 1: Throwing an exception without handling or declaring
     [Fact]
@@ -250,5 +250,63 @@ public class TestClass
             .WithArguments("ArgumentNullException");
 
         await Verifier.VerifyAnalyzerAsync(test, expected1, expected2);
+    }
+
+    [Fact]
+    public async Task NestedTryCatch_ShouldReportDiagnosticForUnhandledException()
+    {
+        var test = @"
+using System;
+
+public class TestClass
+{
+    public void TestMethod()
+    {
+        try
+        {
+            try
+            {
+                throw new InvalidOperationException();
+            }
+            catch (ArgumentException)
+            {
+                // Handle ArgumentException only
+            }
+        }
+        catch (ArgumentNullException)
+        {
+            // Handle ArgumentNullException only
+        }
+    }
+}";
+
+        var expected = Verifier.Diagnostic("THROW001")
+            .WithSpan(12, 17, 12, 55)
+            .WithArguments("InvalidOperationException");
+
+        await Verifier.VerifyAnalyzerAsync(test, expected);
+    }
+
+    [Fact]
+    public async Task ThrowingCustomExceptionWithoutDeclaration_ShouldReportDiagnostic()
+    {
+        var test = @"
+using System;
+
+public class CustomException : Exception { }
+
+public class TestClass
+{
+    public void TestMethod()
+    {
+        throw new CustomException();
+    }
+}";
+
+        var expected = Verifier.Diagnostic("THROW001")
+            .WithSpan(10, 9, 10, 37)
+            .WithArguments("CustomException");
+
+        await Verifier.VerifyAnalyzerAsync(test, expected);
     }
 }
