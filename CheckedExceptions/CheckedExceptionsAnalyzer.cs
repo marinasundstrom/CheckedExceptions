@@ -17,6 +17,8 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     public const string DiagnosticIdGeneralThrow = "THROW004";
     public const string DiagnosticIdDuplicateThrow = "THROW005";
 
+    public static IEnumerable<string> AllDiagnosticsIds = [DiagnosticIdUnhandled, DiagnosticIdGeneralThrows, DiagnosticIdGeneralThrow, DiagnosticIdDuplicateThrow];
+
     private static readonly DiagnosticDescriptor RuleUnhandledException = new(
         DiagnosticIdUnhandled,
         "Unhandled exception thrown",
@@ -145,6 +147,9 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
     public static bool IsThrowsAttributeForException(AttributeData attribute, string exceptionTypeName)
     {
+        if (!attribute.ConstructorArguments.Any())
+            return false;
+
         var exceptionType = attribute.ConstructorArguments[0].Value as INamedTypeSymbol;
         return exceptionType?.Name == exceptionTypeName;
     }
