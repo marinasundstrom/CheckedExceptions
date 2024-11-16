@@ -1,11 +1,11 @@
-namespace Test;
+namespace Test.Cases.Methods;
 
-public class DataFetcher
+public class DataFetcher2
 {
     [Throws(typeof(NullReferenceException))]
+    [Throws(typeof(ArgumentException))]
     public void FetchData()
     {
-        // Simulate code that may throw a NullReferenceException
         throw new NullReferenceException("Data source is null.");
     }
 }

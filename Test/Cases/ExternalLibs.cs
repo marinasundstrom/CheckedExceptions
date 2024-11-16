@@ -1,6 +1,6 @@
 using Test2;
 
-namespace Test;
+namespace Test.Cases;
 
 public class AnnotationsExternalClassLib
 {

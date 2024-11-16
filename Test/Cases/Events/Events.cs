@@ -1,4 +1,4 @@
-namespace Test;
+namespace Test.Cases.Events;
 
 public class EventPublisher
 {

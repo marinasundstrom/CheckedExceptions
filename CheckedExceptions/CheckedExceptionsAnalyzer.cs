@@ -9,12 +9,13 @@ using System.Linq;
 using System.Xml.Linq;
 
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
-public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
+public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 {
     // Diagnostic IDs
     public const string DiagnosticIdUnhandled = "THROW001";
     public const string DiagnosticIdGeneralThrows = "THROW003";
     public const string DiagnosticIdGeneralThrow = "THROW004";
+    public const string DiagnosticIdDuplicateThrow = "THROW005";
 
     private static readonly DiagnosticDescriptor RuleUnhandledException = new(
         DiagnosticIdUnhandled,
@@ -40,8 +41,16 @@ public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
 
+    private static readonly DiagnosticDescriptor RuleDuplicateThrow = new DiagnosticDescriptor(
+        DiagnosticIdDuplicateThrow,
+        "Avoid duplicate ThrowsAttributes declaring the same exception type",
+        "Multiple ThrowsAttributes declare the same exception type '{0}'. Remove the duplicates to avoid redundancy.",
+        "Usage",
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
-        ImmutableArray.Create(RuleUnhandledException, RuleGeneralThrows, RuleGeneralThrow);
+        [RuleUnhandledException, RuleGeneralThrows, RuleGeneralThrow, RuleDuplicateThrow];
 
     public override void Initialize(AnalysisContext context)
     {
@@ -54,6 +63,8 @@ public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
         context.RegisterSymbolAction(AnalyzeMethodSymbol, SymbolKind.Method);
         context.RegisterSyntaxNodeAction(AnalyzeLambdaExpression, SyntaxKind.SimpleLambdaExpression);
+        context.RegisterSyntaxNodeAction(AnalyzeLambdaExpression, SyntaxKind.ParenthesizedLambdaExpression);
+        context.RegisterSyntaxNodeAction(AnalyzeLocalFunctionStatement, SyntaxKind.LocalFunctionStatement);
 
         // Register additional actions for method calls, object creations, etc.
         context.RegisterSyntaxNodeAction(AnalyzeMethodCall, SyntaxKind.InvocationExpression);
@@ -68,19 +79,67 @@ public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     {
         var lambdaExpression = (LambdaExpressionSyntax)context.Node;
 
-        var attributes = lambdaExpression.AttributeLists.First().Attributes;
+        // Retrieve all attribute lists attached to the lambda expression
+        var attributeLists = lambdaExpression.AttributeLists;
 
-        string exceptionName = "Exception";
+        if (attributeLists.Count == 0)
+            return; // No attributes to analyze
 
-        foreach (var attribute in attributes)
+        // Extract ThrowsAttribute instances
+        var throwsAttributes = attributeLists
+            .SelectMany(attrList => attrList.Attributes)
+            .Where(attr => IsThrowsAttribute(attr, context.SemanticModel))
+            .ToList();
+
+        if (throwsAttributes.Count == 0)
+            return;
+
+        CheckForGeneralExceptionThrows(context, throwsAttributes);
+
+        if (throwsAttributes.Count() > 1)
         {
-            var attributeData = AttributeHelper.GetSpecificAttributeData(attribute, context.SemanticModel);
-
-            if (ThrowsAttribute(attributeData, exceptionName))
-            {
-                context.ReportDiagnostic(Diagnostic.Create(RuleGeneralThrows, attribute.GetLocation()));
-            }
+            CheckForDuplicateThrowsAttributes(throwsAttributes, context);
         }
+    }
+
+    private void AnalyzeLocalFunctionStatement(SyntaxNodeAnalysisContext context)
+    {
+        var localFunctionStatement = (LocalFunctionStatementSyntax)context.Node;
+
+        // Retrieve all attribute lists attached to the local function statement
+        var attributeLists = localFunctionStatement.AttributeLists;
+
+        if (attributeLists.Count == 0)
+            return; // No attributes to analyze
+
+        // Extract ThrowsAttribute instances
+        var throwsAttributes = attributeLists
+            .SelectMany(attrList => attrList.Attributes)
+            .Where(attr => IsThrowsAttribute(attr, context.SemanticModel))
+            .ToList();
+
+        if (throwsAttributes.Count == 0)
+            return;
+
+        CheckForGeneralExceptionThrows(context, throwsAttributes);
+
+        if (throwsAttributes.Count() > 1)
+        {
+            CheckForDuplicateThrowsAttributes(throwsAttributes, context);
+        }
+    }
+
+    /// <summary>
+    /// Determines whether the given attribute is a ThrowsAttribute.
+    /// </summary>
+    private bool IsThrowsAttribute(AttributeSyntax attributeSyntax, SemanticModel semanticModel)
+    {
+        var attributeSymbol = semanticModel.GetSymbolInfo(attributeSyntax).Symbol as IMethodSymbol;
+        if (attributeSymbol == null)
+            return false;
+
+        var attributeType = attributeSymbol.ContainingType;
+        return attributeType.Name == "ThrowsAttribute";
     }
 
     private void AnalyzeMethodSymbol(SymbolAnalysisContext context)
@@ -92,31 +151,27 @@ public class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
         var throwsAttributes = GetThrowsAttributes(methodSymbol).ToImmutableArray();
 
-        string exceptionName = "Exception";
+        if (throwsAttributes.Count() == 0)
+            return;
 
-        IEnumerable<AttributeData> generalExceptionAttributes = FilterThrowsAttributesByException(throwsAttributes, exceptionName);
+        CheckForGeneralExceptionThrows(throwsAttributes, context);
 
-        foreach (var attribute in generalExceptionAttributes)
+        if (throwsAttributes.Count() > 1)
         {
-            // Report diagnostic for [Throws(typeof(Exception))]
-            var attributeSyntax = attribute.ApplicationSyntaxReference?.GetSyntax(context.CancellationToken);
-            if (attributeSyntax != null)
-            {
-                context.ReportDiagnostic(Diagnostic.Create(RuleGeneralThrows, attributeSyntax.GetLocation()));
-            }
+            CheckForDuplicateThrowsAttributes(context, throwsAttributes);
         }
     }
 
-    private static IEnumerable<AttributeData> FilterThrowsAttributesByException(ImmutableArray<AttributeData> exceptionAttributes, string attributeName)
+    private static IEnumerable<AttributeData> FilterThrowsAttributesByException(ImmutableArray<AttributeData> exceptionAttributes, string exceptionTypeName)
     {
         return exceptionAttributes
-            .Where(attribute => ThrowsAttribute(attribute, attributeName));
+            .Where(attribute => IsThrowsAttributeForException(attribute, exceptionTypeName));
     }
 
-    public static bool ThrowsAttribute(AttributeData attribute, string attributeName)
+    public static bool IsThrowsAttributeForException(AttributeData attribute, string exceptionTypeName)
     {
         var exceptionType = attribute.ConstructorArguments[0].Value as INamedTypeSymbol;
-        return exceptionType?.Name == attributeName;
+        return exceptionType?.Name == exceptionTypeName;
     }
 
     /// <summary>

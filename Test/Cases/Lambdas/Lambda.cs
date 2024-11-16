@@ -1,6 +1,6 @@
-namespace Test;
+namespace Test.Cases.Lambdas;
 
-public class Lambda
+public class Lambdas
 {
     public void Unhandled()
     {

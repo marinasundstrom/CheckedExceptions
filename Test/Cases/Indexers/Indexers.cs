@@ -1,5 +1,7 @@
 using Test;
 
+namespace Test.Cases.Indexers;
+
 public class IndexerGetter
 {
     public class MyArray

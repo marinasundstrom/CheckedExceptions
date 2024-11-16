@@ -1,5 +1,7 @@
 using Test;
 
+namespace Test.Cases.Properties;
+
 public class PropertyGetter
 {
     public class DataProvider

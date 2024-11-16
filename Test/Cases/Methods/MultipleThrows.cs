@@ -1,4 +1,4 @@
-namespace Test;
+namespace Test.Cases.Methods;
 
 public class MultipleThrows
 {
