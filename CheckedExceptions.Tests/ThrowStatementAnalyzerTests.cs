@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis.Testing;
 
 namespace CheckedExceptions.Test;
 
-using Verifier = CSharpCodeFixVerifier<ThrowStatementAnalyzer, AddThrowsAttributeCodeFixProvider, DefaultVerifier>;
+using Verifier = CSharpCodeFixVerifier<CheckedExceptionsAnalyzer, AddThrowsAttributeCodeFixProvider, DefaultVerifier>;
 
 public class ThrowStatementAnalyzerTests
 {
