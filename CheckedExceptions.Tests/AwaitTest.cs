@@ -33,7 +33,6 @@ public partial class AwaitTest
             .WithSpan(14, 15, 14, 30)
             .WithArguments("InvalidOperationException");
 
-
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }
 

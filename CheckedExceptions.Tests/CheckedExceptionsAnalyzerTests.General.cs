@@ -41,6 +41,7 @@ using System;
 
 public class TestClass
 {
+    [Throws(typeof(InvalidOperationException))]
     public void ThrowingMethod()
     {
         throw new InvalidOperationException();
@@ -70,6 +71,7 @@ using System;
 
 public class TestClass
 {
+    [Throws(typeof(InvalidOperationException))]
     public void ThrowingMethod()
     {
         throw new InvalidOperationException();
@@ -137,11 +139,13 @@ using System;
 
 public class TestClass
 {
+    [Throws(typeof(InvalidOperationException))]
     public void ThrowingMethod1()
     {
         throw new InvalidOperationException();
     }
 
+    [Throws(typeof(ArgumentException))]
     public void ThrowingMethod2()
     {
         throw new ArgumentException();

@@ -14,25 +14,34 @@ public static class CSharpAnalyzerVerifier<TAnalyzer, TVerifier>
     public static DiagnosticResult Diagnostic(string diagnosticId)
         => AnalyzerVerifier<TAnalyzer, AnalyzerTest, TVerifier>.Diagnostic(diagnosticId);
 
-    public static Task VerifyAnalyzerAsync(string source, params DiagnosticResult[] expected)
+    public static async Task VerifyAnalyzerAsync(string source, params DiagnosticResult[] expected)
+    {
+        await VerifyAnalyzerAsync(source, (test) =>
+        {
+            var allDiagnostics = CheckedExceptionsAnalyzer.AllDiagnosticsIds;
+
+            test.DisabledDiagnostics.AddRange(allDiagnostics.Except(expected.Select(x => x.Id)));
+
+            test.ExpectedDiagnostics.AddRange(expected);
+        });
+    }
+
+    public static Task VerifyAnalyzerAsync(string source, Action<AnalyzerTest>? setup = null)
     {
         var test = new AnalyzerTest
         {
             TestCode = source
         };
 
-        var allDiagnostics = CheckedExceptionsAnalyzer.AllDiagnosticsIds;
-
-        test.DisabledDiagnostics.AddRange(allDiagnostics.Except(expected.Select(x => x.Id)));
-
         test.TestState.AdditionalReferences.Add(MetadataReference.CreateFromFile(typeof(ThrowsAttribute).Assembly.Location));
         test.TestState.ReferenceAssemblies = Net.Net90;
 
-        test.ExpectedDiagnostics.AddRange(expected);
+        setup?.Invoke(test);
+
         return test.RunAsync();
     }
 
-    private class AnalyzerTest : CSharpAnalyzerTest<TAnalyzer, TVerifier>
+    public class AnalyzerTest : CSharpAnalyzerTest<TAnalyzer, TVerifier>
     {
 
     }
