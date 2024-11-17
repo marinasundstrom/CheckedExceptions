@@ -16,10 +16,9 @@ public class AddThrowsAttributeCodeFixProvider : CodeFixProvider
     private const string TitleAddThrowsAttribute = "Add ThrowsAttribute";
 
     public sealed override ImmutableArray<string> FixableDiagnosticIds =>
-        ImmutableArray.Create(CheckedExceptionsAnalyzer.DiagnosticIdUnhandled);
-
+        [CheckedExceptionsAnalyzer.DiagnosticIdUnhandled];
     public sealed override FixAllProvider GetFixAllProvider() =>
-        WellKnownFixAllProviders.BatchFixer;
+        null!; //WellKnownFixAllProviders.BatchFixer;
 
     public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
     {
@@ -33,28 +32,29 @@ public class AddThrowsAttributeCodeFixProvider : CodeFixProvider
         context.RegisterCodeFix(
             CodeAction.Create(
                 title: TitleAddThrowsAttribute,
-                createChangedDocument: c => AddThrowsAttributeAsync(context.Document, node, c),
+                createChangedDocument: c => AddThrowsAttributeAsync(context.Document, node, diagnostic, c),
                 equivalenceKey: TitleAddThrowsAttribute),
             diagnostic);
     }
 
-    private async Task<Document> AddThrowsAttributeAsync(Document document, SyntaxNode node, CancellationToken cancellationToken)
+    private async Task<Document> AddThrowsAttributeAsync(Document document, SyntaxNode node, Diagnostic diagnostic, CancellationToken cancellationToken)
     {
-        // Find the containing method or construct
-        var throwStatement = node as ThrowStatementSyntax;
+        string? exceptionTypeName = null;
+
+        // Attempt to retrieve the exception type from diagnostic arguments
+        if (diagnostic.Properties.TryGetValue("ExceptionType", out var exceptionTypeFromDiagnostic))
+        {
+            exceptionTypeName = exceptionTypeFromDiagnostic;
+        }
+
+        if (string.IsNullOrWhiteSpace(exceptionTypeName))
+            return document;
+
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
 
         var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
 
-        if (throwStatement.Expression == null)
-            return document;
-
-        var exceptionType = semanticModel.GetTypeInfo(throwStatement.Expression).Type as INamedTypeSymbol;
-
-        if (exceptionType == null)
-            return document;
-
-        var ancestor = GetContainingMethodOrConstruct(throwStatement);
+        var ancestor = GetContainingMethodOrConstruct(node);
 
         if (ancestor == null)
             return document;
@@ -65,16 +65,28 @@ public class AddThrowsAttributeCodeFixProvider : CodeFixProvider
             .AddArgumentListArguments(
                 SyntaxFactory.AttributeArgument(
                     SyntaxFactory.TypeOfExpression(
-                        SyntaxFactory.ParseTypeName(exceptionType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)))));
+                        SyntaxFactory.ParseTypeName(exceptionTypeName))));
+
+        var lineEndingTrivia = root.DescendantTrivia().FirstOrDefault(trivia =>
+            trivia.IsKind(SyntaxKind.EndOfLineTrivia));
+
+        if (lineEndingTrivia == default)
+        {
+            lineEndingTrivia = SyntaxFactory.CarriageReturnLineFeed;
+        }
 
         var attributeList = SyntaxFactory.AttributeList(SyntaxFactory.SingletonSeparatedList(attributeSyntax))
-            .WithTrailingTrivia(SyntaxFactory.TriviaList(SyntaxFactory.ElasticCarriageReturnLineFeed));
+            .WithTrailingTrivia(SyntaxFactory.TriviaList(lineEndingTrivia));
 
         SyntaxNode newAncestor = null;
 
         if (ancestor is MethodDeclarationSyntax methodDeclaration)
         {
             newAncestor = methodDeclaration.AddAttributeLists(attributeList);
+        }
+        else if (ancestor is ConstructorDeclarationSyntax constructorDeclaration)
+        {
+            newAncestor = constructorDeclaration.AddAttributeLists(attributeList);
         }
         else if (ancestor is AccessorDeclarationSyntax accessorDeclaration)
         {
@@ -91,7 +103,8 @@ public class AddThrowsAttributeCodeFixProvider : CodeFixProvider
 
         if (newAncestor != null)
         {
-            editor.ReplaceNode(ancestor, newAncestor.WithAdditionalAnnotations(Formatter.Annotation));
+            editor.ReplaceNode(ancestor, newAncestor
+                .WithAdditionalAnnotations(Formatter.Annotation).NormalizeWhitespace(elasticTrivia: true));
             return editor.GetChangedDocument();
         }
 

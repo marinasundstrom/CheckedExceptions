@@ -7,4 +7,14 @@ public class Test
     {
         throw new NullReferenceException("Data source is null.");
     }
+
+    public void TestMethod()
+    {
+        void LocalFunction()
+        {
+            // Should trigger THROW001
+            throw new NotImplementedException();
+        }
+        LocalFunction();
+    }
 }

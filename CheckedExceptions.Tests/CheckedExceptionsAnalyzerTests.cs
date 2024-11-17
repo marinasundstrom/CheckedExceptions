@@ -1,7 +1,7 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 
-namespace CheckedExceptions.Test;
+namespace CheckedExceptions.Tests;
 
 using Verifier = CSharpAnalyzerVerifier<CheckedExceptionsAnalyzer, DefaultVerifier>;
 

@@ -502,7 +502,11 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         // Report diagnostic if neither handled nor declared
         if (!isHandled)
         {
-            context.ReportDiagnostic(Diagnostic.Create(RuleUnhandledException, node.GetLocation(), exceptionType.Name));
+            var properties = ImmutableDictionary.Create<string, string?>()
+                .Add("ExceptionType", exceptionType.Name);
+
+            var diagnostic = Diagnostic.Create(RuleUnhandledException, node.GetLocation(), properties, exceptionType.Name);
+            context.ReportDiagnostic(diagnostic);
         }
     }
 
