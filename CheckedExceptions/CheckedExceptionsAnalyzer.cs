@@ -474,9 +474,26 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     }
 
     /// <summary>
+    /// Determines if an exception is handled within the specific catch clause.
+    /// </summary>
+    private bool IsExceptionHandledInCatchClause(CatchClauseSyntax catchClause, SyntaxNodeAnalysisContext context, INamedTypeSymbol exceptionType)
+    {
+        if (catchClause.Declaration == null)
+            return true; // Catch-all
+
+        var catchType = context.SemanticModel.GetTypeInfo(catchClause.Declaration.Type).Type as INamedTypeSymbol;
+        if (catchType == null)
+            return false;
+
+        // Check if the exceptionType matches or inherits from the catchType
+        return exceptionType.Equals(catchType, SymbolEqualityComparer.Default) ||
+               exceptionType.InheritsFrom(catchType);
+    }
+
+    /// <summary>
     /// Analyzes a node that throws or propagates exceptions to check for handling or declaration.
     /// </summary>
-    private void AnalyzeExceptionThrowingNode(SyntaxNodeAnalysisContext context, SyntaxNode node, INamedTypeSymbol exceptionType)
+    private void AnalyzeExceptionThrowingNode(SyntaxNodeAnalysisContext context, SyntaxNode node, INamedTypeSymbol? exceptionType)
     {
         if (exceptionType == null)
             return;
@@ -490,17 +507,31 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         // Check if the exception is declared via [Throws]
         var isDeclared = IsExceptionDeclaredInMethod(context, node, exceptionType);
 
-        // If declared in the containing member, treat it as propagated and do not warn
-        if (isDeclared)
+        // Determine if the node is within a catch block
+        var catchClause = GetEnclosingCatchClause(node);
+        bool isHandled;
+
+        if (catchClause != null)
         {
-            return; // Exception is propagated; no further checks required
+            // If within a catch block, check only this catch block
+            isHandled = IsExceptionHandledInCatchClause(catchClause, context, exceptionType);
+        }
+        else
+        {
+            // If within a try block, check all associated catch blocks
+            var tryStatement = node.Ancestors().OfType<TryStatementSyntax>().FirstOrDefault();
+            if (tryStatement != null)
+            {
+                isHandled = tryStatement.Catches.Any(c => IsCatchClauseHandlingException(c, context, exceptionType));
+            }
+            else
+            {
+                isHandled = false;
+            }
         }
 
-        // Check if the exception is handled
-        var isHandled = IsExceptionHandledInEnclosingTryCatch(context, node, exceptionType);
-
         // Report diagnostic if neither handled nor declared
-        if (!isHandled)
+        if (!isHandled && !isDeclared)
         {
             var properties = ImmutableDictionary.Create<string, string?>()
                 .Add("ExceptionType", exceptionType.Name);
@@ -510,53 +541,36 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         }
     }
 
-    private bool IsExceptionHandledInEnclosingTryCatch(SyntaxNodeAnalysisContext context, SyntaxNode node, INamedTypeSymbol exceptionType)
+    /// <summary>
+    /// Determines if a catch clause handles the specified exception type.
+    /// </summary>
+    private bool IsCatchClauseHandlingException(CatchClauseSyntax catchClause, SyntaxNodeAnalysisContext context, INamedTypeSymbol exceptionType)
     {
-        foreach (var ancestor in node.Ancestors())
-        {
-            if (ancestor is TryStatementSyntax tryStatement)
-            {
-                foreach (var catchClause in tryStatement.Catches)
-                {
-                    if (catchClause.Declaration == null)
-                        return true; // Catch-all
+        if (catchClause.Declaration == null)
+            return true; // Catch-all
 
-                    var catchType = context.SemanticModel.GetTypeInfo(catchClause.Declaration.Type).Type as INamedTypeSymbol;
-                    if (catchType != null && exceptionType.Equals(catchType, SymbolEqualityComparer.Default))
-                        return true;
+        var catchType = context.SemanticModel.GetTypeInfo(catchClause.Declaration.Type).Type as INamedTypeSymbol;
+        if (catchType == null)
+            return false;
 
-                    if (catchType != null && exceptionType.InheritsFrom(catchType))
-                        return true;
-                }
-            }
-        }
-        return false;
+        // Check if the exceptionType matches or inherits from the catchType
+        return exceptionType.Equals(catchType, SymbolEqualityComparer.Default) ||
+               exceptionType.InheritsFrom(catchType);
     }
 
     private bool IsExceptionDeclaredInMethod(SyntaxNodeAnalysisContext context, SyntaxNode node, INamedTypeSymbol exceptionType)
     {
         foreach (var ancestor in node.Ancestors())
         {
-            IMethodSymbol methodSymbol = null;
-
-            switch (ancestor)
+            IMethodSymbol? methodSymbol = ancestor switch
             {
-                case MethodDeclarationSyntax methodDeclaration:
-                    methodSymbol = context.SemanticModel.GetDeclaredSymbol(methodDeclaration);
-                    break;
-                case ConstructorDeclarationSyntax constructorDeclaration:
-                    methodSymbol = context.SemanticModel.GetDeclaredSymbol(constructorDeclaration);
-                    break;
-                case AccessorDeclarationSyntax accessorDeclaration:
-                    methodSymbol = context.SemanticModel.GetDeclaredSymbol(accessorDeclaration);
-                    break;
-                case LocalFunctionStatementSyntax localFunction:
-                    methodSymbol = context.SemanticModel.GetDeclaredSymbol(localFunction);
-                    break;
-                case AnonymousFunctionExpressionSyntax anonymousFunction:
-                    methodSymbol = context.SemanticModel.GetSymbolInfo(anonymousFunction).Symbol as IMethodSymbol;
-                    break;
-            }
+                MethodDeclarationSyntax methodDeclaration => context.SemanticModel.GetDeclaredSymbol(methodDeclaration) as IMethodSymbol,
+                ConstructorDeclarationSyntax constructorDeclaration => context.SemanticModel.GetDeclaredSymbol(constructorDeclaration) as IMethodSymbol,
+                AccessorDeclarationSyntax accessorDeclaration => context.SemanticModel.GetDeclaredSymbol(accessorDeclaration) as IMethodSymbol,
+                LocalFunctionStatementSyntax localFunction => context.SemanticModel.GetDeclaredSymbol(localFunction) as IMethodSymbol,
+                AnonymousFunctionExpressionSyntax anonymousFunction => context.SemanticModel.GetSymbolInfo(anonymousFunction).Symbol as IMethodSymbol,
+                _ => null
+            };
 
             if (methodSymbol != null)
             {

@@ -79,4 +79,12 @@ partial class CheckedExceptionsAnalyzer
 
         return string.Empty;
     }
+
+    /// <summary>
+    /// Retrieves the enclosing catch clause for a given node.
+    /// </summary>
+    private CatchClauseSyntax? GetEnclosingCatchClause(SyntaxNode node)
+    {
+        return node.Ancestors().OfType<CatchClauseSyntax>().FirstOrDefault();
+    }
 }
