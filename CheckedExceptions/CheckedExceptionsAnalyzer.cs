@@ -72,7 +72,9 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         // Register additional actions for method calls, object creations, etc.
         context.RegisterSyntaxNodeAction(AnalyzeMethodCall, SyntaxKind.InvocationExpression);
         context.RegisterSyntaxNodeAction(AnalyzeObjectCreation, SyntaxKind.ObjectCreationExpression);
+        context.RegisterSyntaxNodeAction(AnalyzeIdentifier, SyntaxKind.IdentifierName);
         context.RegisterSyntaxNodeAction(AnalyzeMemberAccess, SyntaxKind.SimpleMemberAccessExpression);
+        context.RegisterSyntaxNodeAction(AnalyzeAwait, SyntaxKind.AwaitExpression);
         context.RegisterSyntaxNodeAction(AnalyzeElementAccess, SyntaxKind.ElementAccessExpression);
         context.RegisterSyntaxNodeAction(AnalyzeEventAssignment, SyntaxKind.AddAssignmentExpression);
         context.RegisterSyntaxNodeAction(AnalyzeEventAssignment, SyntaxKind.SubtractAssignmentExpression);
@@ -184,6 +186,48 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         }
     }
 
+
+    private void AnalyzeAwait(SyntaxNodeAnalysisContext context)
+    {
+        var awaitExpression = (AwaitExpressionSyntax)context.Node;
+
+        if (awaitExpression.Expression is InvocationExpressionSyntax invocation)
+        {
+            // Get the invoked symbol
+            var symbolInfo = context.SemanticModel.GetSymbolInfo(invocation);
+            var methodSymbol = symbolInfo.Symbol as IMethodSymbol;
+
+            if (methodSymbol == null)
+                return;
+
+            // Handle delegate invokes by getting the target method symbol
+            if (methodSymbol.MethodKind == MethodKind.DelegateInvoke)
+            {
+                var targetMethodSymbol = GetTargetMethodSymbol(context, invocation);
+                if (targetMethodSymbol != null)
+                {
+                    methodSymbol = targetMethodSymbol;
+                }
+                else
+                {
+                    // Could not find the target method symbol
+                    return;
+                }
+            }
+
+            AnalyzeMemberExceptions(context, invocation, methodSymbol);
+        }
+        else if (awaitExpression.Expression is MemberAccessExpressionSyntax memberAccess)
+        {
+            AnalyzeIdentifierAndMemberAccess(context, memberAccess);
+        }
+        else if (awaitExpression.Expression is IdentifierNameSyntax identifier)
+        {
+            AnalyzeIdentifierAndMemberAccess(context, identifier);
+        }
+    }
+
+
     /// <summary>
     /// Determines if a node is within a catch block.
     /// </summary>
@@ -213,6 +257,12 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     private void AnalyzeMethodCall(SyntaxNodeAnalysisContext context)
     {
         var invocation = (InvocationExpressionSyntax)context.Node;
+
+        if (invocation.Parent is AwaitExpressionSyntax)
+        {
+            // Handled in other method.
+            return;
+        }
 
         // Get the invoked symbol
         var symbolInfo = context.SemanticModel.GetSymbolInfo(invocation);
@@ -314,31 +364,53 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     }
 
     /// <summary>
-    /// Analyzes member access expressions (e.g., property getters) for exception handling.
+    /// Analyzes member access expressions (e.g., property accessors) for exception handling.
     /// </summary>
     private void AnalyzeMemberAccess(SyntaxNodeAnalysisContext context)
     {
         var memberAccess = (MemberAccessExpressionSyntax)context.Node;
 
-        var symbol = context.SemanticModel.GetSymbolInfo(memberAccess).Symbol as IPropertySymbol;
-        if (symbol == null)
+        AnalyzeIdentifierAndMemberAccess(context, memberAccess);
+    }
+
+    /// <summary>
+    /// Analyzes identifier names (e.g. local variables or property accessors in context) for exception handling.
+    /// </summary>
+    private void AnalyzeIdentifier(SyntaxNodeAnalysisContext context)
+    {
+        var identifierName = (IdentifierNameSyntax)context.Node;
+
+        // Ignore identifiers that are part of await expression
+        if (identifierName.Parent is AwaitExpressionSyntax)
             return;
 
+        // Ignore identifiers that are part of member access
+        if (identifierName.Parent is MemberAccessExpressionSyntax)
+            return;
+
+        AnalyzeIdentifierAndMemberAccess(context, identifierName);
+    }
+
+    private void AnalyzeIdentifierAndMemberAccess(SyntaxNodeAnalysisContext context, ExpressionSyntax expression)
+    {
+        var symbol = context.SemanticModel.GetSymbolInfo(expression).Symbol as IPropertySymbol;
+        if (symbol == null)
+            return;
 
         if (symbol is IPropertySymbol propertySymbol)
         {
             // Handle getter and setter
-            var isGetter = IsPropertyGetter(memberAccess);
-            var isSetter = IsPropertySetter(memberAccess);
+            var isGetter = IsPropertyGetter(expression);
+            var isSetter = IsPropertySetter(expression);
 
             if (isGetter && propertySymbol.GetMethod != null)
             {
-                AnalyzeMemberExceptions(context, memberAccess, propertySymbol.GetMethod);
+                AnalyzeMemberExceptions(context, expression, propertySymbol.GetMethod);
             }
 
             if (isSetter && propertySymbol.SetMethod != null)
             {
-                AnalyzeMemberExceptions(context, memberAccess, propertySymbol.SetMethod);
+                AnalyzeMemberExceptions(context, expression, propertySymbol.SetMethod);
             }
         }
     }
