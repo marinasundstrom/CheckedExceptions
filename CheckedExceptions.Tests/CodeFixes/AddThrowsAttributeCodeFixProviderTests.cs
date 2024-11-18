@@ -11,7 +11,7 @@ public class AddThrowsAttributeCodeFixProviderTests
     [Fact]
     public async Task AddsThrowsAttribute_ToMethod_WhenUnhandledExceptionThrown()
     {
-        var testCode = @"
+        var testCode = /* lang=c#-test */  """
 using System;
 
 namespace TestNamespace
@@ -24,9 +24,10 @@ namespace TestNamespace
             throw new Exception();
         }
     }
-}";
+}
+""";
 
-        var fixedCode = @"
+        var fixedCode = /* lang=c#-test */  """
 using System;
 
 namespace TestNamespace
@@ -40,10 +41,11 @@ namespace TestNamespace
             throw new Exception();
         }
     }
-}";
+}
+""";
 
         var expectedDiagnostic = Verifier.Diagnostic("THROW001")
-            .WithSpan(11, 13, 11, 35)
+            .WithSpan(10, 13, 10, 35)
             .WithArguments("Exception");
 
         await Verifier.VerifyCodeFixAsync(testCode, expectedDiagnostic, fixedCode);
@@ -52,7 +54,7 @@ namespace TestNamespace
     [Fact]
     public async Task AddsThrowsAttribute_ToConstructor_WhenUnhandledExceptionThrown()
     {
-        var testCode = @"
+        var testCode = /* lang=c#-test */  """
 using System;
 
 namespace TestNamespace
@@ -65,9 +67,10 @@ namespace TestNamespace
             throw new InvalidOperationException();
         }
     }
-}";
+}
+""";
 
-        var fixedCode = @"
+        var fixedCode = /* lang=c#-test */  """
 using System;
 
 namespace TestNamespace
@@ -81,10 +84,11 @@ namespace TestNamespace
             throw new InvalidOperationException();
         }
     }
-}";
+}
+""";
 
         var expectedDiagnostic = Verifier.Diagnostic("THROW001")
-            .WithSpan(11, 13, 11, 51)
+            .WithSpan(10, 13, 10, 51)
             .WithArguments("InvalidOperationException");
 
         await Verifier.VerifyCodeFixAsync(testCode, expectedDiagnostic, fixedCode);
@@ -93,7 +97,7 @@ namespace TestNamespace
     [Fact]
     public async Task DoesNotAddThrowsAttribute_IfAlreadyDeclared()
     {
-        var testCode = @"
+        var testCode = /* lang=c#-test */  """
 using System;
 
 namespace TestNamespace
@@ -107,7 +111,8 @@ namespace TestNamespace
             throw new InvalidOperationException();
         }
     }
-}";
+}
+""";
 
         // Since the ThrowsAttribute is already present, the analyzer should not report THROW001
         await Verifier.VerifyCodeFixAsync(testCode);
@@ -116,7 +121,7 @@ namespace TestNamespace
     [Fact]
     public async Task AddsThrowsAttribute_ToLambda_WhenUnhandledExceptionThrown()
     {
-        var testCode = @"
+        var testCode = /* lang=c#-test */  """
 using System;
 using System.Linq;
 
@@ -134,9 +139,10 @@ namespace TestNamespace
             action();
         }
     }
-}";
+}
+""";
 
-        var fixedCode = @"
+        var fixedCode = /* lang=c#-test */  """
 using System;
 using System.Linq;
 
@@ -156,10 +162,11 @@ namespace TestNamespace
             action();
         }
     }
-}";
+}
+""";
 
         var expectedDiagnostic = Verifier.Diagnostic("THROW001")
-            .WithSpan(14, 17, 14, 51)
+            .WithSpan(13, 17, 13, 51)
             .WithArguments("ArgumentNullException");
 
         await Verifier.VerifyCodeFixAsync(testCode, expectedDiagnostic, fixedCode, expectedIncrementalIterations: 2);
@@ -168,7 +175,7 @@ namespace TestNamespace
     [Fact]
     public async Task AddsThrowsAttribute_ToLocalFunction_WhenUnhandledExceptionThrown()
     {
-        var testCode = @"
+        var testCode = /* lang=c#-test */  """
 using System;
 
 namespace TestNamespace
@@ -185,9 +192,10 @@ namespace TestNamespace
             LocalFunction();
         }
     }
-}";
+}
+""";
 
-        var fixedCode = @"
+        var fixedCode = /* lang=c#-test */  """
 using System;
 
 namespace TestNamespace
@@ -207,10 +215,11 @@ namespace TestNamespace
             LocalFunction();
         }
     }
-}";
+}
+""";
 
         var expectedDiagnostic = Verifier.Diagnostic("THROW001")
-            .WithSpan(13, 17, 13, 53)
+            .WithSpan(12, 17, 12, 53)
             .WithArguments("NotImplementedException");
 
         await Verifier.VerifyCodeFixAsync(testCode, expectedDiagnostic, fixedCode, expectedIncrementalIterations: 2);
@@ -219,7 +228,7 @@ namespace TestNamespace
     [Fact]
     public async Task AddsThrowsAttribute_ToAccessor_WhenUnhandledExceptionThrown()
     {
-        var testCode = @"
+        var testCode = /* lang=c#-test */  """
 using System;
 
 namespace TestNamespace
@@ -241,9 +250,10 @@ namespace TestNamespace
             }
         }
     }
-}";
+}
+""";
 
-        var fixedCode = @"
+        var fixedCode = /* lang=c#-test */  """
 using System;
 
 namespace TestNamespace
@@ -266,10 +276,11 @@ namespace TestNamespace
             }
         }
     }
-}";
+}
+""";
 
         var expectedDiagnostic = Verifier.Diagnostic("THROW001")
-            .WithSpan(15, 17, 15, 39)
+            .WithSpan(14, 17, 14, 39)
             .WithArguments("Exception");
 
         await Verifier.VerifyCodeFixAsync(testCode, expectedDiagnostic, fixedCode);
