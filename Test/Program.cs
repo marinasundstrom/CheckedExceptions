@@ -2,45 +2,38 @@
 
 try
 {
-    Console.Write("Write number: ");
-
-    var number = Console.ReadLine();
-
-    if (number is null)
-    {
-        throw new InvalidOperationException("Argument is null");
-    }
-
-    var parsedNumber = Process(number);
-
-    Console.WriteLine($"The number was: {parsedNumber}");
-}
-catch (IOException e) { }
-catch (OutOfMemoryException e) { }
-catch (ArgumentOutOfRangeException e) { }
-catch (InvalidOperationException e)
-{
-    Console.WriteLine(e.Message);
-}
-
-[Throws(typeof(InvalidOperationException))]
-static double Process(string value)
-{
     try
     {
-        var no = double.Parse(value);
-        return no * 10;
+        var httpClient = new HttpClient()
+        {
+            BaseAddress = new Uri("https://www.scrapethissite.com")
+        };
+        var str = await httpClient.GetStringAsync("/");
+
+        Console.WriteLine(str);
     }
-    catch (ArgumentNullException e)
+    catch (ArgumentException)
     {
-        throw new InvalidOperationException("Argument is null");
+
     }
-    catch (FormatException e)
+    catch (InvalidOperationException)
     {
-        throw new InvalidOperationException("Format is invalid");
+
     }
-    catch (OverflowException e)
+    catch (HttpRequestException)
     {
-        throw new InvalidOperationException("Number exceeds values");
+
     }
+    catch (TaskCanceledException)
+    {
+
+    }
+    catch (UriFormatException)
+    {
+
+    }
+}
+catch (IOException)
+{
+
 }

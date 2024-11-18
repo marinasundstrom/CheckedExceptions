@@ -18,9 +18,12 @@ public static class CSharpAnalyzerVerifier<TAnalyzer, TVerifier>
     {
         await VerifyAnalyzerAsync(source, (test) =>
         {
-            var allDiagnostics = CheckedExceptionsAnalyzer.AllDiagnosticsIds;
+            if (expected.Any())
+            {
+                var allDiagnostics = CheckedExceptionsAnalyzer.AllDiagnosticsIds;
 
-            test.DisabledDiagnostics.AddRange(allDiagnostics.Except(expected.Select(x => x.Id)));
+                test.DisabledDiagnostics.AddRange(allDiagnostics.Except(expected.Select(x => x.Id)));
+            }
 
             test.ExpectedDiagnostics.AddRange(expected);
         });

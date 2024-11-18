@@ -172,7 +172,8 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
                 if (catchClause?.Declaration != null)
                 {
                     var caughtExceptionType = context.SemanticModel.GetTypeInfo(catchClause.Declaration.Type).Type as INamedTypeSymbol;
-                    AnalyzeExceptionThrowingNode(context, throwStatement, caughtExceptionType);
+                    // Rethrow assumes the exception is already handled by this catch
+                    // No need to report as unhandled
                 }
             }
             return; // No further analysis for rethrows
@@ -515,9 +516,9 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     /// <summary>
     /// Retrieves exception types declared in XML documentation.
     /// </summary>
-    private IEnumerable<INamedTypeSymbol> GetExceptionTypesFromDocumentation(Compilation compilation, IMethodSymbol methodSymbol)
+    private IEnumerable<INamedTypeSymbol> GetExceptionTypesFromDocumentation(Compilation compilation, ISymbol symbol)
     {
-        var xmlDocumentation = methodSymbol.GetDocumentationCommentXml(expandIncludes: true);
+        var xmlDocumentation = symbol.GetDocumentationCommentXml(expandIncludes: true);
 
         if (string.IsNullOrWhiteSpace(xmlDocumentation))
             return Enumerable.Empty<INamedTypeSymbol>();
@@ -546,20 +547,64 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     }
 
     /// <summary>
-    /// Determines if an exception is handled within the specific catch clause.
+    /// Determines if a catch clause handles the specified exception type.
     /// </summary>
-    private bool IsExceptionHandledInCatchClause(CatchClauseSyntax catchClause, SyntaxNodeAnalysisContext context, INamedTypeSymbol exceptionType)
+    private bool CatchClauseHandlesException(CatchClauseSyntax catchClause, SemanticModel semanticModel, INamedTypeSymbol exceptionType)
     {
         if (catchClause.Declaration == null)
-            return true; // Catch-all
+            return true; // Catch-all handles all exceptions
 
-        var catchType = context.SemanticModel.GetTypeInfo(catchClause.Declaration.Type).Type as INamedTypeSymbol;
+        var catchType = semanticModel.GetTypeInfo(catchClause.Declaration.Type).Type as INamedTypeSymbol;
         if (catchType == null)
             return false;
 
         // Check if the exceptionType matches or inherits from the catchType
         return exceptionType.Equals(catchType, SymbolEqualityComparer.Default) ||
                exceptionType.InheritsFrom(catchType);
+    }
+
+    /// <summary>
+    /// Determines if an exception is handled by any enclosing try-catch blocks.
+    /// </summary>
+    private bool IsExceptionHandled(SyntaxNode node, INamedTypeSymbol exceptionType, SemanticModel semanticModel)
+    {
+        bool comingFromCatch = false;
+
+        var current = node.Parent;
+        while (current != null)
+        {
+            // Only hit when in a try-block. Not coming from a catch clause.
+            if (current is TryStatementSyntax tryStatement && !comingFromCatch)
+            {
+                foreach (var catchClause in tryStatement.Catches)
+                {
+                    if (CatchClauseHandlesException(catchClause, semanticModel, exceptionType))
+                    {
+                        // Ensure the exception is not thrown within the catch clause itself
+                        var throwWithinCatch = node.Ancestors().OfType<CatchClauseSyntax>().Any(cc => cc == catchClause);
+                        if (!throwWithinCatch)
+                        {
+                            return true; // Exception is handled by this catch
+                        }
+                    }
+                }
+            }
+            else if (current is CatchClauseSyntax catchClause)
+            {
+                // Indicates when traversing up the tree that you came from a catch clause
+                // thus no need to analyze the try statement and its catch clauses.
+                comingFromCatch = true;
+
+                if (CatchClauseHandlesException(catchClause, semanticModel, exceptionType))
+                {
+                    return true; // Exception is handled by this catch
+                }
+            }
+
+            current = current.Parent;
+        }
+
+        return false; // Exception is not handled by any enclosing try-catch
     }
 
     /// <summary>
@@ -579,28 +624,8 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         // Check if the exception is declared via [Throws]
         var isDeclared = IsExceptionDeclaredInMethod(context, node, exceptionType);
 
-        // Determine if the node is within a catch block
-        var catchClause = GetEnclosingCatchClause(node);
-        bool isHandled;
-
-        if (catchClause != null)
-        {
-            // If within a catch block, check only this catch block
-            isHandled = IsExceptionHandledInCatchClause(catchClause, context, exceptionType);
-        }
-        else
-        {
-            // If within a try block, check all associated catch blocks
-            var tryStatement = node.Ancestors().OfType<TryStatementSyntax>().FirstOrDefault();
-            if (tryStatement != null)
-            {
-                isHandled = tryStatement.Catches.Any(c => IsCatchClauseHandlingException(c, context, exceptionType));
-            }
-            else
-            {
-                isHandled = false;
-            }
-        }
+        // Determine if the exception is handled by any enclosing try-catch
+        var isHandled = IsExceptionHandled(node, exceptionType, context.SemanticModel);
 
         // Report diagnostic if neither handled nor declared
         if (!isHandled && !isDeclared)
@@ -611,23 +636,6 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             var diagnostic = Diagnostic.Create(RuleUnhandledException, node.GetLocation(), properties, exceptionType.Name);
             context.ReportDiagnostic(diagnostic);
         }
-    }
-
-    /// <summary>
-    /// Determines if a catch clause handles the specified exception type.
-    /// </summary>
-    private bool IsCatchClauseHandlingException(CatchClauseSyntax catchClause, SyntaxNodeAnalysisContext context, INamedTypeSymbol exceptionType)
-    {
-        if (catchClause.Declaration == null)
-            return true; // Catch-all
-
-        var catchType = context.SemanticModel.GetTypeInfo(catchClause.Declaration.Type).Type as INamedTypeSymbol;
-        if (catchType == null)
-            return false;
-
-        // Check if the exceptionType matches or inherits from the catchType
-        return exceptionType.Equals(catchType, SymbolEqualityComparer.Default) ||
-               exceptionType.InheritsFrom(catchType);
     }
 
     private bool IsExceptionDeclaredInMethod(SyntaxNodeAnalysisContext context, SyntaxNode node, INamedTypeSymbol exceptionType)
