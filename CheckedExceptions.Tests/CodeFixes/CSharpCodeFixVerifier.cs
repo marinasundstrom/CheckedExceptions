@@ -7,6 +7,7 @@ using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Testing;
 using Microsoft.CodeAnalysis.Text;
 
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 using static Microsoft.CodeAnalysis.Testing.ReferenceAssemblies;
@@ -19,7 +20,7 @@ public static class CSharpCodeFixVerifier<TAnalyzer, TCodeFix, TVerifier>
     public static DiagnosticResult Diagnostic(string diagnosticId)
         => CodeFixVerifier<TAnalyzer, TCodeFix, CodeFixTest, TVerifier>.Diagnostic(diagnosticId);
 
-    public static Task VerifyCodeFixAsync(string source, DiagnosticResult? expected = null, string? fixedSource = null, int? expectedIncrementalIterations = 1)
+    public static Task VerifyCodeFixAsync([StringSyntax("c#-test")] string source, DiagnosticResult? expected = null, [StringSyntax("c#-test")] string? fixedSource = null, int? expectedIncrementalIterations = 1)
     {
         var test = new CodeFixTest
         {

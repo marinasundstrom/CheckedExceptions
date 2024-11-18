@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Testing;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -14,7 +16,7 @@ public static class CSharpAnalyzerVerifier<TAnalyzer, TVerifier>
     public static DiagnosticResult Diagnostic(string diagnosticId)
         => AnalyzerVerifier<TAnalyzer, AnalyzerTest, TVerifier>.Diagnostic(diagnosticId);
 
-    public static async Task VerifyAnalyzerAsync(string source, params DiagnosticResult[] expected)
+    public static async Task VerifyAnalyzerAsync([StringSyntax("c#-test")] string source, params DiagnosticResult[] expected)
     {
         await VerifyAnalyzerAsync(source, (test) =>
         {
@@ -29,7 +31,7 @@ public static class CSharpAnalyzerVerifier<TAnalyzer, TVerifier>
         });
     }
 
-    public static Task VerifyAnalyzerAsync(string source, Action<AnalyzerTest>? setup = null)
+    public static Task VerifyAnalyzerAsync([StringSyntax("c#-test")] string source, Action<AnalyzerTest>? setup = null)
     {
         var test = new AnalyzerTest
         {
