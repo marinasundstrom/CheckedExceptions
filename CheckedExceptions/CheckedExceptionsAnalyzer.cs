@@ -569,25 +569,32 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     private bool IsExceptionHandled(SyntaxNode node, INamedTypeSymbol exceptionType, SemanticModel semanticModel)
     {
         bool comingFromCatch = false;
+        bool comingFromFinally = false;
 
         var current = node.Parent;
         while (current != null)
         {
             // Only hit when in a try-block. Not coming from a catch clause.
-            if (current is TryStatementSyntax tryStatement && !comingFromCatch)
+            if (current is TryStatementSyntax tryStatement)
             {
-                foreach (var catchClause in tryStatement.Catches)
+                if (!comingFromCatch && !comingFromFinally)
                 {
-                    if (CatchClauseHandlesException(catchClause, semanticModel, exceptionType))
+                    foreach (var catchClause in tryStatement.Catches)
                     {
-                        // Ensure the exception is not thrown within the catch clause itself
-                        var throwWithinCatch = node.Ancestors().OfType<CatchClauseSyntax>().Any(cc => cc == catchClause);
-                        if (!throwWithinCatch)
+                        if (CatchClauseHandlesException(catchClause, semanticModel, exceptionType))
                         {
-                            return true; // Exception is handled by this catch
+                            // Ensure the exception is not thrown within the catch clause itself
+                            var throwWithinCatch = node.Ancestors().OfType<CatchClauseSyntax>().Any(cc => cc == catchClause);
+                            if (!throwWithinCatch)
+                            {
+                                return true; // Exception is handled by this catch
+                            }
                         }
                     }
                 }
+
+                comingFromCatch = false;
+                comingFromFinally = false;
             }
             else if (current is CatchClauseSyntax catchClause)
             {
@@ -599,6 +606,12 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
                 {
                     return true; // Exception is handled by this catch
                 }
+            }
+            else if (current is FinallyClauseSyntax finallyClause)
+            {
+                // Indicates when traversing up the tree that you came from a catch clause
+                // thus no need to analyze the try statement and its catch clauses.
+                comingFromFinally = true;
             }
 
             current = current.Parent;
