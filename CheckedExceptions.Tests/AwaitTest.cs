@@ -10,7 +10,7 @@ public partial class AwaitTest
     [Fact]
     public async Task Should_ReportDiagnostic_When_AwaitingAsyncMethod_WithoutCatch()
     {
-        var test = """
+        var test = /* lang=c#-test */ """
             using System;
             using System.Threading.Tasks;
 
@@ -39,7 +39,7 @@ public partial class AwaitTest
     [Fact]
     public async Task Should_NotReportDiagnostic_When_AwaitingAsyncMethod_WithCatch()
     {
-        var test = """
+        var test = /* lang=c#-test */ """
             using System;
             using System.Threading.Tasks;
 
@@ -71,7 +71,7 @@ public partial class AwaitTest
     [Fact]
     public async Task Should_ReportDiagnostic_When_AwaitingAsyncMethod_ViaThis_WithoutCatch()
     {
-        var test = """
+        var test = /* lang=c#-test */ """
             using System;
             using System.Threading.Tasks;
 

@@ -10,7 +10,7 @@ public partial class TryCatchTest
     [Fact]
     public async Task Should_NotReportDiagnosticForSingleExceptionInNestedTry()
     {
-        var test = """
+        var test = /* lang=c#-test */ """
             using System;
             using System.IO;
 
@@ -43,7 +43,7 @@ public partial class TryCatchTest
     [Fact]
     public async Task Should_NotReportDiagnosticWhenMultipleExceptionsInNestedTry()
     {
-        var test = """
+        var test = /* lang=c#-test */ """
             using System;
             using System.IO;
             using System.Net.Http;
@@ -100,7 +100,7 @@ public partial class TryCatchTest
     [Fact]
     public async Task Should_HandleNestedTryCatchWithDifferentExceptions()
     {
-        var test = """
+        var test = /* lang=c#-test */ """
         using System;
         using System.IO;
 
@@ -137,7 +137,7 @@ public partial class TryCatchTest
     [Fact]
     public async Task Should_ReportDiagnostic_ForInvalidOperationException_NotCaught_InNestedTryCatch()
     {
-        var test = """
+        var test = /* lang=c#-test */ """
         using System;
         using System.IO;
 
@@ -174,7 +174,7 @@ public partial class TryCatchTest
     [Fact]
     public async Task Should_ReportDiagnostic_ForIOException_ThrownInCatchBlock()
     {
-        var test = """
+        var test = /* lang=c#-test */ """
         using System;
         using System.IO;
 
@@ -212,7 +212,7 @@ public partial class TryCatchTest
     [Fact]
     public async Task Should_ReportDiagnostics_ForExceptions_ThrownInCatchAndFinallyBlocks()
     {
-        var test = """
+        var test = /* lang=c#-test */ """
         using System;
         using System.IO;
 
@@ -257,7 +257,7 @@ public partial class TryCatchTest
     [Fact]
     public async Task Should_ReportDiagnostic_ForIOException_Unhandled_InCatch_WithFinally_CatchingFormatException()
     {
-        var test = """
+        var test = /* lang=c#-test */ """
         using System;
         using System.IO;
 

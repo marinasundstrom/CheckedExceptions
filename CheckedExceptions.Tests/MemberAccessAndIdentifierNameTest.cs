@@ -10,7 +10,7 @@ public partial class MemberAccessAndIdentifierNameTest
     [Fact]
     public async Task Should_ReportDiagnostic_When_AssigningInstanceProperty_ViaThisAccess()
     {
-        var test = """
+        var test = /* lang=c#-test */ """
             using System;
 
             public class Test
@@ -40,7 +40,7 @@ public partial class MemberAccessAndIdentifierNameTest
     [Fact]
     public async Task Should_ReportDiagnostic_When_AssigningInstanceProperty_Directly()
     {
-        var test = """
+        var test = /* lang=c#-test */ """
             using System;
 
             public class Test
@@ -70,7 +70,7 @@ public partial class MemberAccessAndIdentifierNameTest
     [Fact]
     public async Task Should_ReportDiagnostic_When_AssigningStaticProperty_ViaClassName()
     {
-        var test = """
+        var test = /* lang=c#-test */ """
             using System;
 
             public class Test

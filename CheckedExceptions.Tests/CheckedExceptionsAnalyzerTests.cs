@@ -11,19 +11,20 @@ public partial class CheckedExceptionsAnalyzerTests
     [Fact]
     public async Task ThrowingExceptionWithoutDeclaration_ShouldReportDiagnostic()
     {
-        var test = @"
-using System;
+        var test = /* lang=c#-test */ """
+            using System;
 
-public class TestClass
-{
-    public void TestMethod()
-    {
-        throw new InvalidOperationException();
-    }
-}";
+            public class TestClass
+            {
+                public void TestMethod()
+                {
+                    throw new InvalidOperationException();
+                }
+            }
+            """;
 
         var expected = Verifier.Diagnostic("THROW001")
-            .WithSpan(8, 9, 8, 47)
+            .WithSpan(7, 9, 7, 47)
             .WithArguments("InvalidOperationException");
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
@@ -33,23 +34,24 @@ public class TestClass
     [Fact]
     public async Task ThrowingGeneralExceptionWithoutDeclaration_ShouldReportDiagnostic()
     {
-        var test = @"
-using System;
+        var test = /* lang=c#-test */ """
+            using System;
 
-public class TestClass
-{
-    public void TestMethod()
-    {
-        throw new Exception();
-    }
-}";
+            public class TestClass
+            {
+                public void TestMethod()
+                {
+                    throw new Exception();
+                }
+            }
+            """;
 
         var expected1 = Verifier.Diagnostic("THROW001")
-            .WithSpan(8, 9, 8, 31)
+            .WithSpan(7, 9, 7, 31)
             .WithArguments("Exception");
 
         var expected2 = Verifier.Diagnostic("THROW004")
-            .WithSpan(8, 9, 8, 31)
+            .WithSpan(7, 9, 7, 31)
             .WithArguments("Exception");
 
         await Verifier.VerifyAnalyzerAsync(test, expected1, expected2);
@@ -59,20 +61,21 @@ public class TestClass
     [Fact]
     public async Task DeclaringGeneralException_ShouldReportDiagnostic()
     {
-        var test = @"
-using System;
+        var test = /* lang=c#-test */ """
+            using System;
 
-public class TestClass
-{
-    [Throws(typeof(Exception))]
-    public void TestMethod()
-    {
-        throw new Exception();
-    }
-}";
+            public class TestClass
+            {
+                [Throws(typeof(Exception))]
+                public void TestMethod()
+                {
+                    throw new Exception();
+                }
+            }
+            """;
 
         var expected = Verifier.Diagnostic("THROW003")
-            .WithSpan(6, 6, 6, 31)
+            .WithSpan(5, 6, 5, 31)
             .WithArguments("Exception");
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
@@ -82,21 +85,22 @@ public class TestClass
     [Fact]
     public async Task DuplicateThrowsAttributes_ShouldReportDiagnostic()
     {
-        var test = @"
-using System;
+        var test = /* lang=c#-test */ """
+            using System;
 
-public class TestClass
-{
-    [Throws(typeof(InvalidOperationException))]
-    [Throws(typeof(InvalidOperationException))]
-    public void TestMethod()
-    {
-        throw new InvalidOperationException();
-    }
-}";
+            public class TestClass
+            {
+                [Throws(typeof(InvalidOperationException))]
+                [Throws(typeof(InvalidOperationException))]
+                public void TestMethod()
+                {
+                    throw new InvalidOperationException();
+                }
+            }
+            """;
 
         var expected = Verifier.Diagnostic("THROW005")
-            .WithSpan(7, 6, 7, 47)
+            .WithSpan(6, 6, 6, 47)
             .WithArguments("InvalidOperationException");
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
@@ -106,23 +110,24 @@ public class TestClass
     [Fact]
     public async Task ExceptionHandledInTryCatch_ShouldNotReportDiagnostic()
     {
-        var test = @"
-using System;
+        var test = /* lang=c#-test */ """
+        using System;
 
-public class TestClass
-{
-    public void TestMethod()
-    {
-        try
+        public class TestClass
         {
-            throw new InvalidOperationException();
+            public void TestMethod()
+            {
+                try
+                {
+                    throw new InvalidOperationException();
+                }
+                catch (InvalidOperationException)
+                {
+                    // Exception handled
+                }
+            }
         }
-        catch (InvalidOperationException)
-        {
-            // Exception handled
-        }
-    }
-}";
+        """;
 
         await Verifier.VerifyAnalyzerAsync(test);
     }
@@ -131,17 +136,18 @@ public class TestClass
     [Fact]
     public async Task ExceptionDeclaredViaThrowsAttribute_ShouldNotReportDiagnostic()
     {
-        var test = @"
-using System;
+        var test = /* lang=c#-test */ """
+            using System;
 
-public class TestClass
-{
-    [Throws(typeof(InvalidOperationException))]
-    public void TestMethod()
-    {
-        throw new InvalidOperationException();
-    }
-}";
+            public class TestClass
+            {
+                [Throws(typeof(InvalidOperationException))]
+                public void TestMethod()
+                {
+                    throw new InvalidOperationException();
+                }
+            }
+            """;
 
         await Verifier.VerifyAnalyzerAsync(test);
     }
@@ -150,28 +156,29 @@ public class TestClass
     [Fact]
     public async Task ExceptionHandledInLambda_ShouldNotReportDiagnostic()
     {
-        var test = @"
-using System;
+        var test = /* lang=c#-test */ """
+        using System;
 
-public class TestClass
-{
-    public void TestMethod()
-    {
-        Action action = () =>
+        public class TestClass
         {
-            try
+            public void TestMethod()
             {
-                throw new InvalidOperationException();
-            }
-            catch (InvalidOperationException)
-            {
-                // Exception handled
-            }
-        };
+                Action action = () =>
+                {
+                    try
+                    {
+                        throw new InvalidOperationException();
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        // Exception handled
+                    }
+                };
 
-        action();
-    }
-}";
+                action();
+            }
+        }
+        """;
 
         await Verifier.VerifyAnalyzerAsync(test);
     }
@@ -180,20 +187,21 @@ public class TestClass
     [Fact(Skip = "Not supported")]
     public async Task ExceptionDeclaredInXmlDocumentation_ShouldNotReportDiagnostic()
     {
-        var test = @"
-using System;
+        var test = /* lang=c#-test */ """
+            using System;
 
-public class TestClass
-{
-    /// <summary>
-    /// Performs an operation.
-    /// </summary>
-    /// <exception cref=""T:System.InvalidOperationException"">Thrown when the operation fails.</exception>
-    public void TestMethod()
-    {
-        throw new InvalidOperationException();
-    }
-}";
+            public class TestClass
+            {
+                /// <summary>
+                /// Performs an operation.
+                /// </summary>
+                /// <exception cref=""T:System.InvalidOperationException"">Thrown when the operation fails.</exception>
+                public void TestMethod()
+                {
+                    throw new InvalidOperationException();
+                }
+            }
+            """;
 
         await Verifier.VerifyAnalyzerAsync(test);
     }
@@ -202,17 +210,18 @@ public class TestClass
     [Fact(Skip = "To be implemented")]
     public async Task MultipleExceptionsDeclaredViaThrowsAttribute_ShouldNotReportDiagnostic()
     {
-        var test = @"
-using System;
+        var test = /* lang=c#-test */ """
+            using System;
 
-public class TestClass
-{
-    [Throws(typeof(InvalidOperationException), typeof(ArgumentException))]
-    public void TestMethod()
-    {
-        throw new InvalidOperationException();
-    }
-}";
+            public class TestClass
+            {
+                [Throws(typeof(InvalidOperationException), typeof(ArgumentException))]
+                public void TestMethod()
+                {
+                    throw new InvalidOperationException();
+                }
+            }
+            """;
 
         await Verifier.VerifyAnalyzerAsync(test);
     }
@@ -221,32 +230,33 @@ public class TestClass
     [Fact]
     public async Task ThrowingMultipleExceptionsWithPartialHandling_ShouldReportDiagnosticForUnhandled()
     {
-        var test = @"
-using System;
+        var test = /* lang=c#-test */ """
+            using System;
 
-public class TestClass
-{
-    public void TestMethod()
-    {
-        try
-        {
-            throw new InvalidOperationException();
-        }
-        catch (ArgumentException)
-        {
-            // Handle ArgumentException only
-        }
+            public class TestClass
+            {
+                public void TestMethod()
+                {
+                    try
+                    {
+                        throw new InvalidOperationException();
+                    }
+                    catch (ArgumentException)
+                    {
+                        // Handle ArgumentException only
+                    }
 
-        throw new ArgumentNullException();
-    }
-}";
+                    throw new ArgumentNullException();
+                }
+            }
+            """;
 
         var expected1 = Verifier.Diagnostic("THROW001")
-            .WithSpan(10, 13, 10, 51)
+            .WithSpan(9, 13, 9, 51)
             .WithArguments("InvalidOperationException");
 
         var expected2 = Verifier.Diagnostic("THROW001")
-            .WithSpan(17, 9, 17, 43)
+            .WithSpan(16, 9, 16, 43)
             .WithArguments("ArgumentNullException");
 
         await Verifier.VerifyAnalyzerAsync(test, expected1, expected2);
@@ -255,33 +265,34 @@ public class TestClass
     [Fact]
     public async Task NestedTryCatch_ShouldReportDiagnosticForUnhandledException()
     {
-        var test = @"
-using System;
+        var test = /* lang=c#-test */ """
+            using System;
 
-public class TestClass
-{
-    public void TestMethod()
-    {
-        try
-        {
-            try
+            public class TestClass
             {
-                throw new InvalidOperationException();
+                public void TestMethod()
+                {
+                    try
+                    {
+                        try
+                        {
+                            throw new InvalidOperationException();
+                        }
+                        catch (ArgumentException)
+                        {
+                            // Handle ArgumentException only
+                        }
+                    }
+                    catch (ArgumentNullException)
+                    {
+                        // Handle ArgumentNullException only
+                    }
+                }
             }
-            catch (ArgumentException)
-            {
-                // Handle ArgumentException only
-            }
-        }
-        catch (ArgumentNullException)
-        {
-            // Handle ArgumentNullException only
-        }
-    }
-}";
+            """;
 
         var expected = Verifier.Diagnostic("THROW001")
-            .WithSpan(12, 17, 12, 55)
+            .WithSpan(11, 17, 11, 55)
             .WithArguments("InvalidOperationException");
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
@@ -290,21 +301,22 @@ public class TestClass
     [Fact]
     public async Task ThrowingCustomExceptionWithoutDeclaration_ShouldReportDiagnostic()
     {
-        var test = @"
-using System;
+        var test = /* lang=c#-test */ """
+            using System;
 
-public class CustomException : Exception { }
+            public class CustomException : Exception { }
 
-public class TestClass
-{
-    public void TestMethod()
-    {
-        throw new CustomException();
-    }
-}";
+            public class TestClass
+            {
+                public void TestMethod()
+                {
+                    throw new CustomException();
+                }
+            }
+            """;
 
         var expected = Verifier.Diagnostic("THROW001")
-            .WithSpan(10, 9, 10, 37)
+            .WithSpan(9, 9, 9, 37)
             .WithArguments("CustomException");
 
         await Verifier.VerifyAnalyzerAsync(test, expected);

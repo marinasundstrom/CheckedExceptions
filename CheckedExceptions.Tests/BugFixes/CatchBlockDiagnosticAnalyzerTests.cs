@@ -14,7 +14,7 @@ public partial class CatchBlockDiagnosticAnalyzerTests
     [Fact]
     public async Task Should_ReportDiagnosticForUnhandledExceptionInTryAndCatchBlocks()
     {
-        var test = """
+        var test = /* lang=c#-test */ """
             using System;
             using System.IO;
 
@@ -52,7 +52,7 @@ public partial class CatchBlockDiagnosticAnalyzerTests
     [Fact]
     public async Task Should_ReportDiagnosticForUnhandledExceptionWithoutInterferingWithAdjacentCatch()
     {
-        var test = """
+        var test = /* lang=c#-test */ """
             using System;
             using System.IO;
 
