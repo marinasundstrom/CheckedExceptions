@@ -6,7 +6,7 @@ using Xunit;
 using Verifier = CSharpCodeFixVerifier<CheckedExceptionsAnalyzer, AddThrowsAttributeCodeFixProvider, Microsoft.CodeAnalysis.Testing.DefaultVerifier>;
 using Xunit.Abstractions;
 
-public class AddThrowsAttributeCodeFixProviderTests(ITestOutputHelper output)
+public class AddThrowsAttributeCodeFixProviderTests
 {
     [Fact]
     public async Task AddsThrowsAttribute_ToMethod_WhenUnhandledExceptionThrown()

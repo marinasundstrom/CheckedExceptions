@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace Test.Cases;
 
 public class FxTest
@@ -28,5 +30,13 @@ public class FxTest
     public void Foo3()
     {
         Foo();
+    }
+
+    public void Foo4()
+    {
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.Length = 2;
+
+        //stringBuilder.Append("");
     }
 }

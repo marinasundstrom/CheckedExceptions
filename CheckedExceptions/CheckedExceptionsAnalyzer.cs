@@ -7,6 +7,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Xml.Linq;
+using System.Reflection;
 
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
@@ -227,7 +228,6 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             AnalyzeIdentifierAndMemberAccess(context, identifier);
         }
     }
-
 
     /// <summary>
     /// Determines if a node is within a catch block.
@@ -492,8 +492,12 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             .ToList();
 
         // Get exceptions from XML documentation
-        var xmlExceptionTypes = GetExceptionTypesFromDocumentation(context.Compilation, methodSymbol);
-        exceptionTypes.AddRange(xmlExceptionTypes);
+        var xmlExceptionTypes = GetExceptionTypesFromDocumentationCommentXml(context.Compilation, methodSymbol);
+
+        if (xmlExceptionTypes.Any())
+        {
+            exceptionTypes.AddRange(xmlExceptionTypes);
+        }
 
         foreach (var exceptionType in exceptionTypes.Distinct(SymbolEqualityComparer.Default).OfType<INamedTypeSymbol>())
         {
@@ -511,39 +515,6 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         return attributes
                     .Where(attr => attr.AttributeClass?.Name == "ThrowsAttribute")
                     .ToList();
-    }
-
-    /// <summary>
-    /// Retrieves exception types declared in XML documentation.
-    /// </summary>
-    private IEnumerable<INamedTypeSymbol> GetExceptionTypesFromDocumentation(Compilation compilation, ISymbol symbol)
-    {
-        var xmlDocumentation = symbol.GetDocumentationCommentXml(expandIncludes: true);
-
-        if (string.IsNullOrWhiteSpace(xmlDocumentation))
-            return Enumerable.Empty<INamedTypeSymbol>();
-
-        try
-        {
-            var xml = XDocument.Parse(xmlDocumentation);
-
-            return xml.Descendants("exception")
-                .Select(e => e.Attribute("cref")?.Value)
-                .Where(cref => cref != null)
-                .Select(cref =>
-                {
-                    var crefValue = cref.StartsWith("T:") ? cref.Substring(2) : cref;
-                    return compilation.GetTypeByMetadataName(crefValue) ??
-                           compilation.GetTypeByMetadataName(crefValue.Split('.').Last());
-                })
-                .Where(type => type != null)
-                .Cast<INamedTypeSymbol>();
-        }
-        catch (Exception ex)
-        {
-            // Optionally log or debug the exception
-            return Enumerable.Empty<INamedTypeSymbol>();
-        }
     }
 
     /// <summary>

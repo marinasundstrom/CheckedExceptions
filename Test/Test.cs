@@ -17,4 +17,22 @@ public class Test
         }
         LocalFunction();
     }
+
+    public Task Foo2
+    {
+        [Throws(typeof(NullReferenceException))]
+        get
+        {
+            return null!;
+        }
+    }
+
+    public void Test2()
+    {
+        var x = Foo2;
+        var x2 = this.Foo2;
+
+        Foo();
+        this.Foo();
+    }
 }

@@ -183,29 +183,6 @@ public partial class CheckedExceptionsAnalyzerTests
         await Verifier.VerifyAnalyzerAsync(test);
     }
 
-    // Test 8: Declaring exceptions in XML documentation
-    [Fact(Skip = "Not supported")]
-    public async Task ExceptionDeclaredInXmlDocumentation_ShouldNotReportDiagnostic()
-    {
-        var test = /* lang=c#-test */ """
-            using System;
-
-            public class TestClass
-            {
-                /// <summary>
-                /// Performs an operation.
-                /// </summary>
-                /// <exception cref=""T:System.InvalidOperationException"">Thrown when the operation fails.</exception>
-                public void TestMethod()
-                {
-                    throw new InvalidOperationException();
-                }
-            }
-            """;
-
-        await Verifier.VerifyAnalyzerAsync(test);
-    }
-
     // Test 9: Multiple exceptions declared via [Throws] attribute
     [Fact(Skip = "To be implemented")]
     public async Task MultipleExceptionsDeclaredViaThrowsAttribute_ShouldNotReportDiagnostic()
