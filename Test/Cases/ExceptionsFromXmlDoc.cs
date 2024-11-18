@@ -35,8 +35,11 @@ public class FxTest
     public void Foo4()
     {
         StringBuilder stringBuilder = new StringBuilder();
+
+        var x = stringBuilder.Length;
+
         stringBuilder.Length = 2;
 
-        //stringBuilder.Append("");
+        stringBuilder.AppendLine("2");
     }
 }

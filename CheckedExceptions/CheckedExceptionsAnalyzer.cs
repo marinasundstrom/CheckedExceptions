@@ -400,19 +400,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
         if (symbol is IPropertySymbol propertySymbol)
         {
-            // Handle getter and setter
-            var isGetter = IsPropertyGetter(expression);
-            var isSetter = IsPropertySetter(expression);
-
-            if (isGetter && propertySymbol.GetMethod != null)
-            {
-                AnalyzeMemberExceptions(context, expression, propertySymbol.GetMethod);
-            }
-
-            if (isSetter && propertySymbol.SetMethod != null)
-            {
-                AnalyzeMemberExceptions(context, expression, propertySymbol.SetMethod);
-            }
+            AnalyzePropertyExceptions(context, expression, symbol);
         }
     }
 
@@ -429,19 +417,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
         if (symbol is IPropertySymbol propertySymbol)
         {
-            // Handle getter and setter
-            var isGetter = IsPropertyGetter(elementAccess);
-            var isSetter = IsPropertySetter(elementAccess);
-
-            if (isGetter && propertySymbol.GetMethod != null)
-            {
-                AnalyzeMemberExceptions(context, elementAccess, propertySymbol.GetMethod);
-            }
-
-            if (isSetter && propertySymbol.SetMethod != null)
-            {
-                AnalyzeMemberExceptions(context, elementAccess, propertySymbol.SetMethod);
-            }
+            AnalyzePropertyExceptions(context, elementAccess, symbol);
         }
     }
 
@@ -475,6 +451,61 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     }
 
     /// <summary>
+    /// Analyzes exceptions thrown by a property, specifically its getters and setters.
+    /// </summary>
+    private void AnalyzePropertyExceptions(SyntaxNodeAnalysisContext context, ExpressionSyntax expression, IPropertySymbol propertySymbol)
+    {
+        // Determine if the analyzed expression is for a getter or setter
+        bool isGetter = IsPropertyGetter(expression);
+        bool isSetter = IsPropertySetter(expression);
+
+        // List to collect all relevant exception types
+        var exceptionTypes = new List<INamedTypeSymbol?>();
+
+        // Retrieve exception types documented in XML comments for the property
+        var xmlDocumentedExceptions = GetExceptionTypesFromDocumentationCommentXml(context.Compilation, propertySymbol);
+
+        // Filter exceptions documented specifically for the getter and setter
+        var getterExceptions = xmlDocumentedExceptions.Where(x =>
+            x.Description.Contains(" get ") ||
+            x.Description.StartsWith("Gets ", StringComparison.OrdinalIgnoreCase));
+
+        var setterExceptions = xmlDocumentedExceptions.Where(x =>
+            x.Description.Contains(" set ") ||
+            x.Description.StartsWith("Sets ", StringComparison.OrdinalIgnoreCase));
+
+        // Handle exceptions that don't explicitly belong to getters or setters
+        var allOtherExceptions = xmlDocumentedExceptions
+            .Except(getterExceptions)
+            .Except(setterExceptions);
+
+        // Analyze exceptions thrown by the getter if applicable
+        if (isGetter && propertySymbol.GetMethod != null)
+        {
+            var getterMethodExceptions = GetExceptionTypes(propertySymbol.GetMethod);
+            exceptionTypes.AddRange(getterExceptions.Select(x => x.ExceptionType));
+            exceptionTypes.AddRange(getterMethodExceptions);
+        }
+
+        // Analyze exceptions thrown by the setter if applicable
+        if (isSetter && propertySymbol.SetMethod != null)
+        {
+            var setterMethodExceptions = GetExceptionTypes(propertySymbol.SetMethod);
+            exceptionTypes.AddRange(setterExceptions.Select(x => x.ExceptionType));
+            exceptionTypes.AddRange(setterMethodExceptions);
+        }
+
+        // Add other exceptions not specific to getters or setters
+        exceptionTypes.AddRange(allOtherExceptions.Select(x => x.ExceptionType));
+
+        // Deduplicate and analyze each distinct exception type
+        foreach (var exceptionType in exceptionTypes.Distinct(SymbolEqualityComparer.Default).OfType<INamedTypeSymbol>())
+        {
+            AnalyzeExceptionThrowingNode(context, expression, exceptionType);
+        }
+    }
+
+    /// <summary>
     /// Analyzes exceptions thrown by a method, constructor, or other member.
     /// </summary>
     private void AnalyzeMemberExceptions(SyntaxNodeAnalysisContext context, SyntaxNode node, IMethodSymbol methodSymbol)
@@ -482,6 +513,24 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         if (methodSymbol == null)
             return;
 
+        List<INamedTypeSymbol?> exceptionTypes = GetExceptionTypes(methodSymbol);
+
+        // Get exceptions from XML documentation
+        var xmlExceptionTypes = GetExceptionTypesFromDocumentationCommentXml(context.Compilation, methodSymbol);
+
+        if (xmlExceptionTypes.Any())
+        {
+            exceptionTypes.AddRange(xmlExceptionTypes.Select(x => x.ExceptionType));
+        }
+
+        foreach (var exceptionType in exceptionTypes.Distinct(SymbolEqualityComparer.Default).OfType<INamedTypeSymbol>())
+        {
+            AnalyzeExceptionThrowingNode(context, node, exceptionType);
+        }
+    }
+
+    private static List<INamedTypeSymbol?> GetExceptionTypes(IMethodSymbol methodSymbol)
+    {
         // Get exceptions from Throws attributes
         var exceptionAttributes = GetThrowsAttributes(methodSymbol);
 
@@ -490,19 +539,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             .Select(attr => attr.ConstructorArguments[0].Value as INamedTypeSymbol)
             .Where(type => type != null)
             .ToList();
-
-        // Get exceptions from XML documentation
-        var xmlExceptionTypes = GetExceptionTypesFromDocumentationCommentXml(context.Compilation, methodSymbol);
-
-        if (xmlExceptionTypes.Any())
-        {
-            exceptionTypes.AddRange(xmlExceptionTypes);
-        }
-
-        foreach (var exceptionType in exceptionTypes.Distinct(SymbolEqualityComparer.Default).OfType<INamedTypeSymbol>())
-        {
-            AnalyzeExceptionThrowingNode(context, node, exceptionType);
-        }
+        return exceptionTypes;
     }
 
     private static List<AttributeData> GetThrowsAttributes(ISymbol symbol)

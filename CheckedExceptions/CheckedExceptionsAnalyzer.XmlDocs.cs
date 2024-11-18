@@ -78,39 +78,42 @@ partial class CheckedExceptionsAnalyzer
         return null;
     }
 
-    private static IEnumerable<INamedTypeSymbol> GetExceptionTypesFromDocumentationCommentXml(Compilation compilation, XElement? xml)
+    public record struct ExceptionInfo(INamedTypeSymbol ExceptionType, string Description);
+
+    private static IEnumerable<ExceptionInfo> GetExceptionTypesFromDocumentationCommentXml(Compilation compilation, XElement? xml)
     {
         try
         {
             return xml.Descendants("exception")
-                .Select(e => e.Attribute("cref")?.Value)
-                .Where(cref => cref != null)
-                .Select(cref =>
+                .Select(e =>
                 {
+                    var cref = e.Attribute("cref")?.Value;
                     var crefValue = cref.StartsWith("T:") ? cref.Substring(2) : cref;
-                    return compilation.GetTypeByMetadataName(crefValue) ??
+                    var innerText = e.Value;
+
+                    var name = compilation.GetTypeByMetadataName(crefValue) ??
                            compilation.GetTypeByMetadataName(crefValue.Split('.').Last());
-                })
-                .Where(type => type != null)
-                .Cast<INamedTypeSymbol>();
+
+                    return new ExceptionInfo(name, innerText);
+                });
         }
         catch
         {
             // Handle or log parsing errors
-            return Enumerable.Empty<INamedTypeSymbol>();
+            return Enumerable.Empty<ExceptionInfo>();
         }
     }
 
     /// <summary>
     /// Retrieves exception types declared in XML documentation.
     /// </summary>
-    private IEnumerable<INamedTypeSymbol> GetExceptionTypesFromDocumentationCommentXml(Compilation compilation, ISymbol symbol)
+    private IEnumerable<ExceptionInfo> GetExceptionTypesFromDocumentationCommentXml(Compilation compilation, ISymbol symbol)
     {
         XElement? docCommentXml = GetDocumentationCommentXmlForSymbol(compilation, symbol);
 
         if (docCommentXml is null)
         {
-            return Enumerable.Empty<INamedTypeSymbol>();
+            return Enumerable.Empty<ExceptionInfo>();
         }
 
         // Attempt to get exceptions from XML documentation
