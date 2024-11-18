@@ -8,7 +8,7 @@ using Verifier = CSharpAnalyzerVerifier<CheckedExceptionsAnalyzer, DefaultVerifi
 public partial class AwaitTest
 {
     [Fact]
-    public async Task AccessMember()
+    public async Task Should_ReportDiagnostic_When_AwaitingAsyncMethod_WithoutCatch()
     {
         var test = """
             using System;
@@ -37,7 +37,7 @@ public partial class AwaitTest
     }
 
     [Fact]
-    public async Task Catch()
+    public async Task Should_NotReportDiagnostic_When_AwaitingAsyncMethod_WithCatch()
     {
         var test = """
             using System;
@@ -69,7 +69,7 @@ public partial class AwaitTest
     }
 
     [Fact]
-    public async Task AccessMember2()
+    public async Task Should_ReportDiagnostic_When_AwaitingAsyncMethod_ViaThis_WithoutCatch()
     {
         var test = """
             using System;

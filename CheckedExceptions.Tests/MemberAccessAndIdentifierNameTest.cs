@@ -8,7 +8,7 @@ using Verifier = CSharpAnalyzerVerifier<CheckedExceptionsAnalyzer, DefaultVerifi
 public partial class MemberAccessAndIdentifierNameTest
 {
     [Fact]
-    public async Task AccessMember()
+    public async Task Should_ReportDiagnostic_When_AssigningInstanceProperty_ViaThisAccess()
     {
         var test = """
             using System;
@@ -38,7 +38,7 @@ public partial class MemberAccessAndIdentifierNameTest
     }
 
     [Fact]
-    public async Task AccessIdentifier()
+    public async Task Should_ReportDiagnostic_When_AssigningInstanceProperty_Directly()
     {
         var test = """
             using System;
@@ -68,7 +68,7 @@ public partial class MemberAccessAndIdentifierNameTest
     }
 
     [Fact]
-    public async Task StaticMemberAccess()
+    public async Task Should_ReportDiagnostic_When_AssigningStaticProperty_ViaClassName()
     {
         var test = """
             using System;
