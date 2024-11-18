@@ -151,7 +151,8 @@ partial class CheckedExceptionsAnalyzer
                 lookup = new ConcurrentDictionary<string, XElement>(file);
                 XmlDocPathsAndMembers.TryAdd(path, lookup);
             }
-            var member = XmlDocumentationHelper.Mangle(symbol);
+            var member = symbol.GetDocumentationCommentId();
+
             if (lookup.TryGetValue(member, out var xml))
             {
                 return xml;
