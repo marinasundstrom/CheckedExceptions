@@ -27,10 +27,6 @@
       $(TargetsForTfmSpecificContentInPackage);_AddAnalyzersToOutput</TargetsForTfmSpecificContentInPackage>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <UseArtifactsOutput>true</UseArtifactsOutput>
-  </PropertyGroup>
-
   <ItemGroup>
     <ProjectReference Include="..\CheckedExceptions.CodeFixes\CheckedExceptions.CodeFixes.csproj" />
     <ProjectReference Include="..\CheckedExceptions\CheckedExceptions.csproj" />
