@@ -1,6 +1,8 @@
 # CheckedExceptionsAnalyzer
 
-<!-- a ![Build](https://img.shields.io/badge/build-passing-brightgreen) -->
+**Enforce explicit exception handling in C#/.NET by ensuring all exceptions are either handled or declared.**
+
+<!-- ![Build](https://img.shields.io/badge/build-passing-brightgreen) -->
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
 ## Table of Contents
@@ -17,6 +19,7 @@
   - [Sample Code](#sample-code)
   - [Diagnostics](#diagnostics)
   - [Handling the Exception](#handling-the-exception)
+  - [XML Documentation Support](#xml-documentation-support)
 - [Defining ThrowsAttribute](#defining-throwsattribute)
 - [Suppressing Diagnostics](#suppressing-diagnostics)
 - [Contributing](#contributing)
@@ -25,37 +28,52 @@
 
 ## Overview
 
-**CheckedExceptionsAnalyzer** is a **Roslyn Diagnostic Analyzer** designed for C# projects to enforce robust exception handling practices. It ensures that exceptions thrown within your code are either **properly handled** (caught) or **explicitly declared** using the custom `ThrowsAttribute`. By promoting disciplined exception management, it enhances code reliability, maintainability, and clarity regarding the exceptions that methods and functions may produce.
+**CheckedExceptionsAnalyzer** is a **Roslyn Diagnostic Analyzer** tailored for C# projects to enforce robust and explicit exception handling practices. By ensuring that every exception thrown within your code is either **properly handled** (caught) or **explicitly declared** using the custom `ThrowsAttribute`, this analyzer promotes cleaner, more maintainable, and reliable codebases.
+
+Understanding and managing exceptions effectively is crucial for building resilient applications. **CheckedExceptionsAnalyzer** brings the benefits of checked exceptions, familiar from Java, into the .NET ecosystem, encouraging developers to think critically about how exceptions are propagated and handled throughout their applications.
+
+Additionally, methods from the .NET framework, such as `Console.WriteLine`, may throw exceptions like `IOException`. Since these framework methods do not include `ThrowsAttribute` annotations, **CheckedExceptionsAnalyzer** leverages XML documentation comments to identify and manage these exceptions effectively.
 
 ## Purpose
 
-**CheckedExceptionsAnalyzer** brings the concept of checked exceptions from Java to the .NET ecosystem. It aims to make exception handling explicit and enforceable in C#/.NET by leveraging the compiler to guide developers in catching or declaring exceptions. This approach helps prevent unanticipated runtime errors and promotes better code quality and reliability.
+**CheckedExceptionsAnalyzer** aims to make exception handling in C# explicit and enforceable, much like Java's checked exceptions. By declaring exceptions using `ThrowsAttribute`, developers signal which exceptions can propagate from their methods, compelling callers to handle or further declare these exceptions. This explicit declaration helps prevent unanticipated runtime errors and fosters a disciplined approach to error management.
 
-Unlike Java's checked exceptions, **CheckedExceptionsAnalyzer** operates on an opt-in basis and treats exceptions as warnings by default. This design choice ensures that developers can gradually adopt checked exception practices without overwhelming their existing codebases.
+Key objectives include:
+
+- **Explicit Propagation:** Declaring that a method throws an exception with `ThrowsAttribute` means the exception will propagate, requiring the caller to handle it.
+  
+- **Localized Handling:** Encouraging developers to handle exceptions as close to their source as possible, reducing unnecessary propagation and avoiding complex try-catch hierarchies.
+  
+- **Thoughtful Design:** The analyzer prompts developers to carefully consider their exception handling strategies, balancing between catching exceptions locally and declaring them for higher-level handling.
+
+Unlike Java's checked exceptions, **CheckedExceptionsAnalyzer** is **opt-in** and treats exceptions as **warnings by default**, allowing developers to gradually integrate checked exception practices without overwhelming their existing codebases.
 
 ## Features
 
 - **Detection of Unhandled Exceptions (`THROW001`):**
   - Identifies exceptions that are thrown or propagated but neither caught within the method nor declared via `ThrowsAttribute`.
-
+  
 - **Avoidance of General Exceptions (`THROW003` & `THROW004`):**
   - Flags the use of general `Exception` types in throws and declarations, encouraging the use of more specific exception types.
-
+  
 - **Prevention of Duplicate Throws Attributes (`THROW005`):**
   - Detects multiple `ThrowsAttribute` declarations for the same exception type within a method or function to eliminate redundancy.
-
+  
 - **Comprehensive Analysis:**
   - Analyzes various C# constructs including methods, constructors, lambda expressions, local functions, property accessors, event assignments, and more to ensure consistent exception handling.
-
+  
 - **XML Documentation Support:**
   - Recognizes and respects `<exception>` elements in XML documentation comments, allowing seamless integration with documented exceptions.
-
+  
 - **Propagation and Inheritance Handling:**
   - Supports propagation of warnings and correctly handles inheritance hierarchies for exceptions, ensuring that derived exceptions are appropriately managed.
-
+  
 - **Code Fixes:**
   - **Add ThrowsAttribute:** Automatically adds `ThrowsAttribute` for propagated exceptions.
   - **Add try-catch Block:** Provides quick fixes to add necessary try-catch blocks for handling exceptions.
+  
+- **Framework Support:**
+  - The framework library should be annotated with `ThrowsAttribute` for seamless integration and comprehensive exception handling across the codebase.
 
 ## Prerequisites
 
@@ -63,6 +81,20 @@ Unlike Java's checked exceptions, **CheckedExceptionsAnalyzer** operates on an o
 - Supported IDEs: Visual Studio 2022 or later, Visual Studio Code with C# extension
 
 ## Installation
+
+You can integrate **CheckedExceptionsAnalyzer** into your project via [NuGet](https://www.nuget.org/).
+
+### Using .NET CLI
+
+```bash
+dotnet add package CheckedExceptionsAnalyzer
+```
+
+### Using Package Manager
+
+```powershell
+Install-Package CheckedExceptionsAnalyzer
+```
 
 ### Manual Installation
 
@@ -75,9 +107,9 @@ Once installed, **CheckedExceptionsAnalyzer** automatically analyzes your C# cod
 ### Exception Handling Enforcement
 
 - **Handled Exceptions:** Ensure that all thrown exceptions are either caught within the method or declared using `ThrowsAttribute`.
-
-- **Declared Exceptions:** Apply the `ThrowsAttribute` to methods, constructors, lambdas, or local functions to declare the exceptions they may throw.
-
+  
+- **Declared Exceptions:** Apply the `ThrowsAttribute` to methods, constructors, property accessors, lambdas, or local functions to declare the exceptions they may throw.
+  
 - **Avoid General Exceptions:** Use specific exception types instead of the general `System.Exception` to improve clarity and error handling precision.
 
 ### Opt-In Mechanism
@@ -97,8 +129,8 @@ dotnet_diagnostic.THROW003.severity = warning
 dotnet_diagnostic.THROW004.severity = warning
 dotnet_diagnostic.THROW005.severity = warning
 
-# Configure whether to treat missing ThrowsAttribute as an error
-dotnet_diagnostic.THROW001.severity = warning
+# Example of changing the severity of a diagnostic
+# dotnet_diagnostic.THROW001.severity = error
 ```
 
 ## Diagnostic Codes Overview
@@ -178,38 +210,171 @@ public class Sample
 
 - **No Diagnostics Expected:** In the above code, `InvalidOperationException` thrown in `PerformOperation` is declared via `ThrowsAttribute` and is appropriately handled in the `Execute` method. Therefore, no diagnostics are reported.
 
+### Multiple ThrowsAttributes Example
+
+A method throwing two exceptions:
+
+```csharp
+public class DataFetcher
+{
+    [Throws(typeof(NullReferenceException))]
+    [Throws(typeof(ArgumentException))]
+    public void FetchData()
+    {
+        // Some operation that might throw exceptions
+        throw new NullReferenceException("Data source is null.");
+        // Uncomment the line below to throw ArgumentException
+        // throw new ArgumentException("Invalid argument provided.");
+    }
+}
+```
+
+When you don't handle all exceptions:
+
+```csharp
+var fetcher = new DataFetcher();
+
+// THROW001: Exception `ArgumentException` is thrown but neither caught nor declared via `ThrowsAttribute`.
+fetcher.FetchData();
+```
+
+**Diagnostic Reported:**
+
+- **`THROW001`:** Exception `ArgumentException` is thrown but neither caught nor declared via `ThrowsAttribute`.
+
+**Note:** Ensure that all declared exceptions are actually thrown within the method to prevent unnecessary diagnostics.
+
+Handling all exceptions:
+
+```csharp
+var fetcher = new DataFetcher();
+
+try
+{
+    fetcher.FetchData();
+}
+catch (NullReferenceException ex)
+{
+    Console.WriteLine("Handled exception: " + ex.Message);
+}
+catch (ArgumentException ex)
+{
+    Console.WriteLine("Handled exception: " + ex.Message);
+}
+```
+
+Or catch a base class covering all exceptions, such as `Exception`:
+
+```csharp
+try 
+{
+    var fetcher = new DataFetcher();
+
+    try
+    {
+        fetcher.FetchData();
+    }
+    catch (Exception ex)
+    {
+        // This will handle all exceptions declared in ThrowsAttribute
+        Console.WriteLine("Handled exception: " + ex.Message);
+    }
+}
+```
+
+Methods from the .NET class library, like `Console.WriteLine`, can throw exceptions such as `IOException`.
+
+### XML Documentation Support
+
+There are many unannotated libraries, and that extends to the .NET class library. Since these framework methods do not include `ThrowsAttribute` annotations, **CheckedExceptionsAnalyzer** relies on XML documentation to identify and manage these exceptions.
+
+If a library has both XML docs with exceptions and `ThrowsAttribute` annotations, the exceptions from both will be combined.
+
+Just like any other method, they warn like this:
+
+```csharp
+using System;
+using System.IO;
+
+public class FrameworkSample
+{
+    public void WriteToConsole()
+    {
+        // THROW001: Exception `IOException` is thrown by `Console.WriteLine` but neither caught nor declared via `ThrowsAttribute`.
+        Console.WriteLine("Hello, World!");
+    }
+}
+```
+
+With the definition of `WriteLine` in .NET, with accompanying XML doc, being: 
+
+```csharp
+using System;
+using System.IO;
+
+/// <summary>
+/// Writes the specified value, followed by the current line terminator, to the standard output stream.
+/// </summary>
+/// <param name="value">
+/// The value to write to the output. Can be of various types (e.g., string, object, etc.).
+/// </param>
+/// <remarks>
+/// This method writes a line of text to the console. It automatically appends a newline at the end of the output.
+/// </remarks>
+/// <exception cref="System.IO.IOException">
+/// An I/O error occurred.
+/// </exception>
+public class Console
+{
+    public void WriteLine(string value)
+    {
+        // Implemented in .NET
+    }
+}
+```
+
 ## Defining ThrowsAttribute
 
 To utilize **CheckedExceptionsAnalyzer**, you need to define the `ThrowsAttribute` in your project. Here's a simple implementation:
 
 ```csharp
-namespace System;
-
 using System;
 
-[AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Delegate, AllowMultiple = true)]
-public class ThrowsAttribute : Attribute
+namespace CheckedExceptions
 {
-    public Type ExceptionType { get; }
-
-    public ThrowsAttribute(Type exceptionType)
+    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Delegate, AllowMultiple = true)]
+    public class ThrowsAttribute : Attribute
     {
-        if (!typeof(Exception).IsAssignableFrom(exceptionType))
-            throw new ArgumentException("ExceptionType must be an Exception type.");
+        public Type ExceptionType { get; }
 
-        ExceptionType = exceptionType;
+        public ThrowsAttribute(Type exceptionType)
+        {
+            if (!typeof(Exception).IsAssignableFrom(exceptionType))
+                throw new ArgumentException("ExceptionType must be an Exception type.");
+
+            ExceptionType = exceptionType;
+        }
     }
 }
 ```
 
+**Notes:**
+
+- **Namespace Choice:** It's advisable to place `ThrowsAttribute` in a custom namespace (e.g., `CheckedExceptions`) rather than the `System` namespace to avoid potential conflicts with existing .NET types.
+
 ### Usage Example
 
 ```csharp
-[Throws(typeof(InvalidOperationException))]
-public void RiskyMethod()
+using CheckedExceptions;
+
+public class Example
 {
-    // Method implementation
-    throw new InvalidOperationException("Something went wrong.");
+    [Throws(typeof(InvalidOperationException))]
+    public void RiskyMethod()
+    {
+        // Method implementation
+        throw new InvalidOperationException("Something went wrong.");
+    }
 }
 ```
 
@@ -239,7 +404,9 @@ Or suppressing a specific throw:
 You can also suppress diagnostics using the `[SuppressMessage]` attribute:
 
 ```csharp
-[System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "THROW001:Unhandled exception thrown")]
+using System.Diagnostics.CodeAnalysis;
+
+[SuppressMessage("Usage", "THROW001:Unhandled exception thrown")]
 public void MethodWithSuppressedWarning()
 {
     // Method implementation
@@ -254,41 +421,41 @@ public void MethodWithSuppressedWarning()
 Contributions are welcome! If you'd like to contribute to **CheckedExceptionsAnalyzer**, please follow these steps:
 
 1. **Fork the Repository:** Click the "Fork" button on the repository page.
-
+   
 2. **Clone Your Fork:**
 
    ```bash
    git clone https://github.com/marinasundstrom/CheckedExceptionsAnalyzer.git
    ```
-
+   
 3. **Create a New Branch:**
 
    ```bash
    git checkout -b feature/YourFeatureName
    ```
-
+   
 4. **Make Your Changes:** Implement your feature or fix.
-
+   
 5. **Commit Your Changes:**
 
    ```bash
    git commit -m "Add feature X"
    ```
-
+   
 6. **Push to Your Fork:**
 
    ```bash
    git push origin feature/YourFeatureName
    ```
-
+   
 7. **Open a Pull Request:** Navigate to the original repository and open a pull request detailing your changes.
 
 ### Guidelines
 
 - **Code Quality:** Ensure your code adheres to the project's coding standards and passes all existing tests.
-
+  
 - **Documentation:** Update or add documentation as necessary to reflect your changes.
-
+  
 - **Testing:** Include unit tests for new features or bug fixes to maintain the analyzer's reliability.
 
 ## License
