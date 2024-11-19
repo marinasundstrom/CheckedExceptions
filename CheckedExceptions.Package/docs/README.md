@@ -10,31 +10,29 @@ This analyzer works with existing class libraries (including .NET class librarie
 
 ## Table of Contents
 
-1. [Introduction](#introduction)
-2. [Features](#features)
-3. [Installation](#installation)
-4. [Usage](#usage)
+1. [Features](#features)
+2. [Installation](#installation)
+3. [Usage](#usage)
     - [Defining `ThrowsAttribute`](#defining-throwsattribute)
     - [Annotating Methods](#annotating-methods)
     - [Annotating Properties](#annotating-properties)
     - [Handling Exceptions](#handling-exceptions)
-5. [Diagnostics](#diagnostics)
-    - [Diagnostic IDs and Messages](#diagnostic-ids-and-messages)
-6. [Code Fixes](#code-fixes)
+    - [Diagnostics](#diagnostics)
+5. [Code Fixes](#code-fixes)
     - [Add `ThrowsAttribute`](#add-throwsattribute)
     - [Add `try-catch` Block](#add-try-catch-block)
-7. [XML Documentation Support](#xml-documentation-support)
-8. [Suppressing Diagnostics](#suppressing-diagnostics)
+6. [XML Documentation Support](#xml-documentation-support)
+7. [Suppressing Diagnostics](#suppressing-diagnostics)
     - [Using Pragma Directives](#using-pragma-directives)
     - [Suppressing with Attributes](#suppressing-with-attributes)
-9. [Configuration](#configuration)
+8. [Configuration](#configuration)
     - [EditorConfig Settings](#editorconfig-settings)
     - [Treating Warnings as Errors](#treating-warnings-as-errors)
-10. [Examples](#examples)
+9. [Examples](#examples)
     - [Basic Usage](#basic-usage)
     - [Handling Exceptions Example](#handling-exceptions-example)
-11. [Contributing](#contributing)
-12. [License](#license)
+10. [Contributing](#contributing)
+11. [License](#license)
 
 ---
 
@@ -185,7 +183,7 @@ THROW001: Exception `InvalidOperationException` is thrown by `PerformOperation` 
 
 After properly handling the exception, no diagnostics are expected.
 
-### Code Fixes
+## Code Fixes
 
 **CheckedExceptionsAnalyzer** provides automated code fixes to simplify exception handling and declaration. These code fixes enhance developer productivity by offering quick solutions to common exception management scenarios.
 
@@ -294,58 +292,6 @@ public class Sample
 
 - **Customization:** While the analyzer provides default templates for `try-catch` blocks, you can customize the generated code as needed to fit your project's specific requirements.
 
-## Examples
-
-To demonstrate how **CheckedExceptionsAnalyzer** integrates into your project, here are some practical examples covering basic usage and exception handling.
-
-### Basic Usage
-
-**Annotating a Method:**
-
-```csharp
-using CheckedExceptions;
-
-public class Calculator
-{
-    [Throws(typeof(DivideByZeroException))]
-    public int Divide(int numerator, int denominator)
-    {
-        if (denominator == 0)
-            throw new DivideByZeroException("Denominator cannot be zero.");
-
-        return numerator / denominator;
-    }
-}
-```
-
-### Handling Exceptions Example
-
-**Handling Declared Exceptions:**
-
-```csharp
-using System;
-using CheckedExceptions;
-
-public class CalculatorClient
-{
-    private Calculator _calculator = new Calculator();
-
-    public void PerformDivision()
-    {
-        try
-        {
-            int result = _calculator.Divide(10, 0);
-        }
-        catch (DivideByZeroException ex)
-        {
-            Console.WriteLine("Cannot divide by zero.");
-        }
-    }
-}
-```
-
-In this example, the `Divide` method declares that it can throw a `DivideByZeroException` using `ThrowsAttribute`. The `PerformDivision` method handles this exception, thus complying with the analyzer's requirements.
-
 ## XML Documentation Support
 
 **CheckedExceptionsAnalyzer** leverages XML documentation to identify exceptions from methods that do not have `ThrowsAttribute` annotations. This is particularly useful for:
@@ -398,8 +344,8 @@ In the above example, the analyzer identifies that `Console.WriteLine` can throw
 
 For properties, exceptions are typically documented within the property's XML comments. We employ heuristic conventions to determine which accessor an exception is associated with:
 
-- **Getter Exceptions:**If the XML comments mention phrases like "get", "gets", or "getting", the exception is attributed to the getter.
-- **Setter Exceptions:**If the comments include phrases such as "set", "sets", or "setting", the exception is attributed to the setter.
+- **Getter Exceptions:** If the XML comments mention phrases like "get", "gets", or "getting", the exception is attributed to the getter.
+- **Setter Exceptions:** If the comments include phrases such as "set", "sets", or "setting", the exception is attributed to the setter.
 
 **Example:**
 
@@ -447,8 +393,8 @@ public class DataProcessor
 
 **Notes:**
 
--**Separate Annotations: **You can annotate getters and setters separately if they throw different exceptions, providing granular control over exception declarations.
-- **Heuristic Limitations:**While heuristic conventions help in associating exceptions with the correct accessor, ensure that your XML comments are consistent to maintain accuracy.
+- **Separate Annotations:** You can annotate getters and setters separately if they throw different exceptions, providing granular control over exception declarations.
+- **Heuristic Limitations:** While heuristic conventions help in associating exceptions with the correct accessor, ensure that your XML comments are consistent to maintain accuracy.
 
 ## Suppressing Diagnostics
 
@@ -493,7 +439,7 @@ public void MethodWithSuppressedWarning()
 
 **Caution:** Suppressing diagnostics should be done sparingly and only when you have a justified reason, as it can undermine the benefits of disciplined exception handling.
 
-## Properties
+## Configuration
 
 The **CheckedExceptionsAnalyzer** offers various properties to configure its behavior, allowing you to tailor exception handling to your project's specific needs. These properties can be adjusted using an `.editorconfig` file or directly within your project files.
 
@@ -548,6 +494,57 @@ To treat the `nullable` warnings and the `THROW001` diagnostic as errors, add th
 
 - **Gradual Adoption:** This approach enables a gradual transition to more disciplined exception handling by focusing on the most critical diagnostics first.
 
+## Examples
+
+To demonstrate how **CheckedExceptionsAnalyzer** integrates into your project, here are some practical examples covering basic usage and exception handling.
+
+### Basic Usage
+
+**Annotating a Method:**
+
+```csharp
+using CheckedExceptions;
+
+public class Calculator
+{
+    [Throws(typeof(DivideByZeroException))]
+    public int Divide(int numerator, int denominator)
+    {
+        if (denominator == 0)
+            throw new DivideByZeroException("Denominator cannot be zero.");
+
+        return numerator / denominator;
+    }
+}
+```
+
+### Handling Exceptions Example
+
+**Handling Declared Exceptions:**
+
+```csharp
+using System;
+using CheckedExceptions;
+
+public class CalculatorClient
+{
+    private Calculator _calculator = new Calculator();
+
+    public void PerformDivision()
+    {
+        try
+        {
+            int result = _calculator.Divide(10, 0);
+        }
+        catch (DivideByZeroException ex)
+        {
+            Console.WriteLine("Cannot divide by zero.");
+        }
+    }
+}
+```
+
+In this example, the `Divide` method declares that it can throw a `DivideByZeroException` using `ThrowsAttribute`. The `PerformDivision` method handles this exception, thus complying with the analyzer's requirements.
 
 ## Contributing
 
