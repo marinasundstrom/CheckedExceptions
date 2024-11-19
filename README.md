@@ -137,10 +137,6 @@ public class Sample
 }
 ```
 
-**Diagnostic Reported:**
-
-- **`THROW001`:** Exception `InvalidOperationException` is thrown but neither caught nor declared via `ThrowsAttribute`.
-
 ### Diagnostics
 
 - **`THROW001` (Unhandled Exception):** In the `Execute` method, `InvalidOperationException` is thrown by `PerformOperation` but is neither caught within `Execute` nor declared using `ThrowsAttribute`.
