@@ -1,0 +1,70 @@
+name: Build and Publish NuGet Package
+
+# Triggers the workflow on push to main and manual triggers
+on:
+#   push:
+#     branches:
+#       - main
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Setup .NET SDK
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'  # Replace with your .NET version
+
+      # Step 3: Restore dependencies
+      - name: Restore dependencies
+        run: dotnet restore ./CheckedExceptions.Package/CheckedExceptions.Package.csproj --no-cache --disable-parallel --source https://api.nuget.org/v3/index.json
+
+      # Step 4: Build the project (which generates the .nupkg)
+      - name: Build Project
+        run: dotnet build ./CheckedExceptions.Package/CheckedExceptions.Package.csproj --configuration Release --no-restore
+
+      # Step 5: Locate the generated NuGet package
+      - name: Find NuGet Package
+        id: find_nupkg
+        run: |
+          echo "::set-output name=path::$(find ./CheckedExceptions.Package/bin/Release -name 'CheckedExceptions*.nupkg' | head -n 1)"
+        shell: bash
+
+    #   # Step 6: Publish to NuGet.org
+    #   - name: Publish to NuGet.org
+    #     if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    #     env:
+    #       NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+    #     run: |
+    #       if [ -f "${{ steps.find_nupkg.outputs.path }}" ]; then
+    #         dotnet nuget push "${{ steps.find_nupkg.outputs.path }}" \
+    #           --api-key $NUGET_API_KEY \
+    #           --source https://api.nuget.org/v3/index.json \
+    #           --skip-duplicate
+    #       else
+    #         echo "NuGet package not found!"
+    #         exit 1
+    #       fi
+
+    #   # Step 7: Publish to Custom NuGet Feed
+    #   - name: Publish to Custom NuGet Feed
+    #     if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    #     env:
+    #       CUSTOM_NUGET_API_KEY: ${{ secrets.CUSTOM_NUGET_API_KEY }}
+    #     run: |
+    #       if [ -f "${{ steps.find_nupkg.outputs.path }}" ]; then
+    #         dotnet nuget push "${{ steps.find_nupkg.outputs.path }}" \
+    #           --api-key $CUSTOM_NUGET_API_KEY \
+    #           --source https://your-custom-feed-url/v3/index.json \
+    #           --skip-duplicate
+    #       else
+    #         echo "NuGet package not found!"
+    #         exit 1
+    #       fi
