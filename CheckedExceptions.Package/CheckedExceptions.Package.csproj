@@ -10,18 +10,22 @@
   <PropertyGroup>
     <PackageId>CheckedExceptions</PackageId>
     <PackageVersion>1.0.0.0</PackageVersion>
-    <Authors>Sundis</Authors>
-    <PackageLicenseUrl>http://LICENSE_URL_HERE_OR_DELETE_THIS_LINE</PackageLicenseUrl>
-    <PackageProjectUrl>http://PROJECT_URL_HERE_OR_DELETE_THIS_LINE</PackageProjectUrl>
-    <PackageIconUrl>http://ICON_URL_HERE_OR_DELETE_THIS_LINE</PackageIconUrl>
-    <RepositoryUrl>http://REPOSITORY_URL_HERE_OR_DELETE_THIS_LINE</RepositoryUrl>
+    <Authors>Marina Sundström</Authors>
+    <PackageLicenseUrl>https://github.com/marinasundstrom/CheckedExceptionsAnalyzer/LICENSE</PackageLicenseUrl>
+    <PackageProjectUrl>https://github.com/marinasundstrom/CheckedExceptionsAnalyzer</PackageProjectUrl>
+    <!-- <PackageIconUrl>http://ICON_URL_HERE_OR_DELETE_THIS_LINE</PackageIconUrl> -->
+    <RepositoryUrl>https://github.com/marinasundstrom/CheckedExceptionsAnalyzer</RepositoryUrl>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-    <Description>CheckedExceptions</Description>
-    <PackageReleaseNotes>Summary of changes made in this release of the package.</PackageReleaseNotes>
-    <Copyright>Copyright</Copyright>
-    <PackageTags>CheckedExceptions, analyzers</PackageTags>
+    <Description>Enforce explicit exception handling in C#/.NET by ensuring all exceptions are
+      either handled or declared.</Description>
+    <PackageReleaseNotes>Initial release</PackageReleaseNotes>
+    <Copyright>Copyright © 2024 Marina Sundström</Copyright>
+    <PackageTags>Checked exceptions, analyzers</PackageTags>
     <DevelopmentDependency>true</DevelopmentDependency>
     <NoPackageAnalysis>true</NoPackageAnalysis>
+
+    <!-- Specify the README file to be included in the package -->
+    <PackageReadmeFile>README.md</PackageReadmeFile>
 
     <TargetsForTfmSpecificContentInPackage>
       $(TargetsForTfmSpecificContentInPackage);_AddAnalyzersToOutput</TargetsForTfmSpecificContentInPackage>
@@ -34,6 +38,8 @@
 
   <ItemGroup>
     <None Update="tools\*.ps1" CopyToOutputDirectory="Always" Pack="true" PackagePath="" />
+
+    <None Include="docs\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
   <Target Name="_AddAnalyzersToOutput">
