@@ -2,7 +2,8 @@
 
 **Enforce explicit exception handling in C#/.NET by ensuring all exceptions are either handled or declared.**
 
-<!-- ![Build](https://img.shields.io/badge/build-passing-brightgreen) -->
+<!-- ![Deploy](https://github.com/marinasundstrom/CheckedExceptionsAnalyzer/actions/workflows/deploy.yml/badge.svg) -->
+![Build](https://github.com/marinasundstrom/CheckedExceptionsAnalyzer/actions/workflows/ci.yml/badge.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
 ## Table of Contents
