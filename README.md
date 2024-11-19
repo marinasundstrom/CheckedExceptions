@@ -73,7 +73,7 @@ Unlike Java's checked exceptions, **CheckedExceptionsAnalyzer** is **opt-in** an
   - **Add try-catch Block:** Provides quick fixes to add necessary try-catch blocks for handling exceptions.
   
 - **Framework Support:**
-  - The framework library should be annotated with `ThrowsAttribute` for seamless integration and comprehensive exception handling across the codebase.
+  - While the analyzer can process custom frameworks annotated with `ThrowsAttribute` for seamless integration and comprehensive exception handling across the codebase, it also supports handling exceptions from unannotated libraries (such as the .NET framework) by leveraging XML documentation comments.
 
 ## Prerequisites
 
@@ -219,12 +219,14 @@ public class DataFetcher
 {
     [Throws(typeof(NullReferenceException))]
     [Throws(typeof(ArgumentException))]
-    public void FetchData()
+    public void FetchData(string param)
     {
-        // Some operation that might throw exceptions
+        if(param == "foo") 
+        {
+            throw new ArgumentException("Invalid argument provided.", nameof(param));
+        }
+
         throw new NullReferenceException("Data source is null.");
-        // Uncomment the line below to throw ArgumentException
-        // throw new ArgumentException("Invalid argument provided.");
     }
 }
 ```
@@ -234,13 +236,15 @@ When you don't handle all exceptions:
 ```csharp
 var fetcher = new DataFetcher();
 
-// THROW001: Exception `ArgumentException` is thrown but neither caught nor declared via `ThrowsAttribute`.
-fetcher.FetchData();
+// THROW001: Exception `NullReferenceException` is thrown by `FetchData` but neither caught within the caller method nor declared via `ThrowsAttribute`.
+// THROW001: Exception `ArgumentException` is thrown by `FetchData` but neither caught within the caller method nor declared via `ThrowsAttribute`.
+fetcher.FetchData("test");
 ```
 
 **Diagnostic Reported:**
 
-- **`THROW001`:** Exception `ArgumentException` is thrown but neither caught nor declared via `ThrowsAttribute`.
+- **`THROW001`:** Exception `NullReferenceException` is thrown by `FetchData` but neither caught within the caller method nor declared via `ThrowsAttribute`.
+- **`THROW001`:** Exception `ArgumentException` is thrown by `FetchData` but neither caught within the caller method nor declared via `ThrowsAttribute`.
 
 **Note:** Ensure that all declared exceptions are actually thrown within the method to prevent unnecessary diagnostics.
 
@@ -251,7 +255,7 @@ var fetcher = new DataFetcher();
 
 try
 {
-    fetcher.FetchData();
+    fetcher.FetchData("test");
 }
 catch (NullReferenceException ex)
 {
@@ -272,7 +276,7 @@ try
 
     try
     {
-        fetcher.FetchData();
+        fetcher.FetchData("test");
     }
     catch (Exception ex)
     {
@@ -304,14 +308,8 @@ public class FrameworkSample
         Console.WriteLine("Hello, World!");
     }
 }
-```
 
-With the definition of `WriteLine` in .NET, with accompanying XML doc, being: 
-
-```csharp
-using System;
-using System.IO;
-
+// Note: The Console class below is a simplified mock for demonstration purposes.
 /// <summary>
 /// Writes the specified value, followed by the current line terminator, to the standard output stream.
 /// </summary>
