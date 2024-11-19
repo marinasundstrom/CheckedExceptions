@@ -468,11 +468,13 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         // Filter exceptions documented specifically for the getter and setter
         var getterExceptions = xmlDocumentedExceptions.Where(x =>
             x.Description.Contains(" get ") ||
-            x.Description.StartsWith("Gets ", StringComparison.OrdinalIgnoreCase));
+            x.Description.Contains(" gets ") ||
+            x.Description.Contains(" getting "));
 
         var setterExceptions = xmlDocumentedExceptions.Where(x =>
             x.Description.Contains(" set ") ||
-            x.Description.StartsWith("Sets ", StringComparison.OrdinalIgnoreCase));
+            x.Description.Contains(" sets ") ||
+            x.Description.Contains(" setting "));
 
         // Handle exceptions that don't explicitly belong to getters or setters
         var allOtherExceptions = xmlDocumentedExceptions
