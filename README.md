@@ -17,6 +17,7 @@
 - [Installation](#installation)
 - [Usage](#usage)
 - [Configuration](#configuration)
+  - [Treating Warnings as Errors](#treating-warnings-as-errors)
 - [Diagnostic Codes Overview](#diagnostic-codes-overview)
 - [Example](#example)
   - [Sample Code](#sample-code)
@@ -130,6 +131,8 @@ No additional configuration is required to use **CheckedExceptionsAnalyzer**. Ho
 ### Example `.editorconfig` Settings
 
 ```ini
+[*.cs]
+
 # Enable or disable specific diagnostics
 dotnet_diagnostic.THROW001.severity = warning
 dotnet_diagnostic.THROW003.severity = warning
@@ -139,6 +142,59 @@ dotnet_diagnostic.THROW005.severity = warning
 # Example of changing the severity of a diagnostic
 # dotnet_diagnostic.THROW001.severity = error
 ```
+
+### Treating Warnings as Errors
+
+To enforce stricter exception handling by elevating specific warnings to errors, you can use the `<WarningsAsErrors>` property in your project file. This is particularly useful for maintaining high code quality and ensuring that critical exception handling issues are addressed promptly.
+
+**Example: Turning Specific Warnings into Errors**
+
+To treat the `nullable` warnings and the `THROW001` diagnostic as errors, add the following property to your `.csproj` file:
+
+```xml
+<PropertyGroup>
+  <WarningsAsErrors>nullable,THROW001</WarningsAsErrors>
+</PropertyGroup>
+```
+
+**Explanation:**
+
+- **`WarningsAsErrors`:** This MSBuild property allows you to specify a comma-separated list of warning codes that should be treated as errors during compilation.
+  
+- **`nullable`:** This standard warning pertains to nullable reference type annotations and warnings introduced in C# 8.0 and later.
+  
+- **`THROW001`:** This is the diagnostic ID for unhandled exceptions identified by **CheckedExceptionsAnalyzer**.
+
+**Result:**
+
+With the above configuration:
+
+- Any warnings related to nullable reference types (`nullable`) will be treated as errors, preventing the build from succeeding if such issues are present.
+  
+- The `THROW001` warnings, which indicate unhandled exceptions that are neither caught nor declared, will also be treated as errors, enforcing stricter exception handling practices.
+
+**Full `.csproj` Example:**
+
+```xml
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <WarningsAsErrors>nullable,THROW001</WarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Sundstrom.CheckedExceptions" Version="1.0.0" />
+  </ItemGroup>
+
+</Project>
+```
+
+**Notes:**
+
+- **Selective Enforcement:** By specifying only certain warnings in `WarningsAsErrors`, you can enforce stricter rules where necessary while allowing other warnings to remain as warnings.
+  
+- **Gradual Adoption:** This approach enables a gradual transition to more disciplined exception handling by focusing on the most critical diagnostics first.
 
 ## Diagnostic Codes Overview
 
@@ -468,7 +524,3 @@ This project is licensed under the [MIT License](LICENSE).
 ## Contact
 
 For questions, suggestions, or support, please open an [issue](https://github.com/marinasundstrom/CheckedExceptionsAnalyzer/issues) on the GitHub repository.
-
----
-
-*This README provides a comprehensive overview and guide for the **CheckedExceptionsAnalyzer** project. For more detailed information or assistance, please refer to the project's documentation or contact the maintainers directly.*

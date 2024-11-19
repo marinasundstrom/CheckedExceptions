@@ -32,33 +32,55 @@ public class AddTryCatchBlockCodeFixProvider : CodeFixProvider
         context.RegisterCodeFix(
             CodeAction.Create(
                 title: TitleAddTryCatch,
-                createChangedDocument: c => AddTryCatchAsync(context.Document, node, c),
+                createChangedDocument: c => AddTryCatchAsync(context.Document, node, diagnostic, c),
                 equivalenceKey: TitleAddTryCatch),
             diagnostic);
     }
 
-    private async Task<Document> AddTryCatchAsync(Document document, SyntaxNode node, CancellationToken cancellationToken)
+    private async Task<Document> AddTryCatchAsync(Document document, SyntaxNode node, Diagnostic diagnostic, CancellationToken cancellationToken)
     {
-        var throwStatement = node as ThrowStatementSyntax;
+        string? exceptionTypeName = null;
+
+        // Attempt to retrieve the exception type from diagnostic arguments
+        if (diagnostic.Properties.TryGetValue("ExceptionType", out var exceptionTypeFromDiagnostic))
+        {
+            exceptionTypeName = exceptionTypeFromDiagnostic;
+        }
+
+        if (string.IsNullOrWhiteSpace(exceptionTypeName))
+            return document;
+
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
 
         var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
 
-        if (throwStatement.Expression == null)
+        if (node is ThrowStatementSyntax throwStatement && throwStatement.Expression == null)
             return document;
 
-        var exceptionType = semanticModel.GetTypeInfo(throwStatement.Expression).Type as INamedTypeSymbol;
+        var exceptionType = SyntaxFactory.ParseTypeName(exceptionTypeName);
 
         if (exceptionType == null)
             return document;
 
+        var statement = node as StatementSyntax;
+
+        if (statement is null)
+        {
+            SyntaxNode? nodeToCheck = node;
+            while (nodeToCheck is not StatementSyntax)
+            {
+                nodeToCheck = nodeToCheck.Parent;
+            }
+
+            statement = nodeToCheck as StatementSyntax;
+        }
+
         // Create a try-catch block
-        var tryBlock = SyntaxFactory.Block(throwStatement);
+        var tryBlock = SyntaxFactory.Block(statement);
 
         var catchClause = SyntaxFactory.CatchClause()
             .WithDeclaration(
-                SyntaxFactory.CatchDeclaration(
-                    SyntaxFactory.ParseTypeName(exceptionType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)))
+                SyntaxFactory.CatchDeclaration(exceptionType)
                 .WithIdentifier(SyntaxFactory.Identifier("ex")))
             .WithBlock(SyntaxFactory.Block());
 
@@ -66,7 +88,7 @@ public class AddTryCatchBlockCodeFixProvider : CodeFixProvider
             .WithBlock(tryBlock)
             .WithCatches(SyntaxFactory.SingletonList(catchClause));
 
-        var newRoot = root.ReplaceNode(throwStatement, tryCatchStatement.WithAdditionalAnnotations(Formatter.Annotation));
+        var newRoot = root.ReplaceNode(statement, tryCatchStatement.WithAdditionalAnnotations(Formatter.Annotation).NormalizeWhitespace(elasticTrivia: true));
 
         return document.WithSyntaxRoot(newRoot);
     }

@@ -9,7 +9,7 @@
 
   <PropertyGroup>
     <PackageId>Sundstrom.CheckedExceptions</PackageId>
-    <PackageVersion>1.0.0.0</PackageVersion>
+    <PackageVersion>1.0.2.0</PackageVersion>
     <Authors>Marina Sundström</Authors>
     <PackageLicenseUrl>
       https://github.com/marinasundstrom/CheckedExceptionsAnalyzer/blob/main/LICENSE</PackageLicenseUrl>
