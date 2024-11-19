@@ -1,4 +1,4 @@
-namespace CheckedExceptions;
+namespace Sundstrom.CheckedExceptions;
 
 using Microsoft.CodeAnalysis;
 

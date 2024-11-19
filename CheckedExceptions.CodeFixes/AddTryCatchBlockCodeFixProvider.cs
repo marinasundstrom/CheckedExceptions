@@ -8,7 +8,7 @@ using Microsoft.CodeAnalysis.Editing;
 using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.Formatting;
 
-namespace CheckedExceptions;
+namespace Sundstrom.CheckedExceptions;
 
 [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(AddTryCatchBlockCodeFixProvider)), Shared]
 public class AddTryCatchBlockCodeFixProvider : CodeFixProvider

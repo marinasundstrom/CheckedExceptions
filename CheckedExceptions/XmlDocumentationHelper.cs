@@ -3,7 +3,7 @@ using System.Xml.Linq;
 
 using Microsoft.CodeAnalysis;
 
-namespace CheckedExceptions;
+namespace Sundstrom.CheckedExceptions;
 
 public static class XmlDocumentationHelper
 {

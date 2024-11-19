@@ -67,7 +67,7 @@ To utilize **CheckedExceptions**, you need to define the `ThrowsAttribute` in yo
 ```csharp
 using System;
 
-namespace CheckedExceptions
+namespace Sundstrom.CheckedExceptions
 {
     [AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Delegate, AllowMultiple = true)]
     public class ThrowsAttribute : Attribute
@@ -94,8 +94,6 @@ namespace CheckedExceptions
 Annotate methods, constructors, or delegates that throw exceptions to declare the exceptions they can propagate.
 
 ```csharp
-using CheckedExceptions;
-
 public class Sample
 {
     [Throws(typeof(InvalidOperationException))]
@@ -112,8 +110,6 @@ public class Sample
 You can also apply `ThrowsAttribute` to property getters and setters to declare exceptions they might throw.
 
 ```csharp
-using CheckedExceptions;
-
 public class DataProcessor
 {
     private string? _data;
@@ -146,7 +142,6 @@ Ensure that any method invoking annotated methods either handles the declared ex
 
 ```csharp
 using System;
-using CheckedExceptions;
 
 public class Sample
 {
@@ -209,8 +204,6 @@ public class Sample
 **After Applying Code Fix:**
 
 ```csharp
-using CheckedExceptions;
-
 public class Sample
 {
     [Throws(typeof(InvalidOperationException))]
@@ -352,8 +345,6 @@ For properties, exceptions are typically documented within the property's XML co
 Assuming this is a third-party library that has not been annotated.
 
 ```csharp
-using CheckedExceptions;
-
 public class DataProcessor
 {
     private string? _data;
@@ -503,8 +494,6 @@ To demonstrate how **CheckedExceptions** integrates into your project, here are 
 **Annotating a Method:**
 
 ```csharp
-using CheckedExceptions;
-
 public class Calculator
 {
     [Throws(typeof(DivideByZeroException))]
@@ -524,8 +513,6 @@ public class Calculator
 
 ```csharp
 using System;
-using CheckedExceptions;
-
 public class CalculatorClient
 {
     private Calculator _calculator = new Calculator();

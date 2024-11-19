@@ -7,7 +7,7 @@ using Microsoft.CodeAnalysis.Testing;
 
 using static Microsoft.CodeAnalysis.Testing.ReferenceAssemblies;
 
-namespace CheckedExceptions.Tests;
+namespace Sundstrom.CheckedExceptions.Tests;
 
 public static class CSharpAnalyzerVerifier<TAnalyzer, TVerifier>
      where TAnalyzer : DiagnosticAnalyzer, new()

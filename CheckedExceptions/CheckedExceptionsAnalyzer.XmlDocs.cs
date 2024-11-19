@@ -4,7 +4,7 @@ using System.Collections.Concurrent;
 using System.Xml;
 using System.Xml.Linq;
 
-namespace CheckedExceptions;
+namespace Sundstrom.CheckedExceptions;
 
 partial class CheckedExceptionsAnalyzer
 {

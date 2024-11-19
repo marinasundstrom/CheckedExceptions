@@ -1,7 +1,7 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 
-namespace CheckedExceptions.Tests.BugFixes.CatchBlockHandling;
+namespace Sundstrom.CheckedExceptions.Tests.BugFixes.CatchBlockHandling;
 
 using Verifier = CSharpAnalyzerVerifier<CheckedExceptionsAnalyzer, DefaultVerifier>;
 

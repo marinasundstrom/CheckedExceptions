@@ -276,6 +276,8 @@ public class Sample
 A method throwing two exceptions:
 
 ```csharp
+using System;
+
 public class DataFetcher
 {
     [Throws(typeof(NullReferenceException))]
@@ -312,6 +314,8 @@ fetcher.FetchData("test");
 Handling all exceptions:
 
 ```csharp
+using System;
+
 var fetcher = new DataFetcher();
 
 try
@@ -331,6 +335,8 @@ catch (ArgumentException ex)
 Or catch a base class covering all exceptions, such as `Exception`:
 
 ```csharp
+using System;
+
 try 
 {
     var fetcher = new DataFetcher();
@@ -399,7 +405,7 @@ To utilize **CheckedExceptions**, you need to define the `ThrowsAttribute` in yo
 ```csharp
 using System;
 
-namespace CheckedExceptions
+namespace Sundstrom.CheckedExceptions
 {
     [AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Delegate, AllowMultiple = true)]
     public class ThrowsAttribute : Attribute
@@ -424,7 +430,7 @@ namespace CheckedExceptions
 ### Usage Example
 
 ```csharp
-using CheckedExceptions;
+using System;
 
 public class Example
 {

@@ -1,4 +1,4 @@
-namespace CheckedExceptions.Tests.CodeFixes;
+namespace Sundstrom.CheckedExceptions.Tests.CodeFixes;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeFixes;

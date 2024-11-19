@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace CheckedExceptions
+namespace Sundstrom.CheckedExceptions
 {
     using System;
 
