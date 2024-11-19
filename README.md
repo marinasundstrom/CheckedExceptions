@@ -143,6 +143,7 @@ dotnet_diagnostic.THROW005.severity = warning
 | Diagnostic ID | Description |
 |---------------|-------------|
 | `THROW001`    | **Unhandled exception thrown:** Identifies exceptions that are thrown but neither caught within the method nor declared via `ThrowsAttribute`. |
+| `THROW002`    | *Reserved for future use* |
 | `THROW003`    | **General `ThrowsAttribute` usage:** Flags the use of general `Exception` types in `ThrowsAttribute`, encouraging more specific exception declarations. |
 | `THROW004`    | **General exception thrown:** Warns against throwing the general `System.Exception` type directly in the code. |
 | `THROW005`    | **Duplicate `ThrowsAttribute`:** Detects multiple `ThrowsAttribute` declarations for the same exception type within a method or function. |
@@ -155,7 +156,6 @@ Annotate a method or other member that throws exceptions. This indicates that th
 
 ```csharp
 using System;
-using System.IO;
 
 public class Sample
 {
@@ -184,7 +184,6 @@ Handle the exception with a catch statement:
 
 ```csharp
 using System;
-using System.IO;
 
 public class Sample
 {
@@ -198,7 +197,6 @@ public class Sample
         catch (InvalidOperationException ex)
         {
             // Handle invalid operations
-            Console.WriteLine(ex.Message);
         }
     }
 
