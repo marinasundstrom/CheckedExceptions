@@ -11,7 +11,8 @@
     <PackageId>Sundstrom.CheckedExceptions</PackageId>
     <PackageVersion>1.0.0.0</PackageVersion>
     <Authors>Marina Sundström</Authors>
-    <PackageLicenseUrl>https://github.com/marinasundstrom/CheckedExceptionsAnalyzer/LICENSE</PackageLicenseUrl>
+    <PackageLicenseUrl>
+      https://github.com/marinasundstrom/CheckedExceptionsAnalyzer/blob/main/LICENSE</PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/marinasundstrom/CheckedExceptionsAnalyzer</PackageProjectUrl>
     <!-- <PackageIconUrl>http://ICON_URL_HERE_OR_DELETE_THIS_LINE</PackageIconUrl> -->
     <RepositoryUrl>https://github.com/marinasundstrom/CheckedExceptionsAnalyzer</RepositoryUrl>

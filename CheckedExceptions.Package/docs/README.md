@@ -4,7 +4,7 @@
 
 This analyzer works with existing class libraries (including .NET class libraries) that have exceptions declared in XML documentation.
 
-[**Repository**](https://github.com/marinasundstrom/CheckedExceptionsAnalyzer) • [**NuGet Package**](#)
+[**Repository**](https://github.com/marinasundstrom/CheckedExceptionsAnalyzer) • [**NuGet Package**](https://www.nuget.org/packages/Sundstrom.CheckedExceptions)
 
 ---
 
@@ -38,13 +38,13 @@ This analyzer works with existing class libraries (including .NET class librarie
 You can install the package via the [NuGet Gallery](https://www.nuget.org/packages/CheckedExceptionsAnalyzer):
 
 ```bash
-Install-Package CheckedExceptionsAnalyzer
+Install-Package Sundstrom.CheckedExceptions
 ```
 
 Or via the .NET CLI:
 
 ```bash
-dotnet add package CheckedExceptionsAnalyzer
+dotnet add package Sundstrom.CheckedExceptionsAnalyzer
 ```
 
 ## Usage

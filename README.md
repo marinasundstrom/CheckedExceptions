@@ -6,6 +6,8 @@
 ![Build](https://github.com/marinasundstrom/CheckedExceptionsAnalyzer/actions/workflows/ci.yml/badge.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
+[**Repository**](https://github.com/marinasundstrom/CheckedExceptionsAnalyzer) • [**NuGet Package**](https://www.nuget.org/packages/Sundstrom.CheckedExceptions)
+
 ## Table of Contents
 
 - [Overview](#overview)
@@ -92,13 +94,13 @@ You can integrate **CheckedExceptionsAnalyzer** into your project via [NuGet](ht
 ### Using .NET CLI
 
 ```bash
-dotnet add package CheckedExceptionsAnalyzer
+dotnet add package Sundstrom.CheckedExceptions
 ```
 
 ### Using Package Manager
 
 ```powershell
-Install-Package CheckedExceptionsAnalyzer
+Install-Package Sundstrom.CheckedExceptions
 ```
 
 ### Manual Installation
