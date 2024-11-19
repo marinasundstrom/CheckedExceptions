@@ -35,7 +35,6 @@ catch (IOException)
 
 }
 
-
 [Throws(typeof(InvalidOperationException))]
 static double Process(string value)
 {

@@ -67,7 +67,7 @@ jobs:
       - name: Find NuGet Package
         id: find_nupkg
         run: |
-          PACKAGE_PATH=$(find ./artifacts/package/release -name 'CheckedExceptions*.nupkg' | head -n 1)
+          PACKAGE_PATH=$(find ./artifacts/package/release -name 'Sundstrom.CheckedExceptions*.nupkg' | head -n 1)
           if [ -z "$PACKAGE_PATH" ]; then
             echo "No NuGet package found."
             exit 1
