@@ -1,0 +1,63 @@
+name: CI
+
+# Trigger the workflow on pushes to main and manual triggers
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      # Step 1: Checkout the repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Step 2: Setup .NET SDK
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'  # Replace with your required .NET version
+
+      # Step 3: Cache NuGet packages for faster restores
+      - name: Cache NuGet packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
+
+      # Step 4: Create a minimal NuGet.config to exclude invalid local sources
+      - name: Setup Minimal NuGet Sources
+        run: |
+          echo '<?xml version="1.0" encoding="utf-8"?>
+          <configuration>
+            <packageSources>
+              <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+            </packageSources>
+          </configuration>' > NuGet.config
+
+      # Step 5: Restore dependencies for all projects
+      - name: Restore dependencies
+        run: |
+          dotnet restore ./CheckedExceptions/CheckedExceptions.csproj --configfile ./NuGet.config --verbosity detailed
+          dotnet restore ./Test/Test.csproj --configfile ./NuGet.config --verbosity detailed
+          dotnet restore ./CheckedExceptions.Package/CheckedExceptions.Package.csproj --configfile ./NuGet.config --verbosity detailed
+          dotnet restore ./CheckedExceptions.Tests/CheckedExceptions.Tests.csproj --configfile ./NuGet.config --verbosity detailed
+
+      # Step 6: Build all projects
+      - name: Build Projects
+        run: |
+          dotnet build ./CheckedExceptions/CheckedExceptions.csproj --configuration Release --no-restore
+          dotnet build ./Test/Test.csproj --configuration Release --no-restore
+          dotnet build ./CheckedExceptions.Package/CheckedExceptions.Package.csproj --configuration Release --no-restore
+          dotnet build ./CheckedExceptions.Tests/CheckedExceptions.Tests.csproj --configuration Release --no-restore
+
+      # Step 7: Run Tests
+      - name: Run Tests
+        run: |
+          dotnet test ./CheckedExceptions.Tests/CheckedExceptions.Tests.csproj --configuration Release --no-build --verbosity normal

@@ -1,14 +1,24 @@
-name: Build and Publish NuGet Package
+name: Build, Test, and Publish NuGet Package
 
-# Triggers the workflow on push to main and manual triggers
+# Trigger the workflow manually via GitHub UI
 on:
-#   push:
-#     branches:
-#       - main
   workflow_dispatch:
+    inputs:
+      nuget_version:
+        description: 'Version number for the NuGet package'
+        required: false
+        default: '1.0.0'
+      publish_to_nuget:
+        description: 'Publish to NuGet.org'
+        required: false
+        default: 'true'
+      publish_to_custom_feed:
+        description: 'Publish to Custom NuGet Feed'
+        required: false
+        default: 'false'
 
 jobs:
-  build-and-deploy:
+  build-test-publish:
     runs-on: ubuntu-latest
 
     steps:
@@ -20,51 +30,87 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0.x'  # Replace with your .NET version
+          dotnet-version: '9.0.x'  # Replace with your required .NET version
 
-      # Step 3: Restore dependencies
-      - name: Restore dependencies
-        run: dotnet restore ./CheckedExceptions.Package/CheckedExceptions.Package.csproj --no-cache --disable-parallel --source https://api.nuget.org/v3/index.json
+      # Step 3: Cache NuGet packages for faster restores
+      - name: Cache NuGet packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: |
+            ${{ runner.os }}-nuget-
 
-      # Step 4: Build the project (which generates the .nupkg)
+      # Step 4: Create a minimal NuGet.config to exclude invalid local sources
+      - name: Setup Minimal NuGet Sources
+        run: |
+          echo '<?xml version="1.0" encoding="utf-8"?>
+          <configuration>
+            <packageSources>
+              <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+            </packageSources>
+          </configuration>' > NuGet.config
+
+      # Step 5: Restore dependencies using the minimal NuGet.config
+      - name: Restore dependencies for Package
+        run: dotnet restore ./CheckedExceptions.Package/CheckedExceptions.Package.csproj --configfile ./NuGet.config --verbosity detailed
+
+      # Step 6: Restore dependencies for Tests
+      - name: Restore dependencies for Tests
+        run: dotnet restore ./CheckedExceptions.Tests/CheckedExceptions.Tests.csproj --configfile ./NuGet.config --verbosity detailed
+
+      # Step 7: Run Tests
+      - name: Run Tests
+        run: dotnet test ./CheckedExceptions.Tests/CheckedExceptions.Tests.csproj --configuration Release --no-build --verbosity normal
+
+      # Step 8: Build the project (which generates the .nupkg)
       - name: Build Project
-        run: dotnet build ./CheckedExceptions.Package/CheckedExceptions.Package.csproj --configuration Release --no-restore
+        run: |
+          dotnet build ./CheckedExceptions.Package/CheckedExceptions.Package.csproj \
+            --configuration Release \
+            --no-restore \
+            /p:PackageVersion=${{ github.event.inputs.nuget_version }}
 
-      # Step 5: Locate the generated NuGet package
+      # Step 9: Locate the generated NuGet package
       - name: Find NuGet Package
         id: find_nupkg
         run: |
-          echo "::set-output name=path::$(find ./CheckedExceptions.Package/bin/Release -name 'CheckedExceptions*.nupkg' | head -n 1)"
+          PACKAGE_PATH=$(find ./CheckedExceptions.Package/bin/Release -name 'CheckedExceptions*.nupkg' | head -n 1)
+          if [ -z "$PACKAGE_PATH" ]; then
+            echo "No NuGet package found."
+            exit 1
+          fi
+          echo "path=$PACKAGE_PATH" >> $GITHUB_OUTPUT
         shell: bash
 
-    #   # Step 6: Publish to NuGet.org
-    #   - name: Publish to NuGet.org
-    #     if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
-    #     env:
-    #       NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
-    #     run: |
-    #       if [ -f "${{ steps.find_nupkg.outputs.path }}" ]; then
-    #         dotnet nuget push "${{ steps.find_nupkg.outputs.path }}" \
-    #           --api-key $NUGET_API_KEY \
-    #           --source https://api.nuget.org/v3/index.json \
-    #           --skip-duplicate
-    #       else
-    #         echo "NuGet package not found!"
-    #         exit 1
-    #       fi
+      # Step 10: Publish to NuGet.org
+      - name: Publish to NuGet.org
+        if: ${{ github.event.inputs.publish_to_nuget == 'true' }}
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
+        run: |
+          if [ -f "${{ steps.find_nupkg.outputs.path }}" ]; then
+            dotnet nuget push "${{ steps.find_nupkg.outputs.path }}" \
+              --api-key $NUGET_API_KEY \
+              --source https://api.nuget.org/v3/index.json \
+              --skip-duplicate
+          else
+            echo "NuGet package not found at ${{ steps.find_nupkg.outputs.path }}!"
+            exit 1
+          fi
 
-    #   # Step 7: Publish to Custom NuGet Feed
-    #   - name: Publish to Custom NuGet Feed
-    #     if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
-    #     env:
-    #       CUSTOM_NUGET_API_KEY: ${{ secrets.CUSTOM_NUGET_API_KEY }}
-    #     run: |
-    #       if [ -f "${{ steps.find_nupkg.outputs.path }}" ]; then
-    #         dotnet nuget push "${{ steps.find_nupkg.outputs.path }}" \
-    #           --api-key $CUSTOM_NUGET_API_KEY \
-    #           --source https://your-custom-feed-url/v3/index.json \
-    #           --skip-duplicate
-    #       else
-    #         echo "NuGet package not found!"
-    #         exit 1
-    #       fi
+      # Step 11: Publish to Custom NuGet Feed
+      - name: Publish to Custom NuGet Feed
+        if: ${{ github.event.inputs.publish_to_custom_feed == 'true' }}
+        env:
+          CUSTOM_NUGET_API_KEY: ${{ secrets.CUSTOM_NUGET_API_KEY }}
+        run: |
+          if [ -f "${{ steps.find_nupkg.outputs.path }}" ]; then
+            dotnet nuget push "${{ steps.find_nupkg.outputs.path }}" \
+              --api-key $CUSTOM_NUGET_API_KEY \
+              --source https://your-custom-feed-url/v3/index.json \
+              --skip-duplicate
+          else
+            echo "NuGet package not found at ${{ steps.find_nupkg.outputs.path }}!"
+            exit 1
+          fi
