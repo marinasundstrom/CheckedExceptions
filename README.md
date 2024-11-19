@@ -77,6 +77,10 @@ Unlike Java's checked exceptions, **CheckedExceptionsAnalyzer** is **opt-in** an
 
 ## Prerequisites
 
+The **CheckedExceptionsAnalyzer** targets .NET Standard 2.0 (`netstandard2.0`) to allow it to be used across multiple versions of .NET.
+
+If you want to build this solution, other projects, such as unit tests, require the .NET 9 SDK.
+
 - [.NET SDK 9.0](https://dotnet.microsoft.com/download) or later
 - Supported IDEs: Visual Studio 2022 or later, Visual Studio Code with C# extension
 
