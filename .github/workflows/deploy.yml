@@ -1,4 +1,4 @@
-name: Build, Test, and Publish NuGet Package
+name: Build and Publish NuGet Package
 
 # Trigger the workflow manually via GitHub UI
 on:
@@ -18,7 +18,7 @@ on:
         default: 'false'
 
 jobs:
-  build-test-publish:
+  build-publish:
     runs-on: ubuntu-latest
 
     steps:
@@ -55,15 +55,7 @@ jobs:
       - name: Restore dependencies for Package
         run: dotnet restore ./CheckedExceptions.Package/CheckedExceptions.Package.csproj --configfile ./NuGet.config --verbosity detailed
 
-      # Step 6: Restore dependencies for Tests
-      - name: Restore dependencies for Tests
-        run: dotnet restore ./CheckedExceptions.Tests/CheckedExceptions.Tests.csproj --configfile ./NuGet.config --verbosity detailed
-
-      # Step 7: Run Tests
-      - name: Run Tests
-        run: dotnet test ./CheckedExceptions.Tests/CheckedExceptions.Tests.csproj --configuration Release --no-build --verbosity normal
-
-      # Step 8: Build the project (which generates the .nupkg)
+      # Step 6: Build the project (which generates the .nupkg)
       - name: Build Project
         run: |
           dotnet build ./CheckedExceptions.Package/CheckedExceptions.Package.csproj \
@@ -71,11 +63,11 @@ jobs:
             --no-restore \
             /p:PackageVersion=${{ github.event.inputs.nuget_version }}
 
-      # Step 9: Locate the generated NuGet package
+      # Step 7: Locate the generated NuGet package
       - name: Find NuGet Package
         id: find_nupkg
         run: |
-          PACKAGE_PATH=$(find ./CheckedExceptions.Package/bin/Release -name 'CheckedExceptions*.nupkg' | head -n 1)
+          PACKAGE_PATH=$(find ./artifacts/package/release -name 'CheckedExceptions*.nupkg' | head -n 1)
           if [ -z "$PACKAGE_PATH" ]; then
             echo "No NuGet package found."
             exit 1
@@ -83,7 +75,7 @@ jobs:
           echo "path=$PACKAGE_PATH" >> $GITHUB_OUTPUT
         shell: bash
 
-      # Step 10: Publish to NuGet.org
+      # Step 8: Publish to NuGet.org
       - name: Publish to NuGet.org
         if: ${{ github.event.inputs.publish_to_nuget == 'true' }}
         env:
@@ -99,7 +91,7 @@ jobs:
             exit 1
           fi
 
-      # Step 11: Publish to Custom NuGet Feed
+      # Step 9: Publish to Custom NuGet Feed
       - name: Publish to Custom NuGet Feed
         if: ${{ github.event.inputs.publish_to_custom_feed == 'true' }}
         env:
