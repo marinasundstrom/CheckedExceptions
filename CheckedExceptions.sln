@@ -17,7 +17,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Test2", "Test2\Test2.csproj
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CheckedExceptions.Attribute", "CheckedExceptions.Attribute\CheckedExceptions.Attribute.csproj", "{4F0EE41F-1810-43AD-87A9-13A570D01CB0}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HelloWorld", "HelloWorld\HelloWorld.csproj", "{18256F97-46AA-4BBA-99C5-C52A6CFB24F1}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleProject", "SampleProject\SampleProject.csproj", "{18256F97-46AA-4BBA-99C5-C52A6CFB24F1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -1,0 +1,7 @@
+[*.cs]
+
+# Enable or disable specific diagnostics
+dotnet_diagnostic.THROW001.severity = error
+dotnet_diagnostic.THROW003.severity = warning
+dotnet_diagnostic.THROW004.severity = warning
+dotnet_diagnostic.THROW005.severity = warning

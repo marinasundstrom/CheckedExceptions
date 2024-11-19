@@ -8,19 +8,11 @@
     <WarningsAsErrors>nullable,THROW001</WarningsAsErrors>
   </PropertyGroup>
 
-  <PropertyGroup>
-    <GenerateDocumentationFile>true</GenerateDocumentationFile>
-  </PropertyGroup>
-
   <ItemGroup>
-    <PackageReference Include="Sundstrom.CheckedExceptions" Version="1.0.2">
+    <PackageReference Include="Sundstrom.CheckedExceptions" Version="1.0.4">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>
-  </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\CheckedExceptions.Attribute\CheckedExceptions.Attribute.csproj" />
   </ItemGroup>
 
 </Project>
