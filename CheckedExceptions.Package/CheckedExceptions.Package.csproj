@@ -12,10 +12,10 @@
     <PackageVersion>1.0.2.0</PackageVersion>
     <Authors>Marina Sundström</Authors>
     <PackageLicenseUrl>
-      https://github.com/marinasundstrom/CheckedExceptionsAnalyzer/blob/main/LICENSE</PackageLicenseUrl>
-    <PackageProjectUrl>https://github.com/marinasundstrom/CheckedExceptionsAnalyzer</PackageProjectUrl>
+      https://github.com/marinasundstrom/CheckedExceptions/blob/main/LICENSE</PackageLicenseUrl>
+    <PackageProjectUrl>https://github.com/marinasundstrom/CheckedExceptions</PackageProjectUrl>
     <!-- <PackageIconUrl>http://ICON_URL_HERE_OR_DELETE_THIS_LINE</PackageIconUrl> -->
-    <RepositoryUrl>https://github.com/marinasundstrom/CheckedExceptionsAnalyzer</RepositoryUrl>
+    <RepositoryUrl>https://github.com/marinasundstrom/CheckedExceptions</RepositoryUrl>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <Description>Enforce explicit exception handling in C#/.NET by ensuring all exceptions are
       either handled or declared.</Description>

@@ -4,7 +4,7 @@
 
 This analyzer works with existing class libraries (including .NET class libraries) that have exceptions declared in XML documentation.
 
-[**Repository**](https://github.com/marinasundstrom/CheckedExceptionsAnalyzer) • [**NuGet Package**](https://www.nuget.org/packages/Sundstrom.CheckedExceptions)
+[**Repository**](https://github.com/marinasundstrom/CheckedExceptions) • [**NuGet Package**](https://www.nuget.org/packages/Sundstrom.CheckedExceptions)
 
 ---
 
@@ -55,14 +55,14 @@ Install-Package Sundstrom.CheckedExceptions
 Or via the .NET CLI:
 
 ```bash
-dotnet add package Sundstrom.CheckedExceptionsAnalyzer
+dotnet add package Sundstrom.CheckedExceptions
 ```
 
 ## Usage
 
 ### Defining `ThrowsAttribute`
 
-To utilize **CheckedExceptionsAnalyzer**, you need to define the `ThrowsAttribute` in your project. Here's a simple implementation:
+To utilize **CheckedExceptions**, you need to define the `ThrowsAttribute` in your project. Here's a simple implementation:
 
 ```csharp
 using System;
@@ -185,7 +185,7 @@ After properly handling the exception, no diagnostics are expected.
 
 ## Code Fixes
 
-**CheckedExceptionsAnalyzer** provides automated code fixes to simplify exception handling and declaration. These code fixes enhance developer productivity by offering quick solutions to common exception management scenarios.
+**CheckedExceptions** provides automated code fixes to simplify exception handling and declaration. These code fixes enhance developer productivity by offering quick solutions to common exception management scenarios.
 
 #### 1. **Add `ThrowsAttribute`**
 
@@ -294,7 +294,7 @@ public class Sample
 
 ## XML Documentation Support
 
-**CheckedExceptionsAnalyzer** leverages XML documentation to identify exceptions from methods that do not have `ThrowsAttribute` annotations. This is particularly useful for:
+**CheckedExceptions** leverages XML documentation to identify exceptions from methods that do not have `ThrowsAttribute` annotations. This is particularly useful for:
 
 - **Unannotated Libraries:** Works with libraries that lack explicit exception annotations by using their XML documentation.
 - **.NET Class Libraries:** Extends support to the .NET framework by reading exceptions documented in XML.
@@ -441,7 +441,7 @@ public void MethodWithSuppressedWarning()
 
 ## Configuration
 
-The **CheckedExceptionsAnalyzer** offers various properties to configure its behavior, allowing you to tailor exception handling to your project's specific needs. These properties can be adjusted using an `.editorconfig` file or directly within your project files.
+The **CheckedExceptions** offers various properties to configure its behavior, allowing you to tailor exception handling to your project's specific needs. These properties can be adjusted using an `.editorconfig` file or directly within your project files.
 
 ### EditorConfig Settings
 
@@ -486,7 +486,7 @@ To treat the `nullable` warnings and the `THROW001` diagnostic as errors, add th
 
 - **`nullable`:** This standard warning pertains to nullable reference type annotations and warnings introduced in C# 8.0 and later.
 
-- **`THROW001`:** This is the diagnostic ID for unhandled exceptions identified by **CheckedExceptionsAnalyzer**.
+- **`THROW001`:** This is the diagnostic ID for unhandled exceptions identified by **CheckedExceptions**.
 
 **Notes:**
 
@@ -496,7 +496,7 @@ To treat the `nullable` warnings and the `THROW001` diagnostic as errors, add th
 
 ## Examples
 
-To demonstrate how **CheckedExceptionsAnalyzer** integrates into your project, here are some practical examples covering basic usage and exception handling.
+To demonstrate how **CheckedExceptions** integrates into your project, here are some practical examples covering basic usage and exception handling.
 
 ### Basic Usage
 
@@ -550,7 +550,7 @@ In this example, the `Divide` method declares that it can throw a `DivideByZeroE
 
 Contributions are welcome! Please follow these steps:
 
-1. Fork the [repository](https://github.com/marinasundstrom/CheckedExceptionsAnalyzer).
+1. Fork the [repository](https://github.com/marinasundstrom/CheckedExceptions).
 2. Create a new branch (`git checkout -b feature/YourFeature`).
 3. Commit your changes (`git commit -m 'Add some feature'`).
 4. Push to the branch (`git push origin feature/YourFeature`).
@@ -560,4 +560,4 @@ Please ensure your code adheres to the project's coding standards and includes a
 
 ## License
 
-This project is licensed under the [MIT License](https://github.com/marinasundstrom/CheckedExceptionsAnalyzer/blob/main/LICENSE).
+This project is licensed under the [MIT License](https://github.com/marinasundstrom/CheckedExceptions/blob/main/LICENSE).

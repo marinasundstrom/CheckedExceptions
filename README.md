@@ -1,12 +1,12 @@
-# CheckedExceptionsAnalyzer
+# Checked Exceptions for C#
 
 **Enforce explicit exception handling in C#/.NET by ensuring all exceptions are either handled or declared.**
 
-<!-- ![Deploy](https://github.com/marinasundstrom/CheckedExceptionsAnalyzer/actions/workflows/deploy.yml/badge.svg) -->
-![Build](https://github.com/marinasundstrom/CheckedExceptionsAnalyzer/actions/workflows/ci.yml/badge.svg)
+<!-- ![Deploy](https://github.com/marinasundstrom/CheckedExceptions/actions/workflows/deploy.yml/badge.svg) -->
+![Build](https://github.com/marinasundstrom/CheckedExceptions/actions/workflows/ci.yml/badge.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
-[**Repository**](https://github.com/marinasundstrom/CheckedExceptionsAnalyzer) • [**NuGet Package**](https://www.nuget.org/packages/Sundstrom.CheckedExceptions)
+[**Repository**](https://github.com/marinasundstrom/CheckedExceptions) • [**NuGet Package**](https://www.nuget.org/packages/Sundstrom.CheckedExceptions)
 
 ## Table of Contents
 
@@ -32,15 +32,15 @@
 
 ## Overview
 
-**CheckedExceptionsAnalyzer** is a **Roslyn Diagnostic Analyzer** tailored for C# projects to enforce robust and explicit exception handling practices. By ensuring that every exception thrown within your code is either **properly handled** (caught) or **explicitly declared** using the custom `ThrowsAttribute`, this analyzer promotes cleaner, more maintainable, and reliable codebases.
+**CheckedExceptions** is a **Roslyn Diagnostic Analyzer** tailored for C# projects to enforce robust and explicit exception handling practices. By ensuring that every exception thrown within your code is either **properly handled** (caught) or **explicitly declared** using the custom `ThrowsAttribute`, this analyzer promotes cleaner, more maintainable, and reliable codebases.
 
-Understanding and managing exceptions effectively is crucial for building resilient applications. **CheckedExceptionsAnalyzer** brings the benefits of checked exceptions, familiar from Java, into the .NET ecosystem, encouraging developers to think critically about how exceptions are propagated and handled throughout their applications.
+Understanding and managing exceptions effectively is crucial for building resilient applications. **CheckedExceptions** brings the benefits of checked exceptions, familiar from Java, into the .NET ecosystem, encouraging developers to think critically about how exceptions are propagated and handled throughout their applications.
 
-Additionally, methods from the .NET framework, such as `Console.WriteLine`, may throw exceptions like `IOException`. Since these framework methods do not include `ThrowsAttribute` annotations, **CheckedExceptionsAnalyzer** leverages XML documentation comments to identify and manage these exceptions effectively.
+Additionally, methods from the .NET framework, such as `Console.WriteLine`, may throw exceptions like `IOException`. Since these framework methods do not include `ThrowsAttribute` annotations, **CheckedExceptions** leverages XML documentation comments to identify and manage these exceptions effectively.
 
 ## Purpose
 
-**CheckedExceptionsAnalyzer** aims to make exception handling in C# explicit and enforceable, much like Java's checked exceptions. By declaring exceptions using `ThrowsAttribute`, developers signal which exceptions can propagate from their methods, compelling callers to handle or further declare these exceptions. This explicit declaration helps prevent unanticipated runtime errors and fosters a disciplined approach to error management.
+**CheckedExceptions** aims to make exception handling in C# explicit and enforceable, much like Java's checked exceptions. By declaring exceptions using `ThrowsAttribute`, developers signal which exceptions can propagate from their methods, compelling callers to handle or further declare these exceptions. This explicit declaration helps prevent unanticipated runtime errors and fosters a disciplined approach to error management.
 
 Key objectives include:
 
@@ -50,7 +50,7 @@ Key objectives include:
   
 - **Thoughtful Design:** The analyzer prompts developers to carefully consider their exception handling strategies, balancing between catching exceptions locally and declaring them for higher-level handling.
 
-Unlike Java's checked exceptions, **CheckedExceptionsAnalyzer** is **opt-in** and treats exceptions as **warnings by default**, allowing developers to gradually integrate checked exception practices without overwhelming their existing codebases.
+Unlike Java's checked exceptions, **CheckedExceptions** is **opt-in** and treats exceptions as **warnings by default**, allowing developers to gradually integrate checked exception practices without overwhelming their existing codebases.
 
 ## Features
 
@@ -81,7 +81,7 @@ Unlike Java's checked exceptions, **CheckedExceptionsAnalyzer** is **opt-in** an
 
 ## Prerequisites
 
-The **CheckedExceptionsAnalyzer** targets .NET Standard 2.0 (`netstandard2.0`) to allow it to be used across multiple versions of .NET.
+The **CheckedExceptions** targets .NET Standard 2.0 (`netstandard2.0`) to allow it to be used across multiple versions of .NET.
 
 If you want to build this solution, other projects, such as unit tests, require the .NET 9 SDK.
 
@@ -90,7 +90,7 @@ If you want to build this solution, other projects, such as unit tests, require 
 
 ## Installation
 
-You can integrate **CheckedExceptionsAnalyzer** into your project via [NuGet](https://www.nuget.org/).
+You can integrate **CheckedExceptions** into your project via [NuGet](https://www.nuget.org/).
 
 ### Using .NET CLI
 
@@ -110,7 +110,7 @@ Alternatively, you can include the analyzer directly in your project by adding a
 
 ## Usage
 
-Once installed, **CheckedExceptionsAnalyzer** automatically analyzes your C# code during compilation and provides real-time feedback within your development environment (e.g., Visual Studio).
+Once installed, **CheckedExceptions** automatically analyzes your C# code during compilation and provides real-time feedback within your development environment (e.g., Visual Studio).
 
 ### Exception Handling Enforcement
 
@@ -122,11 +122,11 @@ Once installed, **CheckedExceptionsAnalyzer** automatically analyzes your C# cod
 
 ### Opt-In Mechanism
 
-Since **CheckedExceptionsAnalyzer** is opt-in, you can selectively enable or disable exception checking for specific methods or members by applying or omitting the `ThrowsAttribute`. This flexibility allows gradual adoption without disrupting existing codebases.
+Since **CheckedExceptions** is opt-in, you can selectively enable or disable exception checking for specific methods or members by applying or omitting the `ThrowsAttribute`. This flexibility allows gradual adoption without disrupting existing codebases.
 
 ## Configuration
 
-No additional configuration is required to use **CheckedExceptionsAnalyzer**. However, to customize its behavior or integrate with your project's coding standards, you can adjust analyzer settings via [EditorConfig](https://editorconfig.org/).
+No additional configuration is required to use **CheckedExceptions**. However, to customize its behavior or integrate with your project's coding standards, you can adjust analyzer settings via [EditorConfig](https://editorconfig.org/).
 
 ### Example `.editorconfig` Settings
 
@@ -163,7 +163,7 @@ To treat the `nullable` warnings and the `THROW001` diagnostic as errors, add th
   
 - **`nullable`:** This standard warning pertains to nullable reference type annotations and warnings introduced in C# 8.0 and later.
   
-- **`THROW001`:** This is the diagnostic ID for unhandled exceptions identified by **CheckedExceptionsAnalyzer**.
+- **`THROW001`:** This is the diagnostic ID for unhandled exceptions identified by **CheckedExceptions**.
 
 **Result:**
 
@@ -351,7 +351,7 @@ Methods from the .NET class library, like `Console.WriteLine`, can throw excepti
 
 ### XML Documentation Support
 
-There are many unannotated libraries, and that extends to the .NET class library. Since these framework methods do not include `ThrowsAttribute` annotations, **CheckedExceptionsAnalyzer** relies on XML documentation to identify and manage these exceptions.
+There are many unannotated libraries, and that extends to the .NET class library. Since these framework methods do not include `ThrowsAttribute` annotations, **CheckedExceptions** relies on XML documentation to identify and manage these exceptions.
 
 If a library has both XML docs with exceptions and `ThrowsAttribute` annotations, the exceptions from both will be combined.
 
@@ -394,7 +394,7 @@ public class Console
 
 ## Defining ThrowsAttribute
 
-To utilize **CheckedExceptionsAnalyzer**, you need to define the `ThrowsAttribute` in your project. Here's a simple implementation:
+To utilize **CheckedExceptions**, you need to define the `ThrowsAttribute` in your project. Here's a simple implementation:
 
 ```csharp
 using System;
@@ -477,14 +477,14 @@ public void MethodWithSuppressedWarning()
 
 ## Contributing
 
-Contributions are welcome! If you'd like to contribute to **CheckedExceptionsAnalyzer**, please follow these steps:
+Contributions are welcome! If you'd like to contribute to **CheckedExceptions**, please follow these steps:
 
 1. **Fork the Repository:** Click the "Fork" button on the repository page.
    
 2. **Clone Your Fork:**
 
    ```bash
-   git clone https://github.com/marinasundstrom/CheckedExceptionsAnalyzer.git
+   git clone https://github.com/marinasundstrom/CheckedExceptions.git
    ```
    
 3. **Create a New Branch:**
@@ -523,4 +523,4 @@ This project is licensed under the [MIT License](LICENSE).
 
 ## Contact
 
-For questions, suggestions, or support, please open an [issue](https://github.com/marinasundstrom/CheckedExceptionsAnalyzer/issues) on the GitHub repository.
+For questions, suggestions, or support, please open an [issue](https://github.com/marinasundstrom/CheckedExceptions/issues) on the GitHub repository.
