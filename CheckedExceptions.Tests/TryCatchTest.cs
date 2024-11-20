@@ -7,7 +7,7 @@ using Verifier = CSharpAnalyzerVerifier<CheckedExceptionsAnalyzer, DefaultVerifi
 public partial class TryCatchTest
 {
     [Fact]
-    public async Task Test01()
+    public async Task Should_ReportDiagnostic_ForExceptionThrownDirectlyInMethod()
     {
         var test = /* lang=c#-test */ """
         using System;
@@ -37,7 +37,7 @@ public partial class TryCatchTest
     }
 
     [Fact]
-    public async Task Test02()
+    public async Task Should_ReportDiagnostic_ForExceptionThrownDirectlyInCatchBlock()
     {
         var test = /* lang=c#-test */ """
         using System;
@@ -60,7 +60,7 @@ public partial class TryCatchTest
     }
 
     [Fact]
-    public async Task Test03()
+    public async Task Should_ReportDiagnostics_ForMultipleExceptionsThrownInMethods()
     {
         var test = /* lang=c#-test */ """
         using System;
@@ -95,7 +95,7 @@ public partial class TryCatchTest
     }
 
     [Fact]
-    public async Task Test1()
+    public async Task Should_ReportDiagnostics_ForMultipleExceptionsThrownInSequentialCalls()
     {
         var test = /* lang=c#-test */ """
         using System;
@@ -135,7 +135,7 @@ public partial class TryCatchTest
     }
 
     [Fact]
-    public async Task Test2()
+    public async Task Should_ReportDiagnostics_ForExceptionUncaughtWithinCatchBlock()
     {
         var test = /* lang=c#-test */ """
         using System;
@@ -178,7 +178,7 @@ public partial class TryCatchTest
     }
 
     [Fact]
-    public async Task Test3()
+    public async Task Should_NotReportDiagnostics_WhenAllExceptionsAreCaught()
     {
         var test = /* lang=c#-test */ """
         using System;
@@ -221,7 +221,7 @@ public partial class TryCatchTest
     }
 
     [Fact]
-    public async Task Test4()
+    public async Task Should_ReportDiagnostics_WhenExceptionsAreThrownAndRethrown()
     {
         var test = /* lang=c#-test */ """
         using System;
@@ -268,7 +268,7 @@ public partial class TryCatchTest
     }
 
     [Fact(Skip = "Not working")]
-    public async Task Test5()
+    public async Task Should_ReportDiagnostics_ForNestedTryCatchWithUncaughtExceptions()
     {
         var test = /* lang=c#-test */ """
         using System;
