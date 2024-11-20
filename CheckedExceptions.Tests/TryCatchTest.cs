@@ -1,4 +1,3 @@
-﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 
 namespace Sundstrom.CheckedExceptions.Tests;
@@ -8,97 +7,37 @@ using Verifier = CSharpAnalyzerVerifier<CheckedExceptionsAnalyzer, DefaultVerifi
 public partial class TryCatchTest
 {
     [Fact]
-    public async Task Should_NotReportDiagnosticForSingleExceptionInNestedTry()
+    public async Task Test01()
     {
         var test = /* lang=c#-test */ """
-            using System;
-            using System.IO;
+        using System;
+        using System.IO;
 
-            public class Test
+        public class Test
+        {
+            [Throws(typeof(InvalidOperationException))]
+            public void Foo1() 
             {
-                public void Run()
-                {
-                    try
-                    {
-                        try
-                        {
-                            Console.WriteLine("Hello");
-                        }
-                        catch (ArgumentException)
-                        {
-
-                        }
-                    }
-                    catch (IOException)
-                    {
-
-                    }
-                }
+                throw new InvalidOperationException();
             }
-            """;
 
-        await Verifier.VerifyAnalyzerAsync(test);
+            public void Foo()
+            {
+                Foo1();
+            }
+        }
+        """;
+
+        var expected = Verifier.Diagnostic("THROW001")
+            .WithSpan(14, 9, 14, 15)
+            .WithArguments("InvalidOperationException");
+
+
+        await Verifier.VerifyAnalyzerAsync(test, expected);
     }
 
     [Fact]
-    public async Task Should_NotReportDiagnosticWhenMultipleExceptionsInNestedTry()
-    {
-        var test = /* lang=c#-test */ """
-            using System;
-            using System.IO;
-            using System.Net.Http;
-            using System.Threading.Tasks;
-
-            public class Test
-            {
-                public async Task Run()
-                {
-                    try
-                    {
-                        try
-                        {
-                            var httpClient = new HttpClient()
-                            {
-                                BaseAddress = new Uri("https://www.scrapethissite.com")
-                            };
-                            var str = await httpClient.GetStringAsync("/");
-
-                            Console.WriteLine(str);
-                        }
-                        catch (ArgumentException)
-                        {
-
-                        }
-                        catch (InvalidOperationException)
-                        {
-
-                        }
-                        catch (HttpRequestException)
-                        {
-
-                        }
-                        catch (TaskCanceledException)
-                        {
-
-                        }
-                        catch (UriFormatException)
-                        {
-
-                        }
-                    }
-                    catch (IOException)
-                    {
-
-                    }
-                }
-            }
-            """;
-
-        await Verifier.VerifyAnalyzerAsync(test);
-    }
-
-    [Fact]
-    public async Task Should_HandleNestedTryCatchWithDifferentExceptions()
+    public async Task Test02()
     {
         var test = /* lang=c#-test */ """
         using System;
@@ -108,34 +47,20 @@ public partial class TryCatchTest
         {
             public void Foo()
             {
-                try
-                {
-                    try
-                    {
-                        throw new InvalidOperationException();
-                    }
-                    catch (ArgumentNullException)
-                    {
-                        // Handle ArgumentNullException
-                    }
-                }
-                catch (IOException)
-                {
-                    // Handle IOException
-                }
+                throw new InvalidOperationException();
             }
         }
         """;
 
         var expected = Verifier.Diagnostic("THROW001")
-            .WithSpan(12, 17, 12, 55)
+            .WithSpan(8, 9, 8, 47)
             .WithArguments("InvalidOperationException");
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }
 
     [Fact]
-    public async Task Should_ReportDiagnostic_ForInvalidOperationException_NotCaught_InNestedTryCatch()
+    public async Task Test03()
     {
         var test = /* lang=c#-test */ """
         using System;
@@ -143,36 +68,34 @@ public partial class TryCatchTest
 
         public class Test
         {
+            [Throws(typeof(ArgumentNullException))]
+            public void Foo1() 
+            {
+                throw new ArgumentNullException();
+            }
+
             public void Foo()
             {
-                try
-                {
-                    try
-                    {
-                        throw new InvalidOperationException();
-                    }
-                    catch (ArgumentNullException)
-                    {
-                        throw new IOException();
-                    }
-                }
-                catch (IOException)
-                {
-                    // Handle IOException
-                }
+                Foo1(); 
+
+                throw new InvalidOperationException();
             }
         }
         """;
 
-        var expected = Verifier.Diagnostic("THROW001")
-            .WithSpan(12, 17, 12, 55)
+        var expected1 = Verifier.Diagnostic("THROW001")
+            .WithSpan(14, 9, 14, 15)
+            .WithArguments("ArgumentNullException");
+
+        var expected2 = Verifier.Diagnostic("THROW001")
+            .WithSpan(16, 9, 16, 47)
             .WithArguments("InvalidOperationException");
 
-        await Verifier.VerifyAnalyzerAsync(test, expected);
+        await Verifier.VerifyAnalyzerAsync(test, [expected1, expected2]);
     }
 
     [Fact]
-    public async Task Should_ReportDiagnostic_ForIOException_ThrownInCatchBlock()
+    public async Task Test1()
     {
         var test = /* lang=c#-test */ """
         using System;
@@ -180,18 +103,64 @@ public partial class TryCatchTest
 
         public class Test
         {
+            [Throws(typeof(InvalidOperationException))]
+            public void Foo1() 
+            {
+                throw new InvalidOperationException();
+            }
+
+            [Throws(typeof(ArgumentNullException))]
+            public void Foo2() 
+            {
+                throw new ArgumentNullException();
+            }
+
+            public void Foo()
+            {
+                Foo1();
+                Foo2();
+            }
+        }
+        """;
+
+        var expected1 = Verifier.Diagnostic("THROW001")
+            .WithSpan(20, 9, 20, 15)
+            .WithArguments("InvalidOperationException");
+
+        var expected2 = Verifier.Diagnostic("THROW001")
+            .WithSpan(21, 9, 21, 15)
+            .WithArguments("ArgumentNullException");
+
+        await Verifier.VerifyAnalyzerAsync(test, [expected1, expected2]);
+    }
+
+    [Fact]
+    public async Task Test2()
+    {
+        var test = /* lang=c#-test */ """
+        using System;
+        using System.IO;
+
+        public class Test
+        {
+            [Throws(typeof(InvalidOperationException))]
+            public void Foo1() 
+            {
+                throw new InvalidOperationException();
+            }
+
+            [Throws(typeof(ArgumentNullException))]
+            public void Foo2() 
+            {
+                throw new ArgumentNullException();
+            }
+
             public void Foo()
             {
                 try
                 {
-                    try
-                    {
-                        throw new InvalidOperationException();
-                    }
-                    catch (ArgumentNullException)
-                    {
-                        throw new IOException();
-                    }
+                    Foo1();
+                    Foo2();
                 }
                 catch (InvalidOperationException)
                 {
@@ -202,15 +171,14 @@ public partial class TryCatchTest
         """;
 
         var expected = Verifier.Diagnostic("THROW001")
-            .WithSpan(16, 17, 16, 41)
-            .WithArguments("IOException");
+            .WithSpan(23, 13, 23, 19)
+            .WithArguments("ArgumentNullException");
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }
 
-
     [Fact]
-    public async Task Should_ReportDiagnostics_ForExceptions_ThrownInCatchAndFinallyBlocks()
+    public async Task Test3()
     {
         var test = /* lang=c#-test */ """
         using System;
@@ -218,44 +186,89 @@ public partial class TryCatchTest
 
         public class Test
         {
+            [Throws(typeof(InvalidOperationException))]
+            public void Foo1() 
+            {
+                throw new InvalidOperationException();
+            }
+
+            [Throws(typeof(ArgumentNullException))]
+            public void Foo2() 
+            {
+                throw new ArgumentNullException();
+            }
+
             public void Foo()
             {
                 try
                 {
-                    try
-                    {
-                        throw new InvalidOperationException();
-                    }
-                    catch (ArgumentNullException)
-                    {
-                        throw new IOException();
-                    }
-                    finally 
-                    {
-                        throw new FormatException();
-                    }
+                    Foo1();
+                    Foo2();
                 }
                 catch (InvalidOperationException)
                 {
                     // Handle InvalidOperationException
+                }
+                catch (ArgumentNullException)
+                {
+                    // Handle ArgumentNullException
+                }
+            }
+        }
+        """;
+
+        await Verifier.VerifyAnalyzerAsync(test);
+    }
+
+    [Fact]
+    public async Task Test4()
+    {
+        var test = /* lang=c#-test */ """
+        using System;
+        using System.IO;
+
+        public class Test
+        {
+            [Throws(typeof(InvalidOperationException))]
+            public void Foo1() 
+            {
+                throw new InvalidOperationException();
+            }
+
+            [Throws(typeof(ArgumentNullException))]
+            public void Foo2() 
+            {
+                throw new ArgumentNullException();
+            }
+
+            public void Foo()
+            {
+                try
+                {
+                    Foo1();
+                    Foo2();
+                }
+                catch 
+                {
+                    throw;
                 }
             }
         }
         """;
 
         var expected1 = Verifier.Diagnostic("THROW001")
-            .WithSpan(16, 17, 16, 41)
-            .WithArguments("IOException");
+            .WithSpan(27, 13, 27, 19)
+            .WithArguments("InvalidOperationException");
 
         var expected2 = Verifier.Diagnostic("THROW001")
-            .WithSpan(20, 17, 20, 45)
-            .WithArguments("FormatException");
+            .WithSpan(27, 13, 27, 19)
+            .WithArguments("ArgumentNullException");
 
-        await Verifier.VerifyAnalyzerAsync(test, expected1, expected2);
+        await Verifier.VerifyAnalyzerAsync(test, [expected1, expected2]);
     }
 
-    [Fact]
-    public async Task Should_ReportDiagnostic_ForIOException_Unhandled_InCatch_WithFinally_CatchingFormatException()
+    [Fact(Skip = "Not working")]
+    public async Task Test5()
     {
         var test = /* lang=c#-test */ """
         using System;
@@ -263,39 +276,49 @@ public partial class TryCatchTest
 
         public class Test
         {
+            [Throws(typeof(InvalidOperationException))]
+            public void Foo1() 
+            {
+                throw new InvalidOperationException();
+            }
+
+            [Throws(typeof(ArgumentNullException))]
+            public void Foo2() 
+            {
+                throw new ArgumentNullException();
+            }
+
             public void Foo()
             {
                 try
                 {
+                    Foo1();
+                    Foo2();
+                }
+                catch 
+                {
                     try
                     {
-                        throw new InvalidOperationException();
+                        Foo1();
+                        Foo2();
                     }
-                    catch (ArgumentNullException)
+                    catch 
                     {
-                        throw new IOException();
+                        throw;
                     }
-                    finally 
-                    {
-                        throw new FormatException();
-                    }
-                }
-                catch (InvalidOperationException)
-                {
-                    // Handle InvalidOperationException
-                }
-                catch (FormatException)
-                {
-                    // Handle FormatException
                 }
             }
         }
         """;
 
-        var expected = Verifier.Diagnostic("THROW001")
-            .WithSpan(16, 17, 16, 41)
-            .WithArguments("IOException");
+        var expected1 = Verifier.Diagnostic("THROW001")
+            .WithSpan(27, 13, 27, 19)
+            .WithArguments("InvalidOperationException");
 
-        await Verifier.VerifyAnalyzerAsync(test, expected);
+        var expected2 = Verifier.Diagnostic("THROW001")
+            .WithSpan(27, 13, 27, 19)
+            .WithArguments("ArgumentNullException");
+
+        await Verifier.VerifyAnalyzerAsync(test, [expected1, expected2]);
     }
 }

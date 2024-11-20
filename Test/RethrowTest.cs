@@ -86,13 +86,59 @@ public class RethrowTest
         }
         catch
         {
+            throw new Exception();
+
             throw;
         }
     }
 
-    [Throws(typeof(ArgumentException))]
+    public void Foo34()
+    {
+        try
+        {
+            MethodThatThrows2();
+            MethodThatThrows();
+        }
+        catch
+        {
+            throw new InvalidDataException();
+
+            try
+            {
+                throw new InvalidDataException();
+            }
+            catch
+            {
+                throw new InvalidCastException();
+            }
+        }
+    }
+
+
+    public void Foo35()
+    {
+        try
+        {
+            MethodThatThrows2();
+            MethodThatThrows();
+        }
+        catch
+        {
+            throw new InvalidProgramException();
+
+            try
+            {
+                throw new InvalidDataException();
+            }
+            catch
+            {
+                throw new FileNotFoundException();
+            }
+        }
+    }
+
     [Throws(typeof(InvalidOperationException))]
-    public void Foo33()
+    public void Foo36()
     {
         try
         {
@@ -101,7 +147,7 @@ public class RethrowTest
         }
         catch (InvalidOperationException)
         {
-
+            throw new InvalidDataException();
         }
         catch
         {
@@ -109,7 +155,7 @@ public class RethrowTest
         }
     }
 
-    public void Foo34()
+    public void Foo37()
     {
         try
         {
