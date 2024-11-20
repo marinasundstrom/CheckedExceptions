@@ -23,7 +23,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor RuleUnhandledException = new(
         DiagnosticIdUnhandled,
         "Unhandled exception thrown",
-        "Exception '{0}' is thrown but not handled or declared via ThrowsAttribute",
+        "Exception '{0}' is thrown but not handled",
         "Usage",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
