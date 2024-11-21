@@ -6,8 +6,9 @@ using Verifier = CSharpAnalyzerVerifier<CheckedExceptionsAnalyzer, DefaultVerifi
 
 public partial class ExtensionMethods
 {
+    // Non-nullable context: Warns about ArgumentNullException and InvalidOperationException for the source parameter.
     [Fact]
-    public async Task Foo()
+    public async Task WarnsForNonNullableContextWithMultipleExceptions()
     {
         var test = /* lang=c#-test */ """
         using System;
@@ -36,8 +37,9 @@ public partial class ExtensionMethods
         await Verifier.VerifyAnalyzerAsync(test, expected1, expected2);
     }
 
+    // Nullable context: Doesn't warn about ArgumentNullException for the source parameter but warns about InvalidOperationException.
     [Fact]
-    public async Task Foo2()
+    public async Task WarnsForNullableContextWithInvalidOperationException()
     {
         var test = /* lang=c#-test */ """
         #nullable enable
@@ -50,6 +52,62 @@ public partial class ExtensionMethods
             public void MethodThatThrows()
             {
                 IEnumerable<string> items = [];
+
+                var i = items.First();
+            }
+        }
+        """;
+
+        var expected = Verifier.Diagnostic("THROW001")
+           .WithSpan(12, 17, 12, 30)
+           .WithArguments("InvalidOperationException");
+
+        await Verifier.VerifyAnalyzerAsync(test, expected);
+    }
+
+    // Nullable context: Doesn't warn about ArgumentNullException; flow analysis ensures "items" is not null.
+    [Fact]
+    public async Task WarnsForNullableAssignedCollectionWithInvalidOperationException()
+    {
+        var test = /* lang=c#-test */ """
+        #nullable enable
+        using System;
+        using System.Collections.Generic;
+        using System.Linq;
+
+        public class ThrowTest
+        {
+            public void MethodThatThrows()
+            {
+                IEnumerable<string>? items = [];
+
+                var i = items.First();
+            }
+        }
+        """;
+
+        var expected = Verifier.Diagnostic("THROW001")
+           .WithSpan(12, 17, 12, 30)
+           .WithArguments("InvalidOperationException");
+
+        await Verifier.VerifyAnalyzerAsync(test, expected);
+    }
+
+    // Nullable context: Warns about accessing a nullable "items" which can be null; flow analysis detects potential null access.
+    [Fact]
+    public async Task WarnsForNullableUnassignedCollectionWithInvalidOperationException()
+    {
+        var test = /* lang=c#-test */ """
+        #nullable enable
+        using System;
+        using System.Collections.Generic;
+        using System.Linq;
+
+        public class ThrowTest
+        {
+            public void MethodThatThrows()
+            {
+                IEnumerable<string>? items = null;
 
                 var i = items.First();
             }
