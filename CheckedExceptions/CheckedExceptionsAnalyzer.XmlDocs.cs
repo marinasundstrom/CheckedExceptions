@@ -78,7 +78,9 @@ partial class CheckedExceptionsAnalyzer
         return null;
     }
 
-    public record struct ExceptionInfo(INamedTypeSymbol ExceptionType, string Description);
+    public record struct ParamInfo(string Name);
+
+    public record struct ExceptionInfo(INamedTypeSymbol ExceptionType, string Description, IEnumerable<ParamInfo> Parameters);
 
     private static IEnumerable<ExceptionInfo> GetExceptionTypesFromDocumentationCommentXml(Compilation compilation, XElement? xml)
     {
@@ -94,7 +96,9 @@ partial class CheckedExceptionsAnalyzer
                     var name = compilation.GetTypeByMetadataName(crefValue) ??
                            compilation.GetTypeByMetadataName(crefValue.Split('.').Last());
 
-                    return new ExceptionInfo(name, innerText);
+                    var parameters = e.Elements("paramref").Select(x => new ParamInfo(x.Attribute("name").Value));
+
+                    return new ExceptionInfo(name, innerText, parameters);
                 });
         }
         catch
@@ -117,7 +121,7 @@ partial class CheckedExceptionsAnalyzer
         }
 
         // Attempt to get exceptions from XML documentation
-        return GetExceptionTypesFromDocumentationCommentXml(compilation, docCommentXml);
+        return GetExceptionTypesFromDocumentationCommentXml(compilation, docCommentXml).ToList();
     }
 
     bool loadFromProject = true;
@@ -131,8 +135,15 @@ partial class CheckedExceptionsAnalyzer
 
         if (!string.IsNullOrEmpty(docCommentXmlString) && loadFromProject)
         {
-            // Not documented
-            docCommentXml = XElement.Parse(docCommentXmlString);
+            try
+            {
+                docCommentXml = XElement.Parse(docCommentXmlString);
+            }
+            catch
+            {
+                // Badly formed XML
+                return null;
+            }
         }
         else
         {

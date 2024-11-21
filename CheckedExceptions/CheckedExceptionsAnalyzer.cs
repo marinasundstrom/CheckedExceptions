@@ -581,7 +581,8 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
     private void AnalyzeIdentifierAndMemberAccess(SyntaxNodeAnalysisContext context, ExpressionSyntax expression)
     {
-        var symbol = context.SemanticModel.GetSymbolInfo(expression).Symbol as IPropertySymbol;
+        var s = context.SemanticModel.GetSymbolInfo(expression).Symbol;
+        var symbol = s as IPropertySymbol;
         if (symbol == null)
             return;
 
@@ -620,7 +621,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             return;
 
         // Get the method symbol for the add or remove accessor
-        IMethodSymbol methodSymbol = null;
+        IMethodSymbol? methodSymbol = null;
 
         if (assignment.IsKind(SyntaxKind.AddAssignmentExpression) && eventSymbol.AddMethod != null)
         {
@@ -663,10 +664,22 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             x.Description.Contains(" sets ") ||
             x.Description.Contains(" setting "));
 
+        if (isSetter && propertySymbol.SetMethod != null)
+        {
+            // Will filter away 
+            setterExceptions = ProcessNullable(context, expression, propertySymbol.SetMethod, setterExceptions);
+        }
+
         // Handle exceptions that don't explicitly belong to getters or setters
         var allOtherExceptions = xmlDocumentedExceptions
-            .Except(getterExceptions)
+            .Except(getterExceptions);
+        allOtherExceptions = allOtherExceptions
             .Except(setterExceptions);
+
+        if (isSetter && propertySymbol.SetMethod != null)
+        {
+            allOtherExceptions = ProcessNullable(context, expression, propertySymbol.SetMethod, allOtherExceptions);
+        }
 
         // Analyze exceptions thrown by the getter if applicable
         if (isGetter && propertySymbol.GetMethod != null)
@@ -707,6 +720,8 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         // Get exceptions from XML documentation
         var xmlExceptionTypes = GetExceptionTypesFromDocumentationCommentXml(context.Compilation, methodSymbol);
 
+        xmlExceptionTypes = ProcessNullable(context, node, methodSymbol, xmlExceptionTypes);
+
         if (xmlExceptionTypes.Any())
         {
             exceptionTypes.AddRange(xmlExceptionTypes.Select(x => x.ExceptionType));
@@ -716,6 +731,52 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         {
             AnalyzeExceptionThrowingNode(context, node, exceptionType);
         }
+    }
+
+    static INamedTypeSymbol? argumentNullExceptionTypeSymbol;
+
+    private static IEnumerable<ExceptionInfo> ProcessNullable(SyntaxNodeAnalysisContext context, SyntaxNode node, IMethodSymbol methodSymbol, IEnumerable<ExceptionInfo> exceptionInfos)
+    {
+        if (argumentNullExceptionTypeSymbol is null)
+        {
+            argumentNullExceptionTypeSymbol = context.Compilation.GetTypeByMetadataName("System.ArgumentNullException");
+        }
+
+        var isCompilationNullableEnabled = context.Compilation.Options.NullableContextOptions == NullableContextOptions.Enable;
+
+        var nullableContext = context.SemanticModel.GetNullableContext(node.SpanStart);
+        var isNodeInNullableContext = nullableContext == NullableContext.Enabled;
+
+        if (isNodeInNullableContext || isCompilationNullableEnabled)
+        {
+            if (methodSymbol.Parameters.Count() == 1)
+            {
+                var p = methodSymbol.Parameters.First();
+
+                if (p.NullableAnnotation == NullableAnnotation.NotAnnotated)
+                {
+                    return exceptionInfos.Where(x => !x.ExceptionType.Equals(argumentNullExceptionTypeSymbol, SymbolEqualityComparer.Default));
+                }
+            }
+            else
+            {
+                exceptionInfos = exceptionInfos.Where(x =>
+                {
+                    var p = methodSymbol.Parameters.FirstOrDefault(p => x.Parameters.Any(p2 => p.Name == p2.Name));
+                    if (p != default)
+                    {
+                        if (x.ExceptionType.Equals(argumentNullExceptionTypeSymbol, SymbolEqualityComparer.Default)
+                        && p.NullableAnnotation == NullableAnnotation.NotAnnotated)
+                        {
+                            return false;
+                        }
+                    }
+                    return true;
+                }).ToList();
+            }
+        }
+
+        return exceptionInfos;
     }
 
     private static List<INamedTypeSymbol?> GetExceptionTypes(IMethodSymbol methodSymbol)

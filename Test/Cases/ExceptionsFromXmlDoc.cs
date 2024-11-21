@@ -4,12 +4,11 @@ namespace Test.Cases;
 
 public class FxTest
 {
-    [Throws(typeof(ArgumentNullException))]
     [Throws(typeof(FormatException))]
     [Throws(typeof(OverflowException))]
     public void Foo()
     {
-        var x = int.Parse("f");
+        var x = int.Parse("42");
     }
 
     [Throws(typeof(ArgumentNullException))]
@@ -18,7 +17,7 @@ public class FxTest
     {
         try
         {
-            var x = int.Parse("f");
+            var x = int.Parse("42");
         }
         catch (FormatException)
         {
@@ -41,5 +40,57 @@ public class FxTest
         stringBuilder.Length = 2;
 
         stringBuilder.AppendLine("2");
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <value></value>
+    /// <exception cref="ArgumentNullException">
+    /// The value provided that is set is null.
+    /// </exception>
+    public string Value
+    {
+        get;
+        set;
+    }
+
+    public void Foo5()
+    {
+        Value = null;
+    }
+
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <value></value>
+    /// <exception cref="ArgumentNullException">
+    /// The value provided that is set is null.
+    /// </exception>
+    public string? Value2
+    {
+        get;
+        set;
+    }
+
+    public void Foo6()
+    {
+        Value2 = null;
+    }
+
+    /// <summary>
+    /// 
+    /// </summary>
+    /// <value></value>
+    public string? Value3
+    {
+        get;
+        set;
+    }
+
+    public void Foo7()
+    {
+        Value3 = null;
     }
 }
