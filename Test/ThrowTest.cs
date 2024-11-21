@@ -4,7 +4,7 @@ public class ThrowTest
 {
     public void MethodThatThrows()
     {
-        IEnumerable<string> items = [];
+        IEnumerable<string>? items = null;
 
         var x = items.First();
     }

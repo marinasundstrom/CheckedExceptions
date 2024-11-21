@@ -184,7 +184,7 @@ With the above configuration:
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Sundstrom.CheckedExceptions" Version="1.0.6" />
+    <PackageReference Include="Sundstrom.CheckedExceptions" Version="1.0.7" />
   </ItemGroup>
 
 </Project>
