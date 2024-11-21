@@ -43,10 +43,6 @@ static double Process(string value)
         var no = double.Parse(value);
         return Math.Pow(no, 42);
     }
-    catch (ArgumentNullException)
-    {
-        throw new InvalidOperationException("Argument is null");
-    }
     catch (FormatException)
     {
         throw new InvalidOperationException("Format is invalid");
