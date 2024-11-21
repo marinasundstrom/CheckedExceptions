@@ -2,10 +2,10 @@ namespace Test.Cases;
 
 public class AsyncTest
 {
-    [Throws(typeof(NullReferenceException))]
+    [Throws(typeof(InvalidOperationException))]
     public Task FooAsync()
     {
-        throw new NullReferenceException("Data source is null.");
+        throw new InvalidOperationException("Not valid.");
     }
 
     public async void TestMethod1()
@@ -18,7 +18,7 @@ public class AsyncTest
         await FooAsync();
     }
 
-    [Throws(typeof(NullReferenceException))]
+    [Throws(typeof(InvalidOperationException))]
     public async void TestMethod3()
     {
         await FooAsync();
@@ -42,7 +42,7 @@ public class AsyncTest
 
     public Task Foo
     {
-        [Throws(typeof(NullReferenceException))]
+        [Throws(typeof(InvalidOperationException))]
         get
         {
             return null!;
