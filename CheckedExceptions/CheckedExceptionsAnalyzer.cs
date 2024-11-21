@@ -749,6 +749,11 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
         if (isNodeInNullableContext || isCompilationNullableEnabled)
         {
+            if (methodSymbol.IsExtensionMethod)
+            {
+                return exceptionInfos.Where(x => !x.ExceptionType.Equals(argumentNullExceptionTypeSymbol, SymbolEqualityComparer.Default));
+            }
+
             if (methodSymbol.Parameters.Count() == 1)
             {
                 var p = methodSymbol.Parameters.First();
