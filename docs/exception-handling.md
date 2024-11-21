@@ -116,7 +116,12 @@ The analyzer respects exception inheritance hierarchies. For example, catching `
 
 ### Documentation XML
 
-To ensure compatibility with existing libraries that lack ThrowsAttribute annotations, the analyzer utilizes XML documentation to infer which exceptions a member might throw. These annotations don't interfere with the `ThrowsAttribute`, so you can use them together.
+To ensure compatibility with libraries lacking `ThrowsAttribute annotations`, the analyzer uses XML documentation to infer potential exceptions. These annotations work alongside the `ThrowsAttribute` and provide fallback diagnostics.
+
+However, unannotated libraries rely on developers' manual checks and are less reliable than annotated ones.
+
+The analyzer also considers nullability when handling cases involving `ArgumentNullException`. Diagnostics are adjusted to align with the rules of nullable contexts. More on that below.
+
 
 #### Example: Unannotated Library
 
@@ -196,22 +201,38 @@ catch (ArgumentOutOfRangeException)
 }
 ```
 
-### Properties
+#### Properties
 
 Since XML documentation does not support annotating individual property accessors (`get` or `set`), the analyzer uses heuristics to infer context. Keywords like "gets" and "sets" help determine which accessor an exception applies to.
 
-#### Example: Property Diagnostics
+##### Example: Property Diagnostics
+
+Consider the ``StringBuilder.Length`` property, with this XML documentation:
+
+```xml
+/// <summary>
+/// Gets or sets the length of the current StringBuilder object.
+/// </summary>
+/// <value>
+/// The number of characters in the current StringBuilder object.
+/// </value>
+/// <exception cref="ArgumentOutOfRangeException">
+/// The value specified for a set operation is less than zero or greater than the current capacity.
+/// </exception>
+```
+
+The analyzer determines the exception applies to the setter:
 
 ```csharp
 using System.Text;
 
 StringBuilder stringBuilder = new StringBuilder();
 
-var length = stringBuilder.Length; // Access getter
+var length = stringBuilder.Length; // No exception
 
 try
 {
-    stringBuilder.Length = 4; // Access setter
+    stringBuilder.Length = 4; // Throws ArgumentOutOfRangeException
 }
 catch (ArgumentOutOfRangeException)
 {
