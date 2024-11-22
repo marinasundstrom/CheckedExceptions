@@ -20,7 +20,12 @@ public static class CSharpCodeFixVerifier<TAnalyzer, TCodeFix, TVerifier>
     public static DiagnosticResult Diagnostic(string diagnosticId)
         => CodeFixVerifier<TAnalyzer, TCodeFix, CodeFixTest, TVerifier>.Diagnostic(diagnosticId);
 
-    public static Task VerifyCodeFixAsync([StringSyntax("c#-test")] string source, DiagnosticResult? expected = null, [StringSyntax("c#-test")] string? fixedSource = null, int? expectedIncrementalIterations = 1)
+    public static Task VerifyCodeFixAsync([StringSyntax("c#-test")] string source, DiagnosticResult expected, [StringSyntax("c#-test")] string? fixedSource = null, int? expectedIncrementalIterations = 1)
+    {
+        return VerifyCodeFixAsync(source, new[] { expected }, fixedSource, expectedIncrementalIterations);
+    }
+
+    public static Task VerifyCodeFixAsync([StringSyntax("c#-test")] string source, IEnumerable<DiagnosticResult> expected, [StringSyntax("c#-test")] string? fixedSource = null, int? expectedIncrementalIterations = 1)
     {
         var test = new CodeFixTest
         {
@@ -38,7 +43,7 @@ public static class CSharpCodeFixVerifier<TAnalyzer, TCodeFix, TVerifier>
 
         if (expected is not null)
         {
-            test.DisabledDiagnostics.AddRange(allDiagnostics.Except([expected?.Id!]));
+            test.DisabledDiagnostics.AddRange(allDiagnostics.Except(expected.Select(x => x.Id)));
         }
 
         test.TestState.AdditionalReferences.Add(MetadataReference.CreateFromFile(typeof(ThrowsAttribute).Assembly.Location));
@@ -46,7 +51,7 @@ public static class CSharpCodeFixVerifier<TAnalyzer, TCodeFix, TVerifier>
 
         if (expected is not null)
         {
-            test.ExpectedDiagnostics.Add(expected.GetValueOrDefault());
+            test.ExpectedDiagnostics.AddRange(expected);
         }
 
         return test.RunAsync();

@@ -115,7 +115,7 @@ namespace TestNamespace
 """;
 
         // Since the ThrowsAttribute is already present, the analyzer should not report THROW001
-        await Verifier.VerifyCodeFixAsync(testCode);
+        await Verifier.VerifyCodeFixAsync(testCode, []);
     }
 
     [Fact]
@@ -284,5 +284,76 @@ namespace TestNamespace
             .WithArguments("Exception");
 
         await Verifier.VerifyCodeFixAsync(testCode, expectedDiagnostic, fixedCode);
+    }
+
+    [Fact]
+    public async Task AddsThrowsAttribute_ToAccessor_WhenUnhandledExceptionThrown2()
+    {
+        var testCode = /* lang=c#-test */  """
+using System;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        private string _field;
+
+        public string Property
+        {
+            get
+            {
+                // Should trigger THROW001
+                throw new InvalidOperationException();
+
+                // Should trigger THROW001
+                throw new ArgumentNullException();
+            }
+            set
+            {
+                _field = value;
+            }
+        }
+    }
+}
+""";
+
+        var fixedCode = /* lang=c#-test */  """
+using System;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        private string _field;
+
+        public string Property
+        {
+            [Throws(typeof(InvalidOperationException))]
+            [Throws(typeof(ArgumentNullException))]
+            get
+            {
+                // Should trigger THROW001
+                throw new InvalidOperationException();
+                // Should trigger THROW001
+                throw new ArgumentNullException();
+            }
+            set
+            {
+                _field = value;
+            }
+        }
+    }
+}
+""";
+
+        var expectedDiagnostic1 = Verifier.Diagnostic("THROW001")
+            .WithSpan(14, 17, 14, 55)
+            .WithArguments("InvalidOperationException");
+
+        var expectedDiagnostic2 = Verifier.Diagnostic("THROW001")
+            .WithSpan(17, 17, 17, 51)
+            .WithArguments("ArgumentNullException");
+
+        await Verifier.VerifyCodeFixAsync(testCode, [expectedDiagnostic1, expectedDiagnostic2], fixedCode, 2);
     }
 }
