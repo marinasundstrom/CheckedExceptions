@@ -34,9 +34,8 @@ public partial class TryCatchBugs
         }
         """;
 
-        var expected = Verifier.Diagnostic("THROW001")
-            .WithSpan(19, 13, 19, 43)
-            .WithArguments("ArgumentException");
+        var expected = Verifier.IsThrown("ArgumentException")
+            .WithSpan(19, 13, 19, 43);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }
@@ -69,9 +68,8 @@ public partial class TryCatchBugs
         }
         """;
 
-        var expected = Verifier.Diagnostic("THROW001")
-            .WithSpan(19, 13, 19, 51)
-            .WithArguments("InvalidOperationException");
+        var expected = Verifier.IsThrown("InvalidOperationException")
+            .WithSpan(19, 13, 19, 51);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }
@@ -105,9 +103,8 @@ public partial class TryCatchBugs
         }
         """;
 
-        var expected = Verifier.Diagnostic("THROW001")
-            .WithSpan(20, 13, 20, 19)
-            .WithArguments("InvalidOperationException");
+        var expected = Verifier.MightBeThrown("InvalidOperationException")
+            .WithSpan(20, 13, 20, 19);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }
@@ -141,9 +138,8 @@ public partial class TryCatchBugs
         }
         """;
 
-        var expected = Verifier.Diagnostic("THROW001")
-            .WithSpan(20, 13, 20, 19)
-            .WithArguments("InvalidOperationException");
+        var expected = Verifier.MightBeThrown("InvalidOperationException")
+            .WithSpan(20, 13, 20, 19);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }

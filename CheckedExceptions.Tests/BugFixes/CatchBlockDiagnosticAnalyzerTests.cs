@@ -34,13 +34,11 @@ public partial class CatchBlockDiagnosticAnalyzerTests
             }
             """;
 
-        var expected1 = Verifier.Diagnostic("THROW001")
-            .WithSpan(10, 13, 10, 33) // Position of Console.Write("Foo");
-            .WithArguments("IOException");
+        var expected1 = Verifier.MightBeThrown("IOException")
+            .WithSpan(10, 13, 10, 33); // Position of Console.Write("Foo");
 
-        var expected2 = Verifier.Diagnostic("THROW001")
-            .WithSpan(14, 13, 14, 41) // Position of Console.WriteLine(e.Message);
-            .WithArguments("IOException");
+        var expected2 = Verifier.MightBeThrown("IOException")
+            .WithSpan(14, 13, 14, 41); // Position of Console.WriteLine(e.Message);
 
         await Verifier.VerifyAnalyzerAsync(test, [expected1, expected2]);
     }
@@ -73,9 +71,8 @@ public partial class CatchBlockDiagnosticAnalyzerTests
             }
             """;
 
-        var expected = Verifier.Diagnostic("THROW001")
-            .WithSpan(15, 13, 15, 41) // Position of Console.WriteLine(e.Message);
-            .WithArguments("IOException");
+        var expected = Verifier.MightBeThrown("IOException")
+            .WithSpan(15, 13, 15, 41); // Position of Console.WriteLine(e.Message);
 
         await Verifier.VerifyAnalyzerAsync(test, [expected]);
     }

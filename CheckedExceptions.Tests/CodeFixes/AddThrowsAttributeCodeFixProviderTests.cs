@@ -44,9 +44,8 @@ namespace TestNamespace
 }
 """;
 
-        var expectedDiagnostic = Verifier.Diagnostic("THROW001")
-            .WithSpan(10, 13, 10, 35)
-            .WithArguments("Exception");
+        var expectedDiagnostic = Verifier.IsThrown("Exception")
+            .WithSpan(10, 13, 10, 35);
 
         await Verifier.VerifyCodeFixAsync(testCode, expectedDiagnostic, fixedCode);
     }
@@ -87,9 +86,8 @@ namespace TestNamespace
 }
 """;
 
-        var expectedDiagnostic = Verifier.Diagnostic("THROW001")
-            .WithSpan(10, 13, 10, 51)
-            .WithArguments("InvalidOperationException");
+        var expectedDiagnostic = Verifier.IsThrown("InvalidOperationException")
+            .WithSpan(10, 13, 10, 51);
 
         await Verifier.VerifyCodeFixAsync(testCode, expectedDiagnostic, fixedCode);
     }
@@ -165,9 +163,8 @@ namespace TestNamespace
 }
 """;
 
-        var expectedDiagnostic = Verifier.Diagnostic("THROW001")
-            .WithSpan(13, 17, 13, 51)
-            .WithArguments("ArgumentNullException");
+        var expectedDiagnostic = Verifier.IsThrown("ArgumentNullException")
+            .WithSpan(13, 17, 13, 51);
 
         await Verifier.VerifyCodeFixAsync(testCode, expectedDiagnostic, fixedCode, expectedIncrementalIterations: 2);
     }
@@ -218,9 +215,8 @@ namespace TestNamespace
 }
 """;
 
-        var expectedDiagnostic = Verifier.Diagnostic("THROW001")
-            .WithSpan(12, 17, 12, 53)
-            .WithArguments("NotImplementedException");
+        var expectedDiagnostic = Verifier.IsThrown("NotImplementedException")
+            .WithSpan(12, 17, 12, 53);
 
         await Verifier.VerifyCodeFixAsync(testCode, expectedDiagnostic, fixedCode, expectedIncrementalIterations: 2);
     }
@@ -279,9 +275,8 @@ namespace TestNamespace
 }
 """;
 
-        var expectedDiagnostic = Verifier.Diagnostic("THROW001")
-            .WithSpan(14, 17, 14, 39)
-            .WithArguments("Exception");
+        var expectedDiagnostic = Verifier.IsThrown("Exception")
+            .WithSpan(14, 17, 14, 39);
 
         await Verifier.VerifyCodeFixAsync(testCode, expectedDiagnostic, fixedCode);
     }
@@ -346,13 +341,11 @@ namespace TestNamespace
 }
 """;
 
-        var expectedDiagnostic1 = Verifier.Diagnostic("THROW001")
-            .WithSpan(14, 17, 14, 55)
-            .WithArguments("InvalidOperationException");
+        var expectedDiagnostic1 = Verifier.IsThrown("InvalidOperationException")
+            .WithSpan(14, 17, 14, 55);
 
-        var expectedDiagnostic2 = Verifier.Diagnostic("THROW001")
-            .WithSpan(17, 17, 17, 51)
-            .WithArguments("ArgumentNullException");
+        var expectedDiagnostic2 = Verifier.IsThrown("ArgumentNullException")
+            .WithSpan(17, 17, 17, 51);
 
         await Verifier.VerifyCodeFixAsync(testCode, [expectedDiagnostic1, expectedDiagnostic2], fixedCode, 2);
     }

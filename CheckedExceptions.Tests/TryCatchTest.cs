@@ -28,9 +28,8 @@ public partial class TryCatchTest
         }
         """;
 
-        var expected = Verifier.Diagnostic("THROW001")
-            .WithSpan(14, 9, 14, 15)
-            .WithArguments("InvalidOperationException");
+        var expected = Verifier.MightBeThrown("InvalidOperationException")
+            .WithSpan(14, 9, 14, 15);
 
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
@@ -52,9 +51,8 @@ public partial class TryCatchTest
         }
         """;
 
-        var expected = Verifier.Diagnostic("THROW001")
-            .WithSpan(8, 9, 8, 47)
-            .WithArguments("InvalidOperationException");
+        var expected = Verifier.IsThrown("InvalidOperationException")
+            .WithSpan(8, 9, 8, 47);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }
@@ -83,13 +81,11 @@ public partial class TryCatchTest
         }
         """;
 
-        var expected1 = Verifier.Diagnostic("THROW001")
-            .WithSpan(14, 9, 14, 15)
-            .WithArguments("ArgumentNullException");
+        var expected1 = Verifier.MightBeThrown("ArgumentNullException")
+            .WithSpan(14, 9, 14, 15);
 
-        var expected2 = Verifier.Diagnostic("THROW001")
-            .WithSpan(16, 9, 16, 47)
-            .WithArguments("InvalidOperationException");
+        var expected2 = Verifier.IsThrown("InvalidOperationException")
+            .WithSpan(16, 9, 16, 47);
 
         await Verifier.VerifyAnalyzerAsync(test, [expected1, expected2]);
     }
@@ -123,13 +119,11 @@ public partial class TryCatchTest
         }
         """;
 
-        var expected1 = Verifier.Diagnostic("THROW001")
-            .WithSpan(20, 9, 20, 15)
-            .WithArguments("InvalidOperationException");
+        var expected1 = Verifier.MightBeThrown("InvalidOperationException")
+            .WithSpan(20, 9, 20, 15);
 
-        var expected2 = Verifier.Diagnostic("THROW001")
-            .WithSpan(21, 9, 21, 15)
-            .WithArguments("ArgumentNullException");
+        var expected2 = Verifier.MightBeThrown("ArgumentNullException")
+            .WithSpan(21, 9, 21, 15);
 
         await Verifier.VerifyAnalyzerAsync(test, [expected1, expected2]);
     }
@@ -170,9 +164,8 @@ public partial class TryCatchTest
         }
         """;
 
-        var expected = Verifier.Diagnostic("THROW001")
-            .WithSpan(23, 13, 23, 19)
-            .WithArguments("ArgumentNullException");
+        var expected = Verifier.MightBeThrown("ArgumentNullException")
+            .WithSpan(23, 13, 23, 19);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }
@@ -256,13 +249,11 @@ public partial class TryCatchTest
         }
         """;
 
-        var expected1 = Verifier.Diagnostic("THROW001")
-            .WithSpan(27, 13, 27, 19)
-            .WithArguments("InvalidOperationException");
+        var expected1 = Verifier.IsThrown("InvalidOperationException")
+            .WithSpan(27, 13, 27, 19);
 
-        var expected2 = Verifier.Diagnostic("THROW001")
-            .WithSpan(27, 13, 27, 19)
-            .WithArguments("ArgumentNullException");
+        var expected2 = Verifier.IsThrown("ArgumentNullException")
+            .WithSpan(27, 13, 27, 19);
 
         await Verifier.VerifyAnalyzerAsync(test, [expected1, expected2]);
     }
@@ -311,13 +302,11 @@ public partial class TryCatchTest
         }
         """;
 
-        var expected1 = Verifier.Diagnostic("THROW001")
-            .WithSpan(34, 17, 34, 23)
-            .WithArguments("InvalidOperationException");
+        var expected1 = Verifier.IsThrown("InvalidOperationException")
+            .WithSpan(34, 17, 34, 23);
 
-        var expected2 = Verifier.Diagnostic("THROW001")
-            .WithSpan(34, 17, 34, 23)
-            .WithArguments("ArgumentNullException");
+        var expected2 = Verifier.IsThrown("ArgumentNullException")
+            .WithSpan(34, 17, 34, 23);
 
         await Verifier.VerifyAnalyzerAsync(test, [expected1, expected2]);
     }

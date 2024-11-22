@@ -96,9 +96,8 @@ partial class CheckedExceptionsAnalyzerTests
             }
             """;
 
-        var expected = Verifier.Diagnostic("THROW001")
-            .WithSpan(8, 9, 8, 17)
-            .WithArguments("Exception");
+        var expected = Verifier.MightBeThrown("Exception")
+            .WithSpan(8, 9, 8, 17);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }
@@ -124,9 +123,8 @@ partial class CheckedExceptionsAnalyzerTests
             }
             """;
 
-        var expected = Verifier.Diagnostic("THROW001")
-            .WithSpan(13, 9, 13, 24)
-            .WithArguments("Exception");
+        var expected = Verifier.MightBeThrown("Exception")
+            .WithSpan(13, 9, 13, 24);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }

@@ -26,13 +26,11 @@ public partial class ExtensionMethods
         }
         """;
 
-        var expected1 = Verifier.Diagnostic("THROW001")
-           .WithSpan(11, 17, 11, 30)
-           .WithArguments("ArgumentNullException");
+        var expected1 = Verifier.MightBeThrown("ArgumentNullException")
+           .WithSpan(11, 17, 11, 30);
 
-        var expected2 = Verifier.Diagnostic("THROW001")
-           .WithSpan(11, 17, 11, 30)
-           .WithArguments("InvalidOperationException");
+        var expected2 = Verifier.MightBeThrown("InvalidOperationException")
+           .WithSpan(11, 17, 11, 30);
 
         await Verifier.VerifyAnalyzerAsync(test, expected1, expected2);
     }
@@ -58,9 +56,8 @@ public partial class ExtensionMethods
         }
         """;
 
-        var expected = Verifier.Diagnostic("THROW001")
-           .WithSpan(12, 17, 12, 30)
-           .WithArguments("InvalidOperationException");
+        var expected = Verifier.MightBeThrown("InvalidOperationException")
+           .WithSpan(12, 17, 12, 30);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }
@@ -86,9 +83,8 @@ public partial class ExtensionMethods
         }
         """;
 
-        var expected = Verifier.Diagnostic("THROW001")
-           .WithSpan(12, 17, 12, 30)
-           .WithArguments("InvalidOperationException");
+        var expected = Verifier.MightBeThrown("InvalidOperationException")
+           .WithSpan(12, 17, 12, 30);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }
@@ -114,9 +110,8 @@ public partial class ExtensionMethods
         }
         """;
 
-        var expected = Verifier.Diagnostic("THROW001")
-           .WithSpan(12, 17, 12, 30)
-           .WithArguments("InvalidOperationException");
+        var expected = Verifier.MightBeThrown("InvalidOperationException")
+           .WithSpan(12, 17, 12, 30);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }

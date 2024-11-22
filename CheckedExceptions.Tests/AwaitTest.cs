@@ -29,9 +29,8 @@ public partial class AwaitTest
             }
             """;
 
-        var expected = Verifier.Diagnostic("THROW001")
-            .WithSpan(14, 15, 14, 30)
-            .WithArguments("InvalidOperationException");
+        var expected = Verifier.MightBeThrown("InvalidOperationException")
+            .WithSpan(14, 15, 14, 30);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }
@@ -90,9 +89,8 @@ public partial class AwaitTest
             }
             """;
 
-        var expected = Verifier.Diagnostic("THROW001")
-            .WithSpan(14, 15, 14, 35)
-            .WithArguments("InvalidOperationException");
+        var expected = Verifier.MightBeThrown("InvalidOperationException")
+            .WithSpan(14, 15, 14, 35);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }

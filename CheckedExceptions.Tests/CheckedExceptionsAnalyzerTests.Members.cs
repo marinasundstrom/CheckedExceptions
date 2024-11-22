@@ -25,9 +25,8 @@ partial class CheckedExceptionsAnalyzerTests
             }
             """;
 
-        var expected = Verifier.Diagnostic("THROW001")
-            .WithSpan(9, 13, 9, 51)
-            .WithArguments("InvalidOperationException");
+        var expected = Verifier.IsThrown("InvalidOperationException")
+            .WithSpan(9, 13, 9, 51);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }
@@ -52,9 +51,8 @@ partial class CheckedExceptionsAnalyzerTests
             }
             """;
 
-        var expected = Verifier.Diagnostic("THROW001")
-            .WithSpan(11, 13, 11, 51)
-            .WithArguments("InvalidOperationException");
+        var expected = Verifier.IsThrown("InvalidOperationException")
+            .WithSpan(11, 13, 11, 51);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }
@@ -81,13 +79,11 @@ partial class CheckedExceptionsAnalyzerTests
             }
             """;
 
-        var expected1 = Verifier.Diagnostic("THROW001")
-            .WithSpan(9, 13, 9, 51)
-            .WithArguments("InvalidOperationException");
+        var expected1 = Verifier.IsThrown("InvalidOperationException")
+            .WithSpan(9, 13, 9, 51);
 
-        var expected2 = Verifier.Diagnostic("THROW001")
-            .WithSpan(13, 13, 13, 43)
-            .WithArguments("ArgumentException");
+        var expected2 = Verifier.IsThrown("ArgumentException")
+            .WithSpan(13, 13, 13, 43);
 
         await Verifier.VerifyAnalyzerAsync(test, expected1, expected2);
     }
@@ -112,9 +108,8 @@ partial class CheckedExceptionsAnalyzerTests
             }
             """;
 
-        var expected = Verifier.Diagnostic("THROW001")
-            .WithSpan(9, 13, 9, 51)
-            .WithArguments("InvalidOperationException");
+        var expected = Verifier.IsThrown("InvalidOperationException")
+            .WithSpan(9, 13, 9, 51);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }
@@ -135,9 +130,8 @@ partial class CheckedExceptionsAnalyzerTests
             }
             """;
 
-        var expected = Verifier.Diagnostic("THROW001")
-            .WithSpan(7, 31, 7, 68)
-            .WithArguments("InvalidOperationException");
+        var expected = Verifier.IsThrown("InvalidOperationException")
+            .WithSpan(7, 31, 7, 68);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }
@@ -158,9 +152,8 @@ partial class CheckedExceptionsAnalyzerTests
             }
             """;
 
-        var expected = Verifier.Diagnostic("THROW001")
-            .WithSpan(7, 33, 7, 71)
-            .WithArguments("InvalidOperationException");
+        var expected = Verifier.IsThrown("InvalidOperationException")
+            .WithSpan(7, 33, 7, 71);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }
@@ -183,9 +176,8 @@ partial class CheckedExceptionsAnalyzerTests
         }
         """;
 
-        var expected = Verifier.Diagnostic("THROW001")
-            .WithSpan(9, 30, 9, 67)
-            .WithArguments("InvalidOperationException");
+        var expected = Verifier.IsThrown("InvalidOperationException")
+            .WithSpan(9, 30, 9, 67);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }
@@ -205,9 +197,8 @@ partial class CheckedExceptionsAnalyzerTests
             }
             """;
 
-        var expected = Verifier.Diagnostic("THROW001")
-            .WithSpan(7, 9, 7, 47)
-            .WithArguments("InvalidOperationException");
+        var expected = Verifier.IsThrown("InvalidOperationException")
+            .WithSpan(7, 9, 7, 47);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }
@@ -227,9 +218,8 @@ partial class CheckedExceptionsAnalyzerTests
         }
         """;
 
-        var expected = Verifier.Diagnostic("THROW001")
-            .WithSpan(7, 9, 7, 47)
-            .WithArguments("InvalidOperationException");
+        var expected = Verifier.IsThrown("InvalidOperationException")
+            .WithSpan(7, 9, 7, 47);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }

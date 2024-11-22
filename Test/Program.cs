@@ -12,10 +12,6 @@ try
 
         Console.WriteLine(str);
     }
-    catch (ArgumentException)
-    {
-
-    }
     catch (InvalidOperationException)
     {
 

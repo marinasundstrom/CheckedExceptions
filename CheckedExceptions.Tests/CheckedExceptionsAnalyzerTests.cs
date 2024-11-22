@@ -23,9 +23,8 @@ public partial class CheckedExceptionsAnalyzerTests
             }
             """;
 
-        var expected = Verifier.Diagnostic("THROW001")
-            .WithSpan(7, 9, 7, 47)
-            .WithArguments("InvalidOperationException");
+        var expected = Verifier.IsThrown("InvalidOperationException")
+            .WithSpan(7, 9, 7, 47);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }
@@ -46,9 +45,8 @@ public partial class CheckedExceptionsAnalyzerTests
             }
             """;
 
-        var expected1 = Verifier.Diagnostic("THROW001")
-            .WithSpan(7, 9, 7, 31)
-            .WithArguments("Exception");
+        var expected1 = Verifier.IsThrown("Exception")
+            .WithSpan(7, 9, 7, 31);
 
         var expected2 = Verifier.Diagnostic("THROW004")
             .WithSpan(7, 9, 7, 31)
@@ -228,13 +226,11 @@ public partial class CheckedExceptionsAnalyzerTests
             }
             """;
 
-        var expected1 = Verifier.Diagnostic("THROW001")
-            .WithSpan(9, 13, 9, 51)
-            .WithArguments("InvalidOperationException");
+        var expected1 = Verifier.IsThrown("InvalidOperationException")
+            .WithSpan(9, 13, 9, 51);
 
-        var expected2 = Verifier.Diagnostic("THROW001")
-            .WithSpan(16, 9, 16, 43)
-            .WithArguments("ArgumentNullException");
+        var expected2 = Verifier.IsThrown("ArgumentNullException")
+            .WithSpan(16, 9, 16, 43);
 
         await Verifier.VerifyAnalyzerAsync(test, expected1, expected2);
     }
@@ -268,9 +264,8 @@ public partial class CheckedExceptionsAnalyzerTests
             }
             """;
 
-        var expected = Verifier.Diagnostic("THROW001")
-            .WithSpan(11, 17, 11, 55)
-            .WithArguments("InvalidOperationException");
+        var expected = Verifier.IsThrown("InvalidOperationException")
+            .WithSpan(11, 17, 11, 55);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }
@@ -292,9 +287,8 @@ public partial class CheckedExceptionsAnalyzerTests
             }
             """;
 
-        var expected = Verifier.Diagnostic("THROW001")
-            .WithSpan(9, 9, 9, 37)
-            .WithArguments("CustomException");
+        var expected = Verifier.IsThrown("CustomException")
+            .WithSpan(9, 9, 9, 37);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }

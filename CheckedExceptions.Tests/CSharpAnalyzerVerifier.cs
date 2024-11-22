@@ -16,6 +16,14 @@ public static class CSharpAnalyzerVerifier<TAnalyzer, TVerifier>
     public static DiagnosticResult Diagnostic(string diagnosticId)
         => AnalyzerVerifier<TAnalyzer, AnalyzerTest, TVerifier>.Diagnostic(diagnosticId);
 
+    public static DiagnosticResult IsThrown(string exceptionType)
+        => AnalyzerVerifier<TAnalyzer, AnalyzerTest, TVerifier>.Diagnostic("THROW001")
+        .WithArguments(exceptionType, THROW001Verbs.Is);
+
+    public static DiagnosticResult MightBeThrown(string exceptionType)
+        => AnalyzerVerifier<TAnalyzer, AnalyzerTest, TVerifier>.Diagnostic("THROW001")
+        .WithArguments(exceptionType, THROW001Verbs.MightBe);
+
     public static async Task VerifyAnalyzerAsync([StringSyntax("c#-test")] string source, params DiagnosticResult[] expected)
     {
         await VerifyAnalyzerAsync(source, (test) =>

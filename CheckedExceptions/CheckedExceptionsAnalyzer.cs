@@ -23,7 +23,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor RuleUnhandledException = new(
         DiagnosticIdUnhandled,
         "Unhandled exception thrown",
-        "Exception '{0}' is thrown but not handled",
+        "Exception '{0}' {1} thrown but not handled",
         "Usage",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
@@ -252,7 +252,8 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
                 var diagnostic = Diagnostic.Create(
                     RuleUnhandledException,
                     throwStatement.GetLocation(),
-                    exceptionType.Name);
+                    exceptionType.Name,
+                    "is");
 
                 context.ReportDiagnostic(diagnostic);
             }
@@ -891,7 +892,11 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             var properties = ImmutableDictionary.Create<string, string?>()
                 .Add("ExceptionType", exceptionType.Name);
 
-            var diagnostic = Diagnostic.Create(RuleUnhandledException, node.GetLocation(), properties, exceptionType.Name);
+            var isThrowingConstruct = node is ThrowStatementSyntax or ThrowExpressionSyntax;
+
+            var verb = isThrowingConstruct ? THROW001Verbs.Is : THROW001Verbs.MightBe;
+
+            var diagnostic = Diagnostic.Create(RuleUnhandledException, node.GetLocation(), properties, exceptionType.Name, verb);
             context.ReportDiagnostic(diagnostic);
         }
     }

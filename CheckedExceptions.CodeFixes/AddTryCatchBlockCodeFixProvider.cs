@@ -16,7 +16,7 @@ public class AddTryCatchBlockCodeFixProvider : CodeFixProvider
     private const string TitleAddTryCatch = "Add try-catch block";
 
     public sealed override ImmutableArray<string> FixableDiagnosticIds =>
-        ImmutableArray.Create(CheckedExceptionsAnalyzer.DiagnosticIdUnhandled);
+        [CheckedExceptionsAnalyzer.DiagnosticIdUnhandled];
 
     public sealed override FixAllProvider GetFixAllProvider() =>
         WellKnownFixAllProviders.BatchFixer;
@@ -53,7 +53,7 @@ public class AddTryCatchBlockCodeFixProvider : CodeFixProvider
             .OfType<StatementSyntax>()
             .FirstOrDefault();
 
-        var ancestors = statement.AncestorsAndSelf(true);
+        var ancestors = statement.AncestorsAndSelf(true).ToList();
 
         var existingTryStatement = ancestors.OfType<TryStatementSyntax>()
             .FirstOrDefault();

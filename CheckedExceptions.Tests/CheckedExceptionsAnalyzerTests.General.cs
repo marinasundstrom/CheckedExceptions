@@ -22,14 +22,13 @@ partial class CheckedExceptionsAnalyzerTests
 
                 public void CallerMethod()
                 {
-                    ThrowingMethod(); // Diagnostic expected here
+                    ThrowingMethod();
                 }
             }
             """;
 
-        var expected = Verifier.Diagnostic("THROW001")
-            .WithSpan(7, 9, 7, 47)
-            .WithArguments("InvalidOperationException");
+        var expected = Verifier.IsThrown("InvalidOperationException")
+            .WithSpan(7, 9, 7, 47);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }
@@ -124,13 +123,11 @@ partial class CheckedExceptionsAnalyzerTests
             }
             """;
 
-        var expected1 = Verifier.Diagnostic("THROW001")
-            .WithSpan(7, 9, 7, 47)
-            .WithArguments("InvalidOperationException");
+        var expected1 = Verifier.IsThrown("InvalidOperationException")
+            .WithSpan(7, 9, 7, 47);
 
-        var expected2 = Verifier.Diagnostic("THROW001")
-            .WithSpan(12, 9, 12, 39)
-            .WithArguments("ArgumentException");
+        var expected2 = Verifier.IsThrown("ArgumentException")
+            .WithSpan(12, 9, 12, 39);
 
         await Verifier.VerifyAnalyzerAsync(test, expected1, expected2);
     }

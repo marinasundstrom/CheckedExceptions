@@ -127,9 +127,8 @@ public partial class TryCatchTest
         }
         """;
 
-        var expected = Verifier.Diagnostic("THROW001")
-            .WithSpan(12, 17, 12, 55)
-            .WithArguments("InvalidOperationException");
+        var expected = Verifier.IsThrown("InvalidOperationException")
+            .WithSpan(12, 17, 12, 55); ;
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }
@@ -164,9 +163,8 @@ public partial class TryCatchTest
         }
         """;
 
-        var expected = Verifier.Diagnostic("THROW001")
-            .WithSpan(12, 17, 12, 55)
-            .WithArguments("InvalidOperationException");
+        var expected = Verifier.IsThrown("InvalidOperationException")
+            .WithSpan(12, 17, 12, 55);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }
@@ -201,9 +199,8 @@ public partial class TryCatchTest
         }
         """;
 
-        var expected = Verifier.Diagnostic("THROW001")
-            .WithSpan(16, 17, 16, 41)
-            .WithArguments("IOException");
+        var expected = Verifier.IsThrown("IOException")
+            .WithSpan(16, 17, 16, 41);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }
@@ -243,13 +240,11 @@ public partial class TryCatchTest
         }
         """;
 
-        var expected1 = Verifier.Diagnostic("THROW001")
-            .WithSpan(16, 17, 16, 41)
-            .WithArguments("IOException");
+        var expected1 = Verifier.IsThrown("IOException")
+            .WithSpan(16, 17, 16, 41);
 
-        var expected2 = Verifier.Diagnostic("THROW001")
-            .WithSpan(20, 17, 20, 45)
-            .WithArguments("FormatException");
+        var expected2 = Verifier.IsThrown("FormatException")
+            .WithSpan(20, 17, 20, 45);
 
         await Verifier.VerifyAnalyzerAsync(test, expected1, expected2);
     }
@@ -292,9 +287,8 @@ public partial class TryCatchTest
         }
         """;
 
-        var expected = Verifier.Diagnostic("THROW001")
-            .WithSpan(16, 17, 16, 41)
-            .WithArguments("IOException");
+        var expected = Verifier.IsThrown("IOException")
+            .WithSpan(16, 17, 16, 41);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }
