@@ -444,7 +444,7 @@ namespace DataProcessingApp
 
 **Diagnostics After Enhancement:**
 
-- **`THROW001` (Unhandled Exception Thrown):** If `InvalidOperationException` is not caught or declared, **CheckedExceptionsAnalyzer** will flag it.
+- **`THROW001` (Unhandled Exception):** If `InvalidOperationException` is not caught or declared, **CheckedExceptionsAnalyzer** will flag it.
   
 - **Resolution:** Either catch the `InvalidOperationException` within `Run` or declare it using `ThrowsAttribute`.
 

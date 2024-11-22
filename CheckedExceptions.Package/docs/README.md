@@ -233,7 +233,7 @@ public class Sample
 {
     public void Execute()
     {
-        // An exception is thrown but not handled
+        // An exception might be thrown but not handled
         PerformOperation();
     }
 
@@ -304,7 +304,7 @@ public class FrameworkSample
 {
     public void WriteToConsole()
     {
-        // THROW001: Exception `IOException` is thrown by `Console.WriteLine` but neither caught nor declared via `ThrowsAttribute`.
+        // THROW001: Exception `IOException` might be thrown by `Console.WriteLine` but neither caught nor declared via `ThrowsAttribute`.
         Console.WriteLine("Hello, World!");
     }
 }
@@ -398,17 +398,17 @@ You can suppress diagnostics directly in your code using `#pragma` directives. T
 **Example: Suppressing a Diagnostic Around a Method Call**
 
 ```csharp
-#pragma warning disable THROW001 // Unhandled exception thrown
+#pragma warning disable THROW001 // Unhandled exception
     PerformOperation();
-#pragma warning restore THROW001 // Unhandled exception thrown
+#pragma warning restore THROW001 // Unhandled exception
 ```
 
 **Example: Suppressing a Diagnostic for a Specific Throw**
 
 ```csharp
-#pragma warning disable THROW001 // Unhandled exception thrown
+#pragma warning disable THROW001 // Unhandled exception
     throw new InvalidOperationException();
-#pragma warning restore THROW001 // Unhandled exception thrown
+#pragma warning restore THROW001 // Unhandled exception
 ```
 
 ### Suppressing with Attributes
@@ -420,7 +420,7 @@ Alternatively, you can suppress diagnostics using the `[SuppressMessage]` attrib
 ```csharp
 using System.Diagnostics.CodeAnalysis;
 
-[SuppressMessage("Usage", "THROW001:Unhandled exception thrown")]
+[SuppressMessage("Usage", "THROW001:Unhandled exception")]
 public void MethodWithSuppressedWarning()
 {
     // Method implementation

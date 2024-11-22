@@ -200,7 +200,7 @@ With the above configuration:
 
 | Diagnostic ID | Description |
 |---------------|-------------|
-| `THROW001`    | **Unhandled exception thrown:** Identifies exceptions that are thrown but neither caught within the method nor declared via `ThrowsAttribute`. |
+| `THROW001`    | **Unhandled exception:** Identifies exceptions that are directly thrown or might be thrown by member but neither caught within the method nor declared via `ThrowsAttribute`. |
 | `THROW002`    | *Reserved for future use* |
 | `THROW003`    | **General `ThrowsAttribute` usage:** Flags the use of general `Exception` types in `ThrowsAttribute`, encouraging more specific exception declarations. |
 | `THROW004`    | **General exception thrown:** Warns against throwing the general `System.Exception` type directly in the code. |
@@ -219,7 +219,7 @@ public class Sample
 {
     public void Execute()
     {
-        // THROW001: Exception `InvalidOperationException` is thrown but neither caught nor declared via `ThrowsAttribute`.
+        // THROW001: Exception `InvalidOperationException` might be thrown but neither caught nor declared via `ThrowsAttribute`.
         PerformOperation();
     }
 
@@ -299,8 +299,8 @@ When you don't handle all exceptions:
 ```csharp
 var fetcher = new DataFetcher();
 
-// THROW001: Exception `NullReferenceException` is thrown by `FetchData` but neither caught within the caller method nor declared via `ThrowsAttribute`.
-// THROW001: Exception `ArgumentException` is thrown by `FetchData` but neither caught within the caller method nor declared via `ThrowsAttribute`.
+// THROW001: Exception `NullReferenceException` might be thrown by `FetchData` but neither caught within the caller method nor declared via `ThrowsAttribute`.
+// THROW001: Exception `ArgumentException` might be thrown by `FetchData` but neither caught within the caller method nor declared via `ThrowsAttribute`.
 fetcher.FetchData("test");
 ```
 
@@ -371,7 +371,7 @@ public class FrameworkSample
 {
     public void WriteToConsole()
     {
-        // THROW001: Exception `IOException` is thrown by `Console.WriteLine` but neither caught nor declared via `ThrowsAttribute`.
+        // THROW001: Exception `IOException` might be thrown by `Console.WriteLine` but neither caught nor declared via `ThrowsAttribute`.
         Console.WriteLine("Hello, World!");
     }
 }
@@ -450,18 +450,18 @@ While it's recommended to adhere to the analyzer's rules for optimal exception h
 ### Using Pragma Directives
 
 ```csharp
-#pragma warning disable THROW001 // Unhandled exception thrown
+#pragma warning disable THROW001 // Unhandled exception
     // Suppressed handling
     PerformOperation();
-#pragma warning restore THROW001 // Unhandled exception thrown
+#pragma warning restore THROW001 // Unhandled exception
 ```
 
 Or suppressing a specific throw:
 
 ```csharp
-#pragma warning disable THROW001 // Unhandled exception thrown
+#pragma warning disable THROW001 // Unhandled exception
     throw new InvalidOperationException();
-#pragma warning restore THROW001 // Unhandled exception thrown
+#pragma warning restore THROW001 // Unhandled exception
 ```
 
 ### Suppressing in Code
@@ -471,7 +471,7 @@ You can also suppress diagnostics using the `[SuppressMessage]` attribute:
 ```csharp
 using System.Diagnostics.CodeAnalysis;
 
-[SuppressMessage("Usage", "THROW001:Unhandled exception thrown")]
+[SuppressMessage("Usage", "THROW001:Unhandled exception")]
 public void MethodWithSuppressedWarning()
 {
     // Method implementation

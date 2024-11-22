@@ -32,9 +32,9 @@ public class FooBar
         }
         catch (InvalidOperationException e)
         {
-#pragma warning disable THROW001 // Unhandled exception thrown
+#pragma warning disable THROW001 // Unhandled exception
             Console.WriteLine(e.Message);
-#pragma warning restore THROW001 // Unhandled exception thrown
+#pragma warning restore THROW001 // Unhandled exception
         }
         // catch (IOException)
         // {
