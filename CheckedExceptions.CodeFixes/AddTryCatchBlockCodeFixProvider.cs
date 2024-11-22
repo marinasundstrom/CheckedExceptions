@@ -53,24 +53,6 @@ public class AddTryCatchBlockCodeFixProvider : CodeFixProvider
             .OfType<StatementSyntax>()
             .FirstOrDefault();
 
-        List<CatchClauseSyntax> catchClauses = new List<CatchClauseSyntax>();
-
-        foreach (var exceptionTypeName in exceptionTypeNames.Distinct())
-        {
-            var exceptionType = SyntaxFactory.ParseTypeName(exceptionTypeName);
-
-            if (exceptionType == null)
-                return document;
-
-            var catchClause = SyntaxFactory.CatchClause()
-                .WithDeclaration(
-                    SyntaxFactory.CatchDeclaration(exceptionType)
-                    .WithIdentifier(SyntaxFactory.Identifier("ex")))
-                .WithBlock(SyntaxFactory.Block()).WithAdditionalAnnotations(Formatter.Annotation);
-
-            catchClauses.Add(catchClause);
-        }
-
         var ancestors = statement.AncestorsAndSelf(true);
 
         var existingTryStatement = ancestors.OfType<TryStatementSyntax>()
@@ -82,7 +64,11 @@ public class AddTryCatchBlockCodeFixProvider : CodeFixProvider
         var existingFinally = ancestors.OfType<FinallyClauseSyntax>()
             .FirstOrDefault();
 
-        if (existingTryStatement is not null && !existingTryStatement.Catches.Contains(existingCatch) && existingTryStatement?.Finally != existingFinally)
+        var inCatchOrFinallyBlock = existingTryStatement is not null
+            && (!existingTryStatement.Catches.Contains(existingCatch)
+            || existingTryStatement?.Finally != existingFinally);
+
+        if (!inCatchOrFinallyBlock)
         {
             existingTryStatement = null;
         }
@@ -93,13 +79,19 @@ public class AddTryCatchBlockCodeFixProvider : CodeFixProvider
         {
             statement = existingTryStatement;
 
-            catchClauses = existingTryStatement.Catches.Concat(catchClauses).ToList();
+            List<CatchClauseSyntax> newCatchClauses = CreateCatchClauses(exceptionTypeNames);
 
-            tryCatchStatement = existingTryStatement.WithCatches(SyntaxFactory.List(catchClauses));
+            newCatchClauses = existingTryStatement.Catches.Concat(newCatchClauses).ToList();
+
+            tryCatchStatement = existingTryStatement.WithCatches(SyntaxFactory.List(newCatchClauses));
         }
         else
         {
             var tryBlock = SyntaxFactory.Block(statement);
+
+            var count = ancestors.OfType<TryStatementSyntax>().Count();
+
+            List<CatchClauseSyntax> catchClauses = CreateCatchClauses(exceptionTypeNames, count);
 
             tryCatchStatement = SyntaxFactory.TryStatement()
                 .WithBlock(tryBlock)
@@ -109,5 +101,36 @@ public class AddTryCatchBlockCodeFixProvider : CodeFixProvider
         var newRoot = root.ReplaceNode(statement, tryCatchStatement.NormalizeWhitespace(elasticTrivia: true));
 
         return document.WithSyntaxRoot(newRoot);
+    }
+
+    private static List<CatchClauseSyntax> CreateCatchClauses(IEnumerable<string?> exceptionTypeNames, int level = 0)
+    {
+        List<CatchClauseSyntax> catchClauses = new List<CatchClauseSyntax>();
+
+        string catchExceptionVariableName;
+
+        if (level == 0)
+        {
+            catchExceptionVariableName = "ex";
+        }
+        else
+        {
+            catchExceptionVariableName = $"ex{level + 1}";
+        }
+
+        foreach (var exceptionTypeName in exceptionTypeNames.Distinct())
+        {
+            var exceptionType = SyntaxFactory.ParseTypeName(exceptionTypeName);
+
+            var catchClause = SyntaxFactory.CatchClause()
+                .WithDeclaration(
+                    SyntaxFactory.CatchDeclaration(exceptionType)
+                    .WithIdentifier(SyntaxFactory.Identifier(catchExceptionVariableName)))
+                .WithBlock(SyntaxFactory.Block()).WithAdditionalAnnotations(Formatter.Annotation);
+
+            catchClauses.Add(catchClause);
+        }
+
+        return catchClauses;
     }
 }

@@ -841,11 +841,12 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
                 // Prevents analysis within the first try-catch,
                 // when coming from either a catch clause or a finally clause. 
 
-                var notComingFromCatchOrFinally = prevNode is not null
-                    && !tryStatement.Catches.Contains(prevNode)
-                    && tryStatement.Finally != prevNode;
+                // Skip if the node is within a catch or finally block of the current try statement
+                bool isInCatchOrFinally = tryStatement.Catches.Any(c => c.Contains(node)) ||
+                                          (tryStatement.Finally != null && tryStatement.Finally.Contains(node));
 
-                if (notComingFromCatchOrFinally)
+
+                if (!isInCatchOrFinally)
                 {
                     foreach (var catchClause in tryStatement.Catches)
                     {
@@ -855,17 +856,6 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
                         }
                     }
                 }
-            }
-            else if (current is CatchClauseSyntax catchClause)
-            {
-                if (CatchClauseHandlesException(catchClause, semanticModel, exceptionType))
-                {
-                    return true;
-                }
-            }
-            else if (current is FinallyClauseSyntax)
-            {
-
             }
 
             prevNode = current;

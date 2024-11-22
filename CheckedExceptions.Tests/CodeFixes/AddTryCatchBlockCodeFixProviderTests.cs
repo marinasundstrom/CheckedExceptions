@@ -185,7 +185,7 @@ namespace TestNamespace
         await Verifier.VerifyCodeFixAsync(testCode, [expectedDiagnostic1, expectedDiagnostic2], fixedCode, 2);
     }
 
-    [Fact(Skip = "Problems")]
+    [Fact]
     public async Task AddTryCatch_ToMethod_WhenUnhandledException3()
     {
         var testCode = /* lang=c#-test */  """
@@ -197,13 +197,13 @@ namespace TestNamespace
     {
         public void TestMethod()
         {
-            try 
+            try
             {
-                // Should trigger THROW001
                 DoSomething();
             }
             catch (InvalidOperationException ex)
             {
+                // Should trigger THROW001
                 DoSomething();
             }
         }
@@ -228,18 +228,17 @@ namespace TestNamespace
         {
             try
             {
-                // Should trigger THROW001
                 DoSomething();
             }
             catch (InvalidOperationException ex)
             {
                 try
                 {
+                    // Should trigger THROW001
                     DoSomething();
                 }
-                catch (InvalidOperationException ex)
+                catch (InvalidOperationException ex2)
                 {
-
                 }
             }
         }
@@ -254,7 +253,7 @@ namespace TestNamespace
 """;
 
         var expectedDiagnostic1 = Verifier.Diagnostic("THROW001")
-            .WithSpan(10, 13, 10, 26)
+            .WithSpan(16, 17, 16, 30)
             .WithArguments("InvalidOperationException");
 
         await Verifier.VerifyCodeFixAsync(testCode, [expectedDiagnostic1], fixedCode, 1);

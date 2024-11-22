@@ -267,7 +267,7 @@ public partial class TryCatchTest
         await Verifier.VerifyAnalyzerAsync(test, [expected1, expected2]);
     }
 
-    [Fact(Skip = "Not working")]
+    [Fact]
     public async Task Should_ReportDiagnostics_ForNestedTryCatchWithUncaughtExceptions()
     {
         var test = /* lang=c#-test */ """
@@ -312,11 +312,11 @@ public partial class TryCatchTest
         """;
 
         var expected1 = Verifier.Diagnostic("THROW001")
-            .WithSpan(27, 13, 27, 19)
+            .WithSpan(34, 17, 34, 23)
             .WithArguments("InvalidOperationException");
 
         var expected2 = Verifier.Diagnostic("THROW001")
-            .WithSpan(27, 13, 27, 19)
+            .WithSpan(34, 17, 34, 23)
             .WithArguments("ArgumentNullException");
 
         await Verifier.VerifyAnalyzerAsync(test, [expected1, expected2]);
