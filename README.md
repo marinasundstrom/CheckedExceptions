@@ -18,7 +18,7 @@
 - [Usage](#usage)
 - [Configuration](#configuration)
   - [Treating Warnings as Errors](#treating-warnings-as-errors)
-  - [Settings file](#settings-file)
+  - [Customize Exception Handling](#customize-exception-handling)
 - [Diagnostic Codes Overview](#diagnostic-codes-overview)
 - [Example](#example)
   - [Sample Code](#sample-code)
@@ -197,7 +197,7 @@ With the above configuration:
   
 - **Gradual Adoption:** This approach enables a gradual transition to more disciplined exception handling by focusing on the most critical diagnostics first.
 
-### Settings file
+### Customize Exception Handling
 
 You can customize how exceptions are reported by adding a `CheckedExceptions.settings.json` file to your project. This file allows you to silence or downgrade specific exceptions to informational messages.
 

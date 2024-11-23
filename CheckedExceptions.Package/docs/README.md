@@ -28,7 +28,7 @@ This analyzer works with existing class libraries (including .NET class librarie
 8. [Configuration](#configuration)
     - [EditorConfig Settings](#editorconfig-settings)
     - [Treating Warnings as Errors](#treating-warnings-as-errors)
-    - [Settings file](#settings-file)
+    - [Customize Exception Handling](#customize-exception-handling)
 9. [Examples](#examples)
     - [Basic Usage](#basic-usage)
     - [Handling Exceptions Example](#handling-exceptions-example)
@@ -486,7 +486,7 @@ To treat the `nullable` warnings and the `THROW001` diagnostic as errors, add th
 
 - **Gradual Adoption:** This approach enables a gradual transition to more disciplined exception handling by focusing on the most critical diagnostics first.
 
-### Settings file
+### Customize Exception Handling
 
 You can customize how exceptions are reported by adding a `CheckedExceptions.settings.json` file to your project. This file allows you to silence or downgrade specific exceptions to informational messages.
 
