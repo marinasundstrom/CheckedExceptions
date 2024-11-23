@@ -68,6 +68,8 @@ public class Foo
         {
             throw;
         }
+
+        throw new NotImplementedException();
     }
 
     [Throws(typeof(InvalidOperationException))]

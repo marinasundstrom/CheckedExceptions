@@ -24,6 +24,11 @@ public static class CSharpAnalyzerVerifier<TAnalyzer, TVerifier>
         => AnalyzerVerifier<TAnalyzer, AnalyzerTest, TVerifier>.Diagnostic("THROW001")
         .WithArguments(exceptionType, THROW001Verbs.MightBe);
 
+
+    public static DiagnosticResult Informational(string exceptionType)
+        => AnalyzerVerifier<TAnalyzer, AnalyzerTest, TVerifier>.Diagnostic("THROW002")
+        .WithArguments(exceptionType);
+
     public static async Task VerifyAnalyzerAsync([StringSyntax("c#-test")] string source, params DiagnosticResult[] expected)
     {
         await VerifyAnalyzerAsync(source, (test) =>
@@ -36,6 +41,34 @@ public static class CSharpAnalyzerVerifier<TAnalyzer, TVerifier>
             }
 
             test.ExpectedDiagnostics.AddRange(expected);
+        });
+    }
+
+    public static async Task VerifyAnalyzerAsync2([StringSyntax("c#-test")] string source, params DiagnosticResult[] expected)
+    {
+        await VerifyAnalyzerAsync(source, (test) =>
+        {
+            if (expected.Any())
+            {
+                var allDiagnostics = CheckedExceptionsAnalyzer.AllDiagnosticsIds;
+
+                test.DisabledDiagnostics.AddRange(allDiagnostics.Except(expected.Select(x => x.Id)));
+            }
+
+            test.ExpectedDiagnostics.AddRange(expected);
+
+            test.TestState.AdditionalFiles.Add(("CheckedExceptions.settings.json",
+            """"
+            {
+                "ignoredExceptions": [
+                    "System.NotImplementedException"
+                ],
+                "informationalExceptions": [
+                    "System.IO.IOException",
+                    "System.TimeoutException"
+                ]
+            }
+            """"));
         });
     }
 

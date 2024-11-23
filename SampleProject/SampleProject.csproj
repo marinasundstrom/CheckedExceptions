@@ -9,10 +9,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Sundstrom.CheckedExceptions" Version="1.0.8">
+    <PackageReference Include="Sundstrom.CheckedExceptions" Version="1.1.0">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="CheckedExceptions.settings.json" />
   </ItemGroup>
 
 </Project>

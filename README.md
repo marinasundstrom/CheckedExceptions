@@ -18,6 +18,7 @@
 - [Usage](#usage)
 - [Configuration](#configuration)
   - [Treating Warnings as Errors](#treating-warnings-as-errors)
+  - [Settings file](#settings-file)
 - [Diagnostic Codes Overview](#diagnostic-codes-overview)
 - [Example](#example)
   - [Sample Code](#sample-code)
@@ -195,6 +196,48 @@ With the above configuration:
 - **Selective Enforcement:** By specifying only certain warnings in `WarningsAsErrors`, you can enforce stricter rules where necessary while allowing other warnings to remain as warnings.
   
 - **Gradual Adoption:** This approach enables a gradual transition to more disciplined exception handling by focusing on the most critical diagnostics first.
+
+### Settings file
+
+You can customize how exceptions are reported by adding a `CheckedExceptions.settings.json` file to your project. This file allows you to silence or downgrade specific exceptions to informational messages.
+
+#### Example Configuration
+
+Create a `CheckedExceptions.settings.json` file with the following structure:
+
+```json
+{
+    "ignoredExceptions": [
+        "System.ArgumentNullException"
+    ],
+    "informationalExceptions": [
+        "System.NotImplementedException",
+        "System.IO.IOException",
+        "System.TimeoutException"
+    ]
+}
+```
+
+#### Registering the File
+
+Add the settings file to your `.csproj`:
+
+```xml
+<ItemGroup>
+    <AdditionalFiles Include="CheckedExceptions.settings.json" />
+</ItemGroup>
+```
+
+#### Behavior
+
+- **`ignoredExceptions`**: Exceptions listed here will be completely ignored (no logs or error reports).
+- **`informationalExceptions`**: Exceptions listed here will generate informational messages but won't be reported as errors.
+
+#### Why Use This?
+
+This configuration is useful for:
+- **Silencing expected exceptions**: Avoid cluttering logs with known, non-critical exceptions.
+- **Tracking issues non-disruptively**: Highlight potential problems as informational logs without treating them as critical errors.
 
 ## Diagnostic Codes Overview
 

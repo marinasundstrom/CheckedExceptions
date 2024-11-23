@@ -184,7 +184,7 @@ namespace TestNamespace
             void LocalFunction()
             {
                 // Should trigger THROW001
-                throw new NotImplementedException();
+                throw new InvalidOperationException();
             }
             LocalFunction();
         }
@@ -199,14 +199,14 @@ namespace TestNamespace
 {
     public class TestClass
     {
-        [Throws(typeof(NotImplementedException))]
+        [Throws(typeof(InvalidOperationException))]
         public void TestMethod()
         {
-            [Throws(typeof(NotImplementedException))]
+            [Throws(typeof(InvalidOperationException))]
             void LocalFunction()
             {
                 // Should trigger THROW001
-                throw new NotImplementedException();
+                throw new InvalidOperationException();
             }
 
             LocalFunction();
@@ -215,8 +215,8 @@ namespace TestNamespace
 }
 """;
 
-        var expectedDiagnostic = Verifier.IsThrown("NotImplementedException")
-            .WithSpan(12, 17, 12, 53);
+        var expectedDiagnostic = Verifier.IsThrown("InvalidOperationException")
+            .WithSpan(12, 17, 12, 55);
 
         await Verifier.VerifyCodeFixAsync(testCode, expectedDiagnostic, fixedCode, expectedIncrementalIterations: 2);
     }

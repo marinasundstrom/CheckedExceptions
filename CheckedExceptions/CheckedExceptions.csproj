@@ -17,16 +17,20 @@
     <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" />
   </ItemGroup>
 
+  <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">
+    <PackageReference Include=" System.Text.Json" Version=" 7.0.0" />
+  </ItemGroup>
+
   <ItemGroup>
-    <Compile Update="CodeFixResources.Designer.cs" DesignTime="True" AutoGen="True"
+    <Compile Update="CodeFixResources.Designer.cs" DesignTime="True" AutoGen=" True"
       DependentUpon="CodeFixResources.resx" />
-    <EmbeddedResource Update="CodeFixResources.resx" Generator="ResXFileCodeGenerator"
+    <EmbeddedResource Update=" CodeFixResources.resx" Generator="ResXFileCodeGenerator"
       LastGenOutput="CodeFixResources.Designer.cs" />
   </ItemGroup>
 
   <ItemGroup>
-    <AdditionalFiles Include="AnalyzerReleases.Shipped.md" />
-    <AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />
+    <AdditionalFiles Include=" AnalyzerReleases.Shipped.md" />
+    <AdditionalFiles Include=" AnalyzerReleases.Unshipped.md" />
   </ItemGroup>
 
 </Project>

@@ -22,6 +22,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <AdditionalFiles Include="CheckedExceptions.settings.json" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\CheckedExceptions.Attribute\CheckedExceptions.Attribute.csproj" />
     <ProjectReference Include="..\Test2\Test2.csproj" />
   </ItemGroup>

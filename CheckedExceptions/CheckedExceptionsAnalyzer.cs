@@ -8,12 +8,17 @@ using System.Collections.Immutable;
 using System.Linq;
 using System.Xml.Linq;
 using System.Reflection;
+using System.Text.Json;
+using System.Collections.Concurrent;
 
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 {
+    static ConcurrentDictionary<AnalyzerOptions, AnalyzerConfig> configs = new ConcurrentDictionary<AnalyzerOptions, AnalyzerConfig>();
+
     // Diagnostic IDs
     public const string DiagnosticIdUnhandled = "THROW001";
+    public const string DiagnosticIdIgnoredException = "THROW002";
     public const string DiagnosticIdGeneralThrows = "THROW003";
     public const string DiagnosticIdGeneralThrow = "THROW004";
     public const string DiagnosticIdDuplicateThrow = "THROW005";
@@ -26,6 +31,14 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         "Exception '{0}' {1} thrown but not handled",
         "Usage",
         DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
+    private static readonly DiagnosticDescriptor RuleIgnoredException = new DiagnosticDescriptor(
+        DiagnosticIdIgnoredException,
+        "Ignored exception may cause runtime issues",
+        "Exception '{0}' is ignored by configuration but may cause runtime issues if unhandled",
+        "Usage",
+        DiagnosticSeverity.Info,
         isEnabledByDefault: true);
 
     private static readonly DiagnosticDescriptor RuleGeneralThrow = new(
@@ -53,7 +66,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         isEnabledByDefault: true);
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
-        [RuleUnhandledException, RuleGeneralThrows, RuleGeneralThrow, RuleDuplicateThrow];
+        [RuleUnhandledException, RuleIgnoredException, RuleGeneralThrows, RuleGeneralThrow, RuleDuplicateThrow];
 
     public override void Initialize(AnalysisContext context)
     {
@@ -79,6 +92,32 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         context.RegisterSyntaxNodeAction(AnalyzeElementAccess, SyntaxKind.ElementAccessExpression);
         context.RegisterSyntaxNodeAction(AnalyzeEventAssignment, SyntaxKind.AddAssignmentExpression);
         context.RegisterSyntaxNodeAction(AnalyzeEventAssignment, SyntaxKind.SubtractAssignmentExpression);
+    }
+
+    private AnalyzerConfig GetAnalyzerOptions(AnalyzerOptions analyzerOptions)
+    {
+        if (!configs.TryGetValue(analyzerOptions, out var config))
+        {
+            foreach (var additionalFile in analyzerOptions.AdditionalFiles)
+            {
+                if (Path.GetFileName(additionalFile.Path).Equals("CheckedExceptions.settings.json", StringComparison.OrdinalIgnoreCase))
+                {
+                    var text = additionalFile.GetText();
+                    if (text != null)
+                    {
+                        var json = text.ToString();
+                        config = System.Text.Json.JsonSerializer.Deserialize<AnalyzerConfig>(json);
+                        break;
+                    }
+                }
+            }
+
+            config ??= new AnalyzerConfig(); // Return default options if config file is not found
+
+            configs.TryAdd(analyzerOptions, config);
+        }
+
+        return config ?? new AnalyzerConfig();
     }
 
     private void AnalyzeLambdaExpression(SyntaxNodeAnalysisContext context)
@@ -163,6 +202,8 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     /// </summary>
     private void AnalyzeThrowStatement(SyntaxNodeAnalysisContext context)
     {
+        var options = GetAnalyzerOptions(context.Options);
+
         var throwStatement = (ThrowStatementSyntax)context.Node;
 
         // Handle rethrows (throw;)
@@ -179,7 +220,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
                         var tryStatement = catchClause.Ancestors().OfType<TryStatementSyntax>().FirstOrDefault();
                         if (tryStatement != null)
                         {
-                            AnalyzeExceptionsInTryBlock(context, tryStatement, catchClause, throwStatement);
+                            AnalyzeExceptionsInTryBlock(context, tryStatement, catchClause, throwStatement, options);
                         }
                     }
                     else
@@ -197,11 +238,11 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         if (throwStatement.Expression is ObjectCreationExpressionSyntax creationExpression)
         {
             var exceptionType = context.SemanticModel.GetTypeInfo(creationExpression).Type as INamedTypeSymbol;
-            AnalyzeExceptionThrowingNode(context, throwStatement, exceptionType);
+            AnalyzeExceptionThrowingNode(context, throwStatement, exceptionType, options);
         }
     }
 
-    private void AnalyzeExceptionsInTryBlock(SyntaxNodeAnalysisContext context, TryStatementSyntax tryStatement, CatchClauseSyntax generalCatchClause, ThrowStatementSyntax throwStatement)
+    private void AnalyzeExceptionsInTryBlock(SyntaxNodeAnalysisContext context, TryStatementSyntax tryStatement, CatchClauseSyntax generalCatchClause, ThrowStatementSyntax throwStatement, AnalyzerConfig options)
     {
         var semanticModel = context.SemanticModel;
 
@@ -238,8 +279,23 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         }
 
         // For each thrown exception, check if it is handled
-        foreach (var exceptionType in thrownExceptions)
+        foreach (var exceptionType in thrownExceptions.Distinct(SymbolEqualityComparer.Default).OfType<INamedTypeSymbol>())
         {
+            var exceptionName = exceptionType.ToDisplayString();
+
+            if (options.IgnoredExceptions.Contains(exceptionName))
+            {
+                // Completely ignore this exception
+                continue;
+            }
+            else if (options.InformationalExceptions.Contains(exceptionName))
+            {
+                // Report as THROW002 (Info level)
+                var diagnostic = Diagnostic.Create(RuleIgnoredException, throwStatement.GetLocation(), exceptionType.Name);
+                context.ReportDiagnostic(diagnostic);
+                continue;
+            }
+
             bool isHandled = handledExceptions.Any(handledException =>
                 exceptionType.Equals(handledException, SymbolEqualityComparer.Default) ||
                 exceptionType.InheritsFrom(handledException));
@@ -379,6 +435,8 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
     private void AnalyzeAwait(SyntaxNodeAnalysisContext context)
     {
+        var options = GetAnalyzerOptions(context.Options);
+
         var awaitExpression = (AwaitExpressionSyntax)context.Node;
 
         if (awaitExpression.Expression is InvocationExpressionSyntax invocation)
@@ -405,15 +463,15 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
                 }
             }
 
-            AnalyzeMemberExceptions(context, invocation, methodSymbol);
+            AnalyzeMemberExceptions(context, invocation, methodSymbol, options);
         }
         else if (awaitExpression.Expression is MemberAccessExpressionSyntax memberAccess)
         {
-            AnalyzeIdentifierAndMemberAccess(context, memberAccess);
+            AnalyzeIdentifierAndMemberAccess(context, memberAccess, options);
         }
         else if (awaitExpression.Expression is IdentifierNameSyntax identifier)
         {
-            AnalyzeIdentifierAndMemberAccess(context, identifier);
+            AnalyzeIdentifierAndMemberAccess(context, identifier, options);
         }
     }
 
@@ -431,12 +489,14 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     /// </summary>
     private void AnalyzeThrowExpression(SyntaxNodeAnalysisContext context)
     {
+        var options = GetAnalyzerOptions(context.Options);
+
         var throwExpression = (ThrowExpressionSyntax)context.Node;
 
         if (throwExpression.Expression is ObjectCreationExpressionSyntax creationExpression)
         {
             var exceptionType = context.SemanticModel.GetTypeInfo(creationExpression).Type as INamedTypeSymbol;
-            AnalyzeExceptionThrowingNode(context, throwExpression, exceptionType);
+            AnalyzeExceptionThrowingNode(context, throwExpression, exceptionType, options);
         }
     }
 
@@ -445,6 +505,8 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     /// </summary>
     private void AnalyzeMethodCall(SyntaxNodeAnalysisContext context)
     {
+        var options = GetAnalyzerOptions(context.Options);
+
         var invocation = (InvocationExpressionSyntax)context.Node;
 
         if (invocation.Parent is AwaitExpressionSyntax)
@@ -475,7 +537,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             }
         }
 
-        AnalyzeMemberExceptions(context, invocation, methodSymbol);
+        AnalyzeMemberExceptions(context, invocation, methodSymbol, options);
     }
 
     /// <summary>
@@ -543,13 +605,15 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     /// </summary>
     private void AnalyzeObjectCreation(SyntaxNodeAnalysisContext context)
     {
+        var options = GetAnalyzerOptions(context.Options);
+
         var objectCreation = (ObjectCreationExpressionSyntax)context.Node;
 
         var constructorSymbol = context.SemanticModel.GetSymbolInfo(objectCreation).Symbol as IMethodSymbol;
         if (constructorSymbol == null)
             return;
 
-        AnalyzeMemberExceptions(context, objectCreation, constructorSymbol);
+        AnalyzeMemberExceptions(context, objectCreation, constructorSymbol, options);
     }
 
     /// <summary>
@@ -557,9 +621,11 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     /// </summary>
     private void AnalyzeMemberAccess(SyntaxNodeAnalysisContext context)
     {
+        var options = GetAnalyzerOptions(context.Options);
+
         var memberAccess = (MemberAccessExpressionSyntax)context.Node;
 
-        AnalyzeIdentifierAndMemberAccess(context, memberAccess);
+        AnalyzeIdentifierAndMemberAccess(context, memberAccess, options);
     }
 
     /// <summary>
@@ -567,6 +633,8 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     /// </summary>
     private void AnalyzeIdentifier(SyntaxNodeAnalysisContext context)
     {
+        var options = GetAnalyzerOptions(context.Options);
+
         var identifierName = (IdentifierNameSyntax)context.Node;
 
         // Ignore identifiers that are part of await expression
@@ -577,10 +645,10 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         if (identifierName.Parent is MemberAccessExpressionSyntax)
             return;
 
-        AnalyzeIdentifierAndMemberAccess(context, identifierName);
+        AnalyzeIdentifierAndMemberAccess(context, identifierName, options);
     }
 
-    private void AnalyzeIdentifierAndMemberAccess(SyntaxNodeAnalysisContext context, ExpressionSyntax expression)
+    private void AnalyzeIdentifierAndMemberAccess(SyntaxNodeAnalysisContext context, ExpressionSyntax expression, AnalyzerConfig options)
     {
         var s = context.SemanticModel.GetSymbolInfo(expression).Symbol;
         var symbol = s as IPropertySymbol;
@@ -589,7 +657,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
         if (symbol is IPropertySymbol propertySymbol)
         {
-            AnalyzePropertyExceptions(context, expression, symbol);
+            AnalyzePropertyExceptions(context, expression, symbol, options);
         }
     }
 
@@ -598,6 +666,8 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     /// </summary>
     private void AnalyzeElementAccess(SyntaxNodeAnalysisContext context)
     {
+        var options = GetAnalyzerOptions(context.Options);
+
         var elementAccess = (ElementAccessExpressionSyntax)context.Node;
 
         var symbol = context.SemanticModel.GetSymbolInfo(elementAccess).Symbol as IPropertySymbol;
@@ -606,7 +676,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
         if (symbol is IPropertySymbol propertySymbol)
         {
-            AnalyzePropertyExceptions(context, elementAccess, symbol);
+            AnalyzePropertyExceptions(context, elementAccess, symbol, options);
         }
     }
 
@@ -615,6 +685,8 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     /// </summary>
     private void AnalyzeEventAssignment(SyntaxNodeAnalysisContext context)
     {
+        var options = GetAnalyzerOptions(context.Options);
+
         var assignment = (AssignmentExpressionSyntax)context.Node;
 
         var eventSymbol = context.SemanticModel.GetSymbolInfo(assignment.Left).Symbol as IEventSymbol;
@@ -635,14 +707,15 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
         if (methodSymbol != null)
         {
-            AnalyzeMemberExceptions(context, assignment, methodSymbol);
+            AnalyzeMemberExceptions(context, assignment, methodSymbol, options);
         }
     }
 
     /// <summary>
     /// Analyzes exceptions thrown by a property, specifically its getters and setters.
     /// </summary>
-    private void AnalyzePropertyExceptions(SyntaxNodeAnalysisContext context, ExpressionSyntax expression, IPropertySymbol propertySymbol)
+    private void AnalyzePropertyExceptions(SyntaxNodeAnalysisContext context, ExpressionSyntax expression, IPropertySymbol propertySymbol,
+        AnalyzerConfig options)
     {
         // Determine if the analyzed expression is for a getter or setter
         bool isGetter = IsPropertyGetter(expression);
@@ -704,14 +777,15 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         // Deduplicate and analyze each distinct exception type
         foreach (var exceptionType in exceptionTypes.Distinct(SymbolEqualityComparer.Default).OfType<INamedTypeSymbol>())
         {
-            AnalyzeExceptionThrowingNode(context, expression, exceptionType);
+            AnalyzeExceptionThrowingNode(context, expression, exceptionType, options);
         }
     }
 
     /// <summary>
     /// Analyzes exceptions thrown by a method, constructor, or other member.
     /// </summary>
-    private void AnalyzeMemberExceptions(SyntaxNodeAnalysisContext context, SyntaxNode node, IMethodSymbol methodSymbol)
+    private void AnalyzeMemberExceptions(SyntaxNodeAnalysisContext context, SyntaxNode node, IMethodSymbol methodSymbol,
+        AnalyzerConfig options)
     {
         if (methodSymbol == null)
             return;
@@ -730,7 +804,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
         foreach (var exceptionType in exceptionTypes.Distinct(SymbolEqualityComparer.Default).OfType<INamedTypeSymbol>())
         {
-            AnalyzeExceptionThrowingNode(context, node, exceptionType);
+            AnalyzeExceptionThrowingNode(context, node, exceptionType, options);
         }
     }
 
@@ -869,10 +943,29 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     /// <summary>
     /// Analyzes a node that throws or propagates exceptions to check for handling or declaration.
     /// </summary>
-    private void AnalyzeExceptionThrowingNode(SyntaxNodeAnalysisContext context, SyntaxNode node, INamedTypeSymbol? exceptionType)
+    private void AnalyzeExceptionThrowingNode(
+        SyntaxNodeAnalysisContext context,
+        SyntaxNode node,
+        INamedTypeSymbol? exceptionType,
+        AnalyzerConfig options)
     {
         if (exceptionType == null)
             return;
+
+        var exceptionName = exceptionType.ToDisplayString();
+
+        if (options.IgnoredExceptions.Contains(exceptionName))
+        {
+            // Completely ignore this exception
+            return;
+        }
+        else if (options.InformationalExceptions.Contains(exceptionName))
+        {
+            // Report as THROW002 (Info level)
+            var diagnostic = Diagnostic.Create(RuleIgnoredException, node.GetLocation(), exceptionType.Name);
+            context.ReportDiagnostic(diagnostic);
+            return;
+        }
 
         // Check for general exceptions
         if (IsGeneralException(exceptionType))

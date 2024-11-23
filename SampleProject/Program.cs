@@ -32,7 +32,7 @@ catch (InvalidOperationException e)
 }
 catch (IOException)
 {
-
+    throw new NotImplementedException();
 }
 
 [Throws(typeof(InvalidOperationException))]

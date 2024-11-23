@@ -13,7 +13,7 @@ public class Test
         void LocalFunction()
         {
             // Should trigger THROW001
-            throw new NotImplementedException();
+            throw new InvalidOperationException();
         }
         LocalFunction();
     }
