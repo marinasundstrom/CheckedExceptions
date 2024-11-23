@@ -1,15 +1,15 @@
-## Exception Handling
+# Exception Handling with the CheckedExceptions Analyzer
 
-### Analyzer
+### Overview
 
-The analyzer is designed to streamline exception management by performing two primary tasks:
+The CheckedExceptions analyzer enhances exception management in your C# projects by:
 
-1. **Identifying Exception Sources**: It detects `throw` statements or method calls where exceptions may be thrown or propagated.
-2. **Reporting Diagnostics**: It flags unhandled exceptions, prompting developers to either handle them explicitly or declare their propagation.
+1. **Identifying Exception Sources**: Detecting `throw` statements or method calls where exceptions may be thrown or propagated.
+2. **Reporting Diagnostics**: Flagging unhandled exceptions, prompting developers to handle them explicitly or declare their propagation.
 
 ### Defining the `ThrowsAttribute`
 
-The analyzer can automatically detect exceptions being thrown, but to maximize its utility, you need to define and use the `ThrowsAttribute`. This attribute allows you to annotate methods, constructors, or delegates with the exceptions they might throw, enabling the analyzer to generate more accurate diagnostics.
+While the analyzer can automatically detect exceptions being thrown, explicitly using the `ThrowsAttribute` adds significant value. It allows you to annotate methods, constructors, or delegates with the exceptions they might throw, enabling the analyzer to generate more precise diagnostics. This is particularly useful in complex methods where automatic detection might not capture all potential exceptions.
 
 ```csharp
 using System;
@@ -24,7 +24,7 @@ namespace Sundstrom.CheckedExceptions
         public ThrowsAttribute(Type exceptionType)
         {
             if (!typeof(Exception).IsAssignableFrom(exceptionType))
-                throw new ArgumentException("ExceptionType must be an Exception type.");
+                throw new ArgumentException("ExceptionType must be an Exception type.", nameof(exceptionType));
 
             ExceptionType = exceptionType;
         }
@@ -34,9 +34,15 @@ namespace Sundstrom.CheckedExceptions
 
 ### Handling Exceptions
 
+#### Best Practices
+
+- **Handle Exceptions Locally**: Whenever possible, catch and handle exceptions within the method where they occur.
+- **Propagate with Care**: If you must propagate exceptions, use the `ThrowsAttribute` to declare them, but consider it a last resort.
+- **Avoid Swallowing Exceptions**: Do not catch exceptions without proper handling, as this can make debugging difficult.
+
 #### Example: Unhandled Exception
 
-A simple `throw` statement generates a diagnostic indicating the exception is unhandled:
+A simple `throw` statement without handling generates a diagnostic indicating the exception is unhandled:
 
 ```csharp
 public void Foo()
@@ -45,7 +51,9 @@ public void Foo()
 }
 ```
 
-To address this, you can catch the exception:
+**Handling the Exception Locally**
+
+To address this, you should catch and handle the exception:
 
 ```csharp
 public void Foo()
@@ -54,14 +62,16 @@ public void Foo()
     {
         throw new InvalidOperationException();
     }
-    catch (InvalidOperationException)
+    catch (InvalidOperationException ex)
     {
-        // Handle the exception
+        // Handle the exception appropriately
     }
 }
 ```
 
-Alternatively, you can declare that the method propagates the exception using `ThrowsAttribute`. If not handled at the call site, this will trigger a diagnostic, encouraging explicit handling. Propagation should generally be a last resort:
+**Propagating the Exception**
+
+Alternatively, you can declare that the method propagates the exception using `ThrowsAttribute`. This approach should be used judiciously, as it shifts the responsibility of handling the exception to the caller.
 
 ```csharp
 [Throws(typeof(InvalidOperationException))]
@@ -71,24 +81,26 @@ public void Foo()
 }
 ```
 
-The caller can then handle the propagated exception:
+**Handling the Propagated Exception at the Call Site**
+
+The caller can then handle the exception:
 
 ```csharp
 try
 {
     Foo();
 }
-catch (InvalidOperationException)
+catch (InvalidOperationException ex)
 {
-    // Handle the exception
+    // Handle the exception appropriately
 }
 ```
 
-The analyzer provides code fixes for handling or propagating exceptions.
+The analyzer provides code fixes for handling or propagating exceptions, aiding in maintaining robust code.
 
-#### Example: Multiple Exceptions
+#### Example: Multiple Exceptions and Exception Hierarchies
 
-The analyzer supports multiple `ThrowsAttribute` annotations:
+You can annotate methods with multiple `ThrowsAttribute` declarations to indicate all potential exceptions:
 
 ```csharp
 [Throws(typeof(ArgumentOutOfRangeException))]
@@ -97,35 +109,43 @@ public void Foo()
 {
     // Code that might throw exceptions
 }
+```
 
+When handling these exceptions, it's important to consider the exception hierarchy. Catching a base exception type will also handle derived exceptions.
+
+```csharp
 try
 {
     Foo();
 }
-catch (ArgumentException)
+catch (ArgumentException ex)
 {
-    // Handles ArgumentOutOfRangeException
+    // Handles ArgumentException and its derived types, such as ArgumentOutOfRangeException
 }
-catch (InvalidOperationException)
+catch (InvalidOperationException ex)
 {
     // Handle InvalidOperationException
 }
 ```
 
-The analyzer respects exception inheritance hierarchies. For example, catching `ArgumentException` covers exceptions like `ArgumentOutOfRangeException` that inherit from it.
+**Exception Hierarchy Visualized**
 
-### Documentation XML
+```
+Exception
+└── SystemException
+    └── ArgumentException
+        └── ArgumentOutOfRangeException
+```
 
-To ensure compatibility with libraries lacking `ThrowsAttribute annotations`, the analyzer uses XML documentation to infer potential exceptions. These annotations work alongside the `ThrowsAttribute` and provide fallback diagnostics.
+Catching `ArgumentException` will also catch `ArgumentOutOfRangeException` due to inheritance.
 
-However, unannotated libraries rely on developers' manual checks and are less reliable than annotated ones.
+### Integrating with Unannotated Libraries
 
-The analyzer also considers nullability when handling cases involving `ArgumentNullException`. Diagnostics are adjusted to align with the rules of nullable contexts. More on that below.
-
+To ensure compatibility with libraries that lack `ThrowsAttribute` annotations, the analyzer uses XML documentation comments to infer potential exceptions. This approach serves as a fallback mechanism but is less reliable than explicit annotations to the code itself.
 
 #### Example: Unannotated Library
 
-Consider this from a library that has not been annotated:
+Consider a library without `ThrowsAttribute` annotations:
 
 ```csharp
 #nullable disable
@@ -137,7 +157,7 @@ public class TestClass
     private int _value;
 
     /// <summary>
-    /// A property
+    /// A property.
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException">
     /// Thrown when the value is less than 42.
@@ -149,14 +169,14 @@ public class TestClass
         {
             if (value < 42)
             {
-                throw new ArgumentOutOfRangeException("Value can't be less than 42");
+                throw new ArgumentOutOfRangeException(nameof(value), "Value can't be less than 42");
             }
             _value = value;
         }
     }
 
     /// <summary>
-    /// A method
+    /// A method.
     /// </summary>
     /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="value"/> is null.
@@ -173,9 +193,9 @@ public class TestClass
 }
 ```
 
-#### Example: Utilizing the Unannotated Library
+#### Using the Unannotated Library
 
-Here’s how the library can be utilized in a project where the analyzer is installed, with nullable annotations explicitly disabled:
+Here's how you might use this library in a project with the analyzer installed:
 
 ```csharp
 #nullable disable
@@ -184,30 +204,30 @@ TestClass test = new TestClass();
 
 try
 {
-    test.Process(null); // Throws ArgumentNullException
+    test.Process(null); // May throw ArgumentNullException
 }
-catch (ArgumentNullException)
+catch (ArgumentNullException ex)
 {
     // Handle ArgumentNullException
 }
 
 try
 {
-    test.Value = 30; // Throws ArgumentOutOfRangeException
+    test.Value = 30; // May throw ArgumentOutOfRangeException
 }
-catch (ArgumentOutOfRangeException)
+catch (ArgumentOutOfRangeException ex)
 {
     // Handle ArgumentOutOfRangeException
 }
 ```
 
-#### Properties
+### Handling Properties
 
-Since XML documentation does not support annotating individual property accessors (`get` or `set`), the analyzer uses heuristics to infer context. Keywords like "gets" and "sets" help determine which accessor an exception applies to.
+Since XML documentation does not support annotating individual property accessors (`get` or `set`), the analyzer uses heuristics to infer the context of exceptions based on the documentation.
 
-##### Example: Property Diagnostics
+#### Example: Property Diagnostics
 
-Consider the ``StringBuilder.Length`` property, with this XML documentation:
+Consider the `StringBuilder.Length` property, which has the following XML documentation:
 
 ```xml
 /// <summary>
@@ -221,47 +241,120 @@ Consider the ``StringBuilder.Length`` property, with this XML documentation:
 /// </exception>
 ```
 
-The analyzer determines the exception applies to the setter:
+The analyzer deduces that the `ArgumentOutOfRangeException` applies to the setter:
 
 ```csharp
 using System.Text;
 
 StringBuilder stringBuilder = new StringBuilder();
 
-var length = stringBuilder.Length; // No exception
+// Getting the Length does not throw an exception
+var length = stringBuilder.Length;
 
 try
 {
-    stringBuilder.Length = 4; // Throws ArgumentOutOfRangeException
+    // Setting Length to a negative value throws ArgumentOutOfRangeException
+    stringBuilder.Length = -1;
 }
-catch (ArgumentOutOfRangeException)
+catch (ArgumentOutOfRangeException ex)
 {
-    // Handle exception
+    // Handle the exception appropriately
 }
 ```
 
-### Nullable Context
+### Nullable Context Interaction
 
-In a nullable context, the analyzer suppresses warnings for exceptions unlikely to occur due to nullability rules, minimizing redundant checks.
+In a nullable context, the analyzer adjusts diagnostics to avoid redundant warnings for exceptions that are unlikely to occur due to nullability annotations.
 
-#### ArgumentNullException
+#### Suppressing `ArgumentNullException` Diagnostics
 
-When parameters are marked as non-nullable, the analyzer ignores `ArgumentNullException` diagnostics, as tooling enforces null safety.
+When parameters are marked as non-nullable, the analyzer suppresses diagnostics for `ArgumentNullException`, as the compiler enforces null safety:
 
 ```csharp
 #nullable enable
 
-public void TestMethod()
+TestClass test = new TestClass();
+
+string? str = "42";
+
+// Compiler warning: Passing nullable parameter 'str' to non-nullable parameter
+test.Process(str); // Warning generated by the compiler, not the analyzer
+```
+
+Without nullable enabled you would get a diagnostic for `ArgumentNullException`:
+
+```csharp
+#nullable disable
+
+TestClass test = new TestClass();
+
+string str = null;
+
+test.Process(str); // Diagnostic generated by the analyzer for potential ArgumentNullException
+```
+
+Of course, nullable can be enabled on a project level.
+
+#### Handling `NullReferenceException`
+
+`NullReferenceException` occurs at runtime when null values are improperly handled. They are neither declared or handled by the analyzer.
+
+### Configuration via Settings File
+
+You can customize how exceptions are reported by adding a `CheckedExceptions.settings.json` file to your project. This file allows you to ignore specific exceptions or downgrade them to informational messages.
+
+#### Example Configuration
+
+Create a `CheckedExceptions.settings.json` file with the following content:
+
+```json
 {
-    // No diagnostic for ArgumentNullException
-    var x = int.Parse("42");
+    "ignoredExceptions": [
+        "System.TimeoutException"
+    ],
+    "informationalExceptions": [
+        "System.NotImplementedException",
+        "System.IO.IOException"
+    ]
 }
 ```
 
-#### NullReferenceException
+**Note:** Ignoring `System.ArgumentNullException` may not be necessary when nullable annotations are enabled, as the analyzer already handles this scenario.
 
-`NullReferenceException` is not explicitly declared but occurs at runtime when null values are improperly handled. With nullable contexts and proper null checks, these exceptions are rare.
+#### Registering the Settings File
+
+Add the settings file to your `.csproj` file:
+
+```xml
+<ItemGroup>
+    <AdditionalFiles Include="CheckedExceptions.settings.json" />
+</ItemGroup>
+```
+
+#### Behavior
+
+- **`ignoredExceptions`**: Exceptions listed here will be completely ignored—no diagnostics or error reports will be generated.
+- **`informationalExceptions`**: Exceptions listed here will generate informational diagnostics but won't be reported as errors.
+
+#### Use Cases
+
+- **Silencing Known Exceptions**: Prevent known, non-critical exceptions from cluttering your diagnostics.
+- **Non-Disruptive Tracking**: Monitor potential issues by logging them as informational messages without treating them as critical errors.
+
+### Performance Considerations
+
+The analyzer operates during the compilation process and is designed to have minimal impact on build performance. By leveraging existing compiler mechanisms and efficient code analysis techniques, it ensures that your development workflow remains smooth.
+
+### Additional Resources
+
+- [Official C# Exception Handling Documentation](https://docs.microsoft.com/dotnet/csharp/fundamentals/exceptions)
+- [Understanding Nullable Reference Types](https://docs.microsoft.com/dotnet/csharp/nullable-references)
+- [GitHub Repository for CheckedExceptions Analyzer](https://github.com/YourRepository/CheckedExceptions)
+
+### Contributing and Feedback
+
+We welcome contributions and feedback from the community! If you encounter issues, have suggestions for improvements, or want to contribute code, please visit our [GitHub Issues](https://github.com/YourRepository/CheckedExceptions/issues) page.
 
 ---
 
-By leveraging nullable contexts, XML documentation, and `ThrowsAttribute`, the analyzer offers a comprehensive solution for exception handling, accommodating both annotated and unannotated libraries while promoting robust code practices.
+By leveraging the `ThrowsAttribute`, XML documentation, and nullable contexts, the CheckedExceptions analyzer provides a comprehensive solution for exception handling. It accommodates both annotated and unannotated libraries, promotes best practices, and helps maintain robust, reliable code.

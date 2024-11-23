@@ -18,13 +18,14 @@
 - [Usage](#usage)
 - [Configuration](#configuration)
   - [Treating Warnings as Errors](#treating-warnings-as-errors)
-  - [Customize Exception Handling](#customize-exception-handling)
+  - [Configuration via Settings File](#configuration-via-settings-file)
 - [Diagnostic Codes Overview](#diagnostic-codes-overview)
 - [Example](#example)
   - [Sample Code](#sample-code)
   - [Diagnostics](#diagnostics)
   - [Handling the Exception](#handling-the-exception)
   - [XML Documentation Support](#xml-documentation-support)
+  - [Nullable Context Interaction](#nullable-context-interaction)
 - [Defining ThrowsAttribute](#defining-throwsattribute)
 - [Suppressing Diagnostics](#suppressing-diagnostics)
 - [Contributing](#contributing)
@@ -197,7 +198,7 @@ With the above configuration:
   
 - **Gradual Adoption:** This approach enables a gradual transition to more disciplined exception handling by focusing on the most critical diagnostics first.
 
-### Customize Exception Handling
+### Configuration via Settings File
 
 You can customize how exceptions are reported by adding a `CheckedExceptions.settings.json` file to your project. This file allows you to silence or downgrade specific exceptions to informational messages.
 
@@ -243,8 +244,8 @@ This configuration is useful for:
 
 | Diagnostic ID | Description |
 |---------------|-------------|
-| `THROW001`    | **Unhandled exception:** Identifies exceptions that are directly thrown or might be thrown by member but neither caught within the method nor declared via `ThrowsAttribute`. |
-| `THROW002`    | *Reserved for future use* |
+| `THROW001`    | **Unhandled exception:** Identifies exceptions that are directly thrown or might be thrown by member, but neither caught within the context nor declared via `ThrowsAttribute`. |
+| `THROW002`    | Informational: Ignored exception may cause runtime issues |
 | `THROW003`    | **General `ThrowsAttribute` usage:** Flags the use of general `Exception` types in `ThrowsAttribute`, encouraging more specific exception declarations. |
 | `THROW004`    | **General exception thrown:** Warns against throwing the general `System.Exception` type directly in the code. |
 | `THROW005`    | **Duplicate `ThrowsAttribute`:** Detects multiple `ThrowsAttribute` declarations for the same exception type within a method or function. |
@@ -262,7 +263,7 @@ public class Sample
 {
     public void Execute()
     {
-        // THROW001: Exception `InvalidOperationException` might be thrown but neither caught nor declared via `ThrowsAttribute`.
+        // THROW001: Exception `InvalidOperationException` might be thrown but not handled.
         PerformOperation();
     }
 
@@ -277,7 +278,7 @@ public class Sample
 
 ### Diagnostics
 
-- **`THROW001` (Unhandled Exception):** In the `Execute` method, `InvalidOperationException` is thrown by `PerformOperation` but is neither caught within `Execute` nor declared using `ThrowsAttribute`.
+- **`THROW001` (Unhandled Exception):** In the `Execute` method, `InvalidOperationException` might be thrown by `PerformOperation` but is neither caught within `Execute` nor declared using `ThrowsAttribute`.
 
 ### Handling the Exception
 
@@ -342,15 +343,15 @@ When you don't handle all exceptions:
 ```csharp
 var fetcher = new DataFetcher();
 
-// THROW001: Exception `NullReferenceException` might be thrown by `FetchData` but neither caught within the caller method nor declared via `ThrowsAttribute`.
-// THROW001: Exception `ArgumentException` might be thrown by `FetchData` but neither caught within the caller method nor declared via `ThrowsAttribute`.
+// THROW001: Exception `NullReferenceException` might be thrown by `FetchData` but not handled
+// THROW001: Exception `ArgumentException` might be thrown by `FetchData` but not handled
 fetcher.FetchData("test");
 ```
 
 **Diagnostic Reported:**
 
-- **`THROW001`:** Exception `NullReferenceException` is thrown by `FetchData` but neither caught within the caller method nor declared via `ThrowsAttribute`.
-- **`THROW001`:** Exception `ArgumentException` is thrown by `FetchData` but neither caught within the caller method nor declared via `ThrowsAttribute`.
+- **`THROW001`:** Exception `NullReferenceException` is thrown by `FetchData` but not handled
+- **`THROW001`:** Exception `ArgumentException` is thrown by `FetchData` but not handled
 
 **Note:** Ensure that all declared exceptions are actually thrown within the method to prevent unnecessary diagnostics.
 
@@ -414,7 +415,7 @@ public class FrameworkSample
 {
     public void WriteToConsole()
     {
-        // THROW001: Exception `IOException` might be thrown by `Console.WriteLine` but neither caught nor declared via `ThrowsAttribute`.
+        // THROW001: Exception `IOException` might be thrown by `Console.WriteLine` but not handled.
         Console.WriteLine("Hello, World!");
     }
 }
@@ -440,6 +441,39 @@ public class Console
     }
 }
 ```
+
+### Nullable Context Interaction
+
+In a nullable context, the analyzer adjusts diagnostics to avoid redundant warnings for exceptions that are unlikely to occur due to nullability annotations.
+
+#### Suppressing `ArgumentNullException` Diagnostics
+
+When parameters are marked as non-nullable, the analyzer suppresses diagnostics for `ArgumentNullException`, as the compiler enforces null safety:
+
+```csharp
+#nullable enable
+
+TestClass test = new TestClass();
+
+string? str = "42";
+
+// Compiler warning: Passing nullable parameter 'str' to non-nullable parameter
+test.Process(str); // Warning generated by the compiler, not the analyzer
+```
+
+Without nullable enabled you would get a diagnostic for `ArgumentNullException`:
+
+```csharp
+#nullable disable
+
+TestClass test = new TestClass();
+
+string str = null;
+
+test.Process(str); // Diagnostic generated by the analyzer for potential ArgumentNullException
+```
+
+Of course, nullable can be enabled on a project level.
 
 ## Defining ThrowsAttribute
 
