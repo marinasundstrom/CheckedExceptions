@@ -186,7 +186,7 @@ With the above configuration:
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Sundstrom.CheckedExceptions" Version="1.0.7" />
+    <PackageReference Include="Sundstrom.CheckedExceptions" Version="1.1.1" />
   </ItemGroup>
 
 </Project>
@@ -200,28 +200,33 @@ With the above configuration:
 
 ### Configuration via Settings File
 
-You can customize how exceptions are reported by adding a `CheckedExceptions.settings.json` file to your project. This file allows you to silence or downgrade specific exceptions to informational messages.
+You can further customize how **CheckedExceptions** reports exceptions by adding a `CheckedExceptions.settings.json` file to your project. This settings file allows you to silence specific exceptions or downgrade their severity based on their context, providing greater control over diagnostics.
+
+#### Use Cases
+
+- **Silencing Known Exceptions:** Prevent non-critical, known exceptions from cluttering your diagnostics.
+- **Non-Disruptive Tracking:** Monitor potential issues by logging them as informational messages without treating them as critical errors.
 
 #### Example Configuration
 
-Create a `CheckedExceptions.settings.json` file with the following structure:
+Create a `CheckedExceptions.settings.json` file in the root of your project with the following structure:
 
 ```json
 {
     "ignoredExceptions": [
         "System.ArgumentNullException"
     ],
-    "informationalExceptions": [
-        "System.NotImplementedException",
-        "System.IO.IOException",
-        "System.TimeoutException"
-    ]
+    "informationalExceptions": {
+        "System.NotImplementedException": "Propagation",
+        "System.IO.IOException": "Propagation",
+        "System.TimeoutException": "Always"
+    }
 }
 ```
 
-#### Registering the File
+#### Registering the Settings File
 
-Add the settings file to your `.csproj`:
+To ensure that **CheckedExceptions** recognizes and applies your custom settings, include the settings file in your project by adding the following to your `.csproj` file:
 
 ```xml
 <ItemGroup>
@@ -229,16 +234,66 @@ Add the settings file to your `.csproj`:
 </ItemGroup>
 ```
 
-#### Behavior
+#### Configuration Options
 
-- **`ignoredExceptions`**: Exceptions listed here will be completely ignored (no logs or error reports).
-- **`informationalExceptions`**: Exceptions listed here will generate informational messages but won't be reported as errors.
+- **`ignoredExceptions`:** 
+  - **Description:** Exceptions listed here will be completely ignored—no diagnostics or error reports will be generated.
+  - **Usage Example:**
+    ```json
+    "ignoredExceptions": [
+        "System.ArgumentNullException"
+    ]
+    ```
 
-#### Why Use This?
+- **`informationalExceptions`:**
+  - **Description:** Exceptions listed here will generate informational diagnostics but won't be reported as errors.
+  - **Modes:**
+    | Mode          | Description                                                                                   |
+    |---------------|-----------------------------------------------------------------------------------------------|
+    | `Throw`       | The exception is considered informational when thrown directly within the method.            |
+    | `Propagation` | The exception is considered informational when propagated (re-thrown or passed up the call stack). |
+    | `Always`      | The exception is always considered informational, regardless of context.                     |
+  - **Usage Example:**
+    ```json
+    "informationalExceptions": {
+        "System.NotImplementedException": "Propagation",
+        "System.IO.IOException": "Propagation",
+        "System.TimeoutException": "Always"
+    }
+    ```
 
-This configuration is useful for:
-- **Silencing expected exceptions**: Avoid cluttering logs with known, non-critical exceptions.
-- **Tracking issues non-disruptively**: Highlight potential problems as informational logs without treating them as critical errors.
+#### Behavior Explanation
+
+- **`ignoredExceptions`:** Exceptions specified here will be excluded from all diagnostics, effectively silencing any warnings or errors related to them.
+  
+- **`informationalExceptions`:** 
+  - **`Throw` Mode:** Marks exceptions as informational when they are thrown directly within the method, allowing you to monitor their usage without enforcing strict handling.
+  - **`Propagation` Mode:** Treats exceptions as informational when they are propagated up the call stack, providing insights into their flow without enforcing handling.
+  - **`Always` Mode:** Applies the informational status to exceptions in all contexts, ensuring they are treated as non-critical regardless of where they occur.
+
+#### Example Scenario
+
+Consider the following configuration:
+
+```json
+{
+    "ignoredExceptions": [
+        "System.ArgumentNullException"
+    ],
+    "informationalExceptions": {
+        "System.IO.IOException": "Propagation"
+    }
+}
+```
+
+- **`System.ArgumentNullException`** will be completely ignored by **CheckedExceptions**, meaning no diagnostics will be reported if this exception is thrown or propagated.
+- **`System.IO.IOException`** will be treated as informational when it is propagated, allowing you to track its flow without enforcing handling or declaration.
+
+#### Benefits
+
+- **Customized Diagnostics:** Tailor the analyzer's behavior to fit your project's specific needs and coding standards.
+- **Reduced Noise:** By silencing or downgrading non-critical exceptions, focus on the most impactful diagnostics.
+- **Flexible Enforcement:** Gradually adopt stricter exception handling practices by selectively enabling diagnostics for different exception types.
 
 ## Diagnostic Codes Overview
 

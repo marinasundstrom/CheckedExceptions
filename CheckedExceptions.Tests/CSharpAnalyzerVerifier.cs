@@ -63,10 +63,10 @@ public static class CSharpAnalyzerVerifier<TAnalyzer, TVerifier>
                 "ignoredExceptions": [
                     "System.NotImplementedException"
                 ],
-                "informationalExceptions": [
-                    "System.IO.IOException",
-                    "System.TimeoutException"
-                ]
+                "informationalExceptions": {
+                    "System.IO.IOException": "Always",
+                    "System.TimeoutException": "Always"
+                }
             }
             """"));
         });

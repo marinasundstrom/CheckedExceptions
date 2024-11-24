@@ -288,12 +288,15 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
                 // Completely ignore this exception
                 continue;
             }
-            else if (options.InformationalExceptions.Contains(exceptionName))
+            else if (options.InformationalExceptions.TryGetValue(exceptionName, out var mode))
             {
-                // Report as THROW002 (Info level)
-                var diagnostic = Diagnostic.Create(RuleIgnoredException, throwStatement.GetLocation(), exceptionType.Name);
-                context.ReportDiagnostic(diagnostic);
-                continue;
+                if (ShouldIgnore(throwStatement, mode))
+                {
+                    // Report as THROW002 (Info level)
+                    var diagnostic = Diagnostic.Create(RuleIgnoredException, throwStatement.GetLocation(), exceptionType.Name);
+                    context.ReportDiagnostic(diagnostic);
+                    continue;
+                }
             }
 
             bool isHandled = handledExceptions.Any(handledException =>
@@ -959,12 +962,15 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             // Completely ignore this exception
             return;
         }
-        else if (options.InformationalExceptions.Contains(exceptionName))
+        else if (options.InformationalExceptions.TryGetValue(exceptionName, out var mode))
         {
-            // Report as THROW002 (Info level)
-            var diagnostic = Diagnostic.Create(RuleIgnoredException, node.GetLocation(), exceptionType.Name);
-            context.ReportDiagnostic(diagnostic);
-            return;
+            if (ShouldIgnore(node, mode))
+            {
+                // Report as THROW002 (Info level)
+                var diagnostic = Diagnostic.Create(RuleIgnoredException, node.GetLocation(), exceptionType.Name);
+                context.ReportDiagnostic(diagnostic);
+                return;
+            }
         }
 
         // Check for general exceptions
@@ -992,6 +998,23 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             var diagnostic = Diagnostic.Create(RuleUnhandledException, node.GetLocation(), properties, exceptionType.Name, verb);
             context.ReportDiagnostic(diagnostic);
         }
+    }
+
+    private bool ShouldIgnore(SyntaxNode node, ExceptionMode mode)
+    {
+        if (mode == ExceptionMode.Always)
+            return true;
+
+        if (mode == ExceptionMode.Throw && node is ThrowStatementSyntax or ThrowExpressionSyntax)
+            return true;
+
+        if (mode == ExceptionMode.Propagation && node
+            is MemberAccessExpressionSyntax
+            or IdentifierNameSyntax
+            or InvocationExpressionSyntax)
+            return true;
+
+        return false;
     }
 
     private bool IsExceptionDeclaredInMethod(SyntaxNodeAnalysisContext context, SyntaxNode node, INamedTypeSymbol exceptionType)

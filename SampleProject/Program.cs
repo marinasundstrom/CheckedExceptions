@@ -15,7 +15,6 @@
 
         Console.WriteLine($"The result was: {parsedNumber}");
     }
-    catch (IOException) { }
     catch (OutOfMemoryException) { }
     catch (ArgumentOutOfRangeException e)
     {
@@ -26,13 +25,7 @@
 }
 catch (InvalidOperationException e)
 {
-#pragma warning disable THROW001 // Unhandled exception
     Console.WriteLine(e.Message);
-#pragma warning restore THROW001 // Unhandled exception
-}
-catch (IOException)
-{
-    throw new NotImplementedException();
 }
 
 [Throws(typeof(InvalidOperationException))]
