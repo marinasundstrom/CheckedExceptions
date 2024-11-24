@@ -76,7 +76,6 @@ public class OrderProcessor
     [Throws(typeof(UnauthorizedAccessException))]
     [Throws(typeof(FormatException))]
     [Throws(typeof(OverflowException))]
-    [Throws(typeof(ArgumentNullException))]
     public void ProcessOrder(string quantityInput)
     {
         // Parse the quantity input
@@ -121,11 +120,8 @@ public class OrderProcessor
 
     // Method may throw multiple exceptions
     [Throws(typeof(InsufficientInventoryException))]
-    [Throws(typeof(OrderNotFoundException))]
     [Throws(typeof(InvalidStockException))]
     [Throws(typeof(UnauthorizedAccessException))]
-    [Throws(typeof(FormatException))]
-    [Throws(typeof(ArgumentNullException))]
     [Throws(typeof(OverflowException))]
     public void ProcessBatchOrders(List<string> orderIds)
     {
@@ -203,7 +199,6 @@ public class OrderService
     [Throws(typeof(UnauthorizedAccessException))]
     [Throws(typeof(InvalidStockException))]
     [Throws(typeof(FormatException))]
-    [Throws(typeof(ArgumentNullException))]
     [Throws(typeof(OverflowException))]
     public void StartOrderProcessing()
     {
@@ -216,7 +211,6 @@ public class OrderService
     [Throws(typeof(InvalidStockException))]
     [Throws(typeof(UnauthorizedAccessException))]
     [Throws(typeof(FormatException))]
-    [Throws(typeof(ArgumentNullException))]
     [Throws(typeof(OverflowException))]
     public void StartBatchProcessing()
     {
@@ -228,10 +222,7 @@ public class OrderService
 class Program
 {
     [Throws(typeof(InvalidStockException))]
-    [Throws(typeof(UnauthorizedAccessException))]
-    [Throws(typeof(FormatException))]
     [Throws(typeof(OverflowException))]
-    [Throws(typeof(ArgumentNullException))]
     static void Main(string[] args)
     {
         var service = new OrderService();
@@ -280,10 +271,6 @@ class Program
         catch (FormatException ex)
         {
             Console.WriteLine("Invalid input format during batch processing.");
-        }
-        catch (ArgumentNullException ex)
-        {
-            Console.WriteLine("Null order ID during batch processing.");
         }
     }
 }

@@ -799,7 +799,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         if (methodSymbol == null)
             return;
 
-        List<INamedTypeSymbol?> exceptionTypes = GetExceptionTypes(methodSymbol);
+        List<INamedTypeSymbol> exceptionTypes = GetExceptionTypes(methodSymbol);
 
         // Get exceptions from XML documentation
         var xmlExceptionTypes = GetExceptionTypesFromDocumentationCommentXml(context.Compilation, methodSymbol);
@@ -810,6 +810,8 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         {
             exceptionTypes.AddRange(xmlExceptionTypes.Select(x => x.ExceptionType));
         }
+
+        exceptionTypes = ProcessNullable(context, node, methodSymbol, exceptionTypes).ToList();
 
         foreach (var exceptionType in exceptionTypes.Distinct(SymbolEqualityComparer.Default).OfType<INamedTypeSymbol>())
         {
@@ -868,7 +870,27 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         return exceptionInfos;
     }
 
-    private static List<INamedTypeSymbol?> GetExceptionTypes(IMethodSymbol methodSymbol)
+    private static IEnumerable<INamedTypeSymbol> ProcessNullable(SyntaxNodeAnalysisContext context, SyntaxNode node, IMethodSymbol methodSymbol, IEnumerable<INamedTypeSymbol> exceptions)
+    {
+        if (argumentNullExceptionTypeSymbol is null)
+        {
+            argumentNullExceptionTypeSymbol = context.Compilation.GetTypeByMetadataName("System.ArgumentNullException");
+        }
+
+        var isCompilationNullableEnabled = context.Compilation.Options.NullableContextOptions == NullableContextOptions.Enable;
+
+        var nullableContext = context.SemanticModel.GetNullableContext(node.SpanStart);
+        var isNodeInNullableContext = nullableContext == NullableContext.Enabled;
+
+        if (isNodeInNullableContext || isCompilationNullableEnabled)
+        {
+            return exceptions.Where(x => !x.Equals(argumentNullExceptionTypeSymbol, SymbolEqualityComparer.Default));
+        }
+
+        return exceptions;
+    }
+
+    private static List<INamedTypeSymbol> GetExceptionTypes(IMethodSymbol methodSymbol)
     {
         // Get exceptions from Throws attributes
         var exceptionAttributes = GetThrowsAttributes(methodSymbol);
@@ -878,7 +900,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             .Select(attr => attr.ConstructorArguments[0].Value as INamedTypeSymbol)
             .Where(type => type != null)
             .ToList();
-        return exceptionTypes;
+        return exceptionTypes!;
     }
 
     private static List<AttributeData> GetThrowsAttributes(ISymbol symbol)
