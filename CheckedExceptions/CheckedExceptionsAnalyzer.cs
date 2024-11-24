@@ -775,7 +775,10 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             exceptionTypes.AddRange(setterMethodExceptions);
         }
 
-        allOtherExceptions = ProcessNullable(context, expression, propertySymbol.GetMethod, allOtherExceptions);
+        if (propertySymbol.GetMethod is not null)
+        {
+            allOtherExceptions = ProcessNullable(context, expression, propertySymbol.GetMethod, allOtherExceptions);
+        }
 
         // Add other exceptions not specific to getters or setters
         exceptionTypes.AddRange(allOtherExceptions.Select(x => x.ExceptionType));

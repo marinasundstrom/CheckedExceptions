@@ -1,7 +1,5 @@
 {
-    "ignoredExceptions": [
-        "System.ArgumentNullException"
-    ],
+    "ignoredExceptions": [],
     "informationalExceptions": {
         "System.NotImplementedException": "Propagation",
         "System.IO.IOException": "Propagation",
