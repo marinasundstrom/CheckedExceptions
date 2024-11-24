@@ -734,7 +734,8 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         var getterExceptions = xmlDocumentedExceptions.Where(x =>
             x.Description.Contains(" get ") ||
             x.Description.Contains(" gets ") ||
-            x.Description.Contains(" getting "));
+            x.Description.Contains(" getting ") ||
+            x.Description.Contains(" retrieved "));
 
         var setterExceptions = xmlDocumentedExceptions.Where(x =>
             x.Description.Contains(" set ") ||
@@ -773,6 +774,8 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             exceptionTypes.AddRange(setterExceptions.Select(x => x.ExceptionType));
             exceptionTypes.AddRange(setterMethodExceptions);
         }
+
+        allOtherExceptions = ProcessNullable(context, expression, propertySymbol.GetMethod, allOtherExceptions);
 
         // Add other exceptions not specific to getters or setters
         exceptionTypes.AddRange(allOtherExceptions.Select(x => x.ExceptionType));
