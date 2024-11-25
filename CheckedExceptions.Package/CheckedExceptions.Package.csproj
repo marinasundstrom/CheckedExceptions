@@ -19,9 +19,9 @@
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <Description>Enforce explicit exception handling in C#/.NET by ensuring all exceptions are
       either handled or declared.</Description>
-    <PackageReleaseNotes>Initial release</PackageReleaseNotes>
+    <PackageReleaseNotes></PackageReleaseNotes>
     <Copyright>Copyright © 2024 Marina Sundström</Copyright>
-    <PackageTags>Checked exceptions, analyzers</PackageTags>
+    <PackageTags>exceptions, analyzers, csharp</PackageTags>
     <DevelopmentDependency>true</DevelopmentDependency>
     <NoPackageAnalysis>true</NoPackageAnalysis>
 
