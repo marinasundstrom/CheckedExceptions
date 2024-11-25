@@ -1,1 +1,1 @@
-When testing packages locally you need to delete the package from the global nuget cache on your computer for projects to get the updated version of the package, if it already has one of the same version..
+When testing packages locally you need to delete the package from the global nuget cache on your computer for projects to get the updated version of the package, if it already has one of the same version.

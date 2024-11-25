@@ -4,8 +4,7 @@
 
 This analyzer works seamlessly with existing class libraries (including .NET class libraries) that have exceptions declared in XML documentation.
 
-[**Repository**](https://github.com/marinasundstrom/CheckedExceptions) • [**NuGet Package**](https://www.nuget.org/packages/Sundstrom.CheckedExceptions)
-
+[![GitHub](https://img.shields.io/badge/GitHub-Repository-lightgrey.svg)](https://github.com/marinasundstrom/CheckedExceptions)
 ![License](https://img.shields.io/github/license/marinasundstrom/CheckedExceptions)
 
 ---
