@@ -9,7 +9,7 @@
 
   <PropertyGroup>
     <PackageId>Sundstrom.CheckedExceptions</PackageId>
-    <PackageVersion>1.1.1.0</PackageVersion>
+    <PackageVersion>1.1.5.0</PackageVersion>
     <Authors>Marina Sundström</Authors>
     <PackageLicenseUrl>
       https://github.com/marinasundstrom/CheckedExceptions/blob/main/LICENSE</PackageLicenseUrl>
@@ -21,7 +21,7 @@
       either handled or declared.</Description>
     <PackageReleaseNotes></PackageReleaseNotes>
     <Copyright>Copyright © 2024 Marina Sundström</Copyright>
-    <PackageTags>exceptions, analyzers, csharp</PackageTags>
+    <PackageTags>exceptions; analyzers; csharp</PackageTags>
     <DevelopmentDependency>true</DevelopmentDependency>
     <NoPackageAnalysis>true</NoPackageAnalysis>
 
