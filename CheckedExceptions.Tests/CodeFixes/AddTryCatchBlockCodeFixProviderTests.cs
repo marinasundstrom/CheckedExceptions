@@ -115,7 +115,7 @@ namespace TestNamespace
     }
 
     [Fact]
-    public async Task AddTryCatch_ToMethod_WhenUnhandledException2()
+    public async Task AddTryCatch_ToMethod_WhenUnhandledException1()
     {
         var testCode = /* lang=c#-test */  """
 using System;
@@ -127,12 +127,12 @@ namespace TestNamespace
         public void TestMethod()
         {
             // Should trigger THROW001
-            DoSomething();
+            var x = DoSomething();
+            x = x + 1;
         }
 
         [Throws(typeof(InvalidOperationException))]
-        [Throws(typeof(ArgumentNullException))]
-        public void DoSomething()
+        public int DoSomething()
         {
             throw new InvalidOperationException();
         }
@@ -152,10 +152,8 @@ namespace TestNamespace
             try
             {
                 // Should trigger THROW001
-                DoSomething();
-            }
-            catch (ArgumentNullException ex)
-            {
+                var x = DoSomething();
+                x = x + 1;
             }
             catch (InvalidOperationException ex)
             {
@@ -163,8 +161,7 @@ namespace TestNamespace
         }
 
         [Throws(typeof(InvalidOperationException))]
-        [Throws(typeof(ArgumentNullException))]
-        public void DoSomething()
+        public int DoSomething()
         {
             throw new InvalidOperationException();
         }
@@ -172,13 +169,10 @@ namespace TestNamespace
 }
 """;
 
-        var expectedDiagnostic1 = Verifier.MightBeThrown("InvalidOperationException")
-            .WithSpan(10, 13, 10, 26);
+        var expectedDiagnostic = Verifier.MightBeThrown("InvalidOperationException")
+            .WithSpan(10, 21, 10, 34);
 
-        var expectedDiagnostic2 = Verifier.MightBeThrown("ArgumentNullException")
-          .WithSpan(10, 13, 10, 26);
-
-        await Verifier.VerifyCodeFixAsync(testCode, [expectedDiagnostic1, expectedDiagnostic2], fixedCode, 2);
+        await Verifier.VerifyCodeFixAsync(testCode, expectedDiagnostic, fixedCode, 1);
     }
 
     [Fact]
