@@ -4,6 +4,7 @@
 
 <!-- ![Deploy](https://github.com/marinasundstrom/CheckedExceptions/actions/workflows/deploy.yml/badge.svg) -->
 ![Build](https://github.com/marinasundstrom/CheckedExceptions/actions/workflows/ci.yml/badge.svg)
+![NuGet](https://img.shields.io/nuget/v/Sundstrom.CheckedExceptions.svg)
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
 [**Repository**](https://github.com/marinasundstrom/CheckedExceptions) • [**NuGet Package**](https://www.nuget.org/packages/Sundstrom.CheckedExceptions)
@@ -186,7 +187,7 @@ With the above configuration:
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Sundstrom.CheckedExceptions" Version="1.1.1" />
+    <PackageReference Include="Sundstrom.CheckedExceptions" Version="1.1.3" />
   </ItemGroup>
 
 </Project>
