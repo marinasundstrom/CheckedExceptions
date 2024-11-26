@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace Test;
 
 public class RethrowTest
@@ -177,6 +179,28 @@ public class RethrowTest
         catch (InvalidOperationException exc)
         {
 
+        }
+    }
+
+    //[Throws(typeof(FormatException))]
+    public void Foo5()
+    {
+        try
+        {
+            int.Parse("Foo");
+
+            StringBuilder sb = new StringBuilder();
+            //sb.Append("");
+
+            sb.Length = 2;
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            throw;
+        }
+        catch
+        {
+            throw;
         }
     }
 }

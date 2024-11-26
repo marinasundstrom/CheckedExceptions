@@ -246,7 +246,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         var semanticModel = context.SemanticModel;
 
         // Collect exceptions that can be thrown in the try block
-        var thrownExceptions = CollectUnhandledExceptions(tryStatement.Block, semanticModel);
+        var thrownExceptions = CollectUnhandledExceptions(context, tryStatement.Block, semanticModel);
 
         // Collect exception types handled by preceding catch clauses
         var handledExceptions = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
@@ -318,7 +318,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         }
     }
 
-    private HashSet<INamedTypeSymbol> CollectUnhandledExceptions(BlockSyntax block, SemanticModel semanticModel)
+    private HashSet<INamedTypeSymbol> CollectUnhandledExceptions(SyntaxNodeAnalysisContext context, BlockSyntax block, SemanticModel semanticModel)
     {
         var unhandledExceptions = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
 
@@ -327,7 +327,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             if (statement is TryStatementSyntax tryStatement)
             {
                 // Recursively collect exceptions from the inner try block
-                var innerUnhandledExceptions = CollectUnhandledExceptions(tryStatement.Block, semanticModel);
+                var innerUnhandledExceptions = CollectUnhandledExceptions(context, tryStatement.Block, semanticModel);
 
                 // Remove exceptions that are caught by the inner catch clauses
                 var caughtExceptions = GetCaughtExceptions(tryStatement.Catches, semanticModel);
@@ -340,7 +340,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             else
             {
                 // Collect exceptions thrown in this statement
-                var statementExceptions = CollectExceptionsFromStatement(statement, semanticModel);
+                var statementExceptions = CollectExceptionsFromStatement(context, statement, semanticModel);
 
                 // Add them to the unhandled exceptions
                 unhandledExceptions.UnionWith(statementExceptions);
@@ -350,7 +350,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         return unhandledExceptions;
     }
 
-    private HashSet<INamedTypeSymbol> CollectExceptionsFromStatement(StatementSyntax statement, SemanticModel semanticModel)
+    private HashSet<INamedTypeSymbol> CollectExceptionsFromStatement(SyntaxNodeAnalysisContext context, StatementSyntax statement, SemanticModel semanticModel)
     {
         var exceptions = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
 
@@ -379,6 +379,9 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
                 // Get exceptions from XML documentation
                 var xmlExceptionTypes = GetExceptionTypesFromDocumentationCommentXml(semanticModel.Compilation, methodSymbol);
+
+                xmlExceptionTypes = ProcessNullable(context, invocation, methodSymbol, xmlExceptionTypes);
+
                 if (xmlExceptionTypes.Any())
                 {
                     exceptionTypes.AddRange(xmlExceptionTypes.Select(x => x.ExceptionType));
@@ -393,6 +396,8 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
                 }
             }
         }
+
+        // TODO: Collect from MemberAccess and Identifier
 
         return exceptions;
     }
