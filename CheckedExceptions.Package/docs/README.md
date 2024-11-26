@@ -183,13 +183,12 @@ public class Sample
 
 ### Diagnostics
 
-**`THROW001` (Unhandled Exception):** In the `Execute` method, if `PerformOperation` throws an `InvalidOperationException` that is neither caught nor declared using `ThrowsAttribute`, the analyzer will report this diagnostic.
+**`THROW001` (Unhandled Exception):** In the `Execute` method, if `PerformOperation` might throw an `InvalidOperationException` that is neither caught nor declared using `ThrowsAttribute`, the analyzer will report this diagnostic.
 
 **Example Diagnostic Message:**
 
 ```
-THROW001: Exception `InvalidOperationException` is thrown by `PerformOperation` but neither caught nor declared via `ThrowsAttribute`.
-```
+THROW001: Exception `InvalidOperationException` is thrown but not handled
 
 After properly handling the exception, no diagnostics are expected.
 

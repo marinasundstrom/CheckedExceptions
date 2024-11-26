@@ -285,7 +285,7 @@ Consider the following configuration:
 }
 ```
 
-- **`System.ArgumentNullException`** will be completely ignored by **CheckedExceptions**, meaning no diagnostics will be reported if this exception is thrown or propagated.
+- **`System.ArgumentNullException`** will be completely ignored by **CheckedExceptions**, meaning no diagnostics will be reported if this exception is or might be thrown or propagated.
 - **`System.IO.IOException`** will be treated as informational when it is propagated, allowing you to track its flow without enforcing handling or declaration.
 
 #### Benefits
@@ -404,8 +404,8 @@ fetcher.FetchData("test");
 
 **Diagnostic Reported:**
 
-- **`THROW001`:** Exception `NullReferenceException` is thrown by `FetchData` but not handled
-- **`THROW001`:** Exception `ArgumentException` is thrown by `FetchData` but not handled
+- **`THROW001`:** Exception `NullReferenceException` might be thrown but not handled
+- **`THROW001`:** Exception `ArgumentException` might be thrown but not handled
 
 **Note:** Ensure that all declared exceptions are actually thrown within the method to prevent unnecessary diagnostics.
 
