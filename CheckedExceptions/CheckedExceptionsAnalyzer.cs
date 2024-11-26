@@ -225,9 +225,8 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
                     }
                     else
                     {
-                        // Specific catch block with 'throw;'
-                        // The exception is considered handled
-                        // No need to report as unhandled
+                        var exceptionType = context.SemanticModel.GetTypeInfo(catchClause.Declaration.Type).Type as INamedTypeSymbol;
+                        AnalyzeExceptionThrowingNode(context, throwStatement, exceptionType, options);
                     }
                 }
             }
@@ -312,7 +311,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
                     RuleUnhandledException,
                     throwStatement.GetLocation(),
                     exceptionType.Name,
-                    "is");
+                    THROW001Verbs.MightBe);
 
                 context.ReportDiagnostic(diagnostic);
             }
