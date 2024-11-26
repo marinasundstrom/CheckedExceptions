@@ -10,6 +10,7 @@ using System.Xml.Linq;
 using System.Reflection;
 using System.Text.Json;
 using System.Collections.Concurrent;
+using System.Linq.Expressions;
 
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
@@ -246,7 +247,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         var semanticModel = context.SemanticModel;
 
         // Collect exceptions that can be thrown in the try block
-        var thrownExceptions = CollectUnhandledExceptions(context, tryStatement.Block, semanticModel);
+        var thrownExceptions = CollectUnhandledExceptions(context, tryStatement.Block, options);
 
         // Collect exception types handled by preceding catch clauses
         var handledExceptions = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
@@ -318,7 +319,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         }
     }
 
-    private HashSet<INamedTypeSymbol> CollectUnhandledExceptions(SyntaxNodeAnalysisContext context, BlockSyntax block, SemanticModel semanticModel)
+    private HashSet<INamedTypeSymbol> CollectUnhandledExceptions(SyntaxNodeAnalysisContext context, BlockSyntax block, AnalyzerConfig options)
     {
         var unhandledExceptions = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
 
@@ -327,10 +328,10 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             if (statement is TryStatementSyntax tryStatement)
             {
                 // Recursively collect exceptions from the inner try block
-                var innerUnhandledExceptions = CollectUnhandledExceptions(context, tryStatement.Block, semanticModel);
+                var innerUnhandledExceptions = CollectUnhandledExceptions(context, tryStatement.Block, options);
 
                 // Remove exceptions that are caught by the inner catch clauses
-                var caughtExceptions = GetCaughtExceptions(tryStatement.Catches, semanticModel);
+                var caughtExceptions = GetCaughtExceptions(tryStatement.Catches, context.SemanticModel);
                 innerUnhandledExceptions.RemoveWhere(exceptionType =>
                     IsExceptionCaught(exceptionType, caughtExceptions));
 
@@ -340,7 +341,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             else
             {
                 // Collect exceptions thrown in this statement
-                var statementExceptions = CollectExceptionsFromStatement(context, statement, semanticModel);
+                var statementExceptions = CollectExceptionsFromStatement(context, statement, options);
 
                 // Add them to the unhandled exceptions
                 unhandledExceptions.UnionWith(statementExceptions);
@@ -350,8 +351,10 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         return unhandledExceptions;
     }
 
-    private HashSet<INamedTypeSymbol> CollectExceptionsFromStatement(SyntaxNodeAnalysisContext context, StatementSyntax statement, SemanticModel semanticModel)
+    private HashSet<INamedTypeSymbol> CollectExceptionsFromStatement(SyntaxNodeAnalysisContext context, StatementSyntax statement, AnalyzerConfig options)
     {
+        SemanticModel semanticModel = context.SemanticModel;
+
         var exceptions = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
 
         // Collect exceptions from throw statements
@@ -363,7 +366,10 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
                 var exceptionType = semanticModel.GetTypeInfo(throwStatement.Expression).Type as INamedTypeSymbol;
                 if (exceptionType != null)
                 {
-                    exceptions.Add(exceptionType);
+                    if (ShouldIncludeException(exceptionType, throwStatement, options))
+                    {
+                        exceptions.Add(exceptionType);
+                    }
                 }
             }
         }
@@ -389,7 +395,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
                 foreach (var exceptionType in exceptionTypes)
                 {
-                    if (exceptionType != null)
+                    if (ShouldIncludeException(exceptionType, invocation, options))
                     {
                         exceptions.Add(exceptionType);
                     }
@@ -397,18 +403,18 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             }
         }
 
-        // TODO: Collect from MemberAccess and Identifier
+        // Collect from MemberAccess and Identifier
         var memberAccessExpressions = statement.DescendantNodesAndSelf().OfType<MemberAccessExpressionSyntax>();
         foreach (var memberAccess in memberAccessExpressions)
         {
             var propertySymbol = semanticModel.GetSymbolInfo(memberAccess).Symbol as IPropertySymbol;
             if (propertySymbol != null)
             {
-                List<INamedTypeSymbol?> exceptionTypes = GetPropertyExceptionTypes(context, memberAccess, propertySymbol);
+                HashSet<INamedTypeSymbol> exceptionTypes = GetPropertyExceptionTypes(context, memberAccess, propertySymbol);
 
                 foreach (var exceptionType in exceptionTypes)
                 {
-                    if (exceptionType != null)
+                    if (ShouldIncludeException(exceptionType, memberAccess, options))
                     {
                         exceptions.Add(exceptionType);
                     }
@@ -422,11 +428,11 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             var propertySymbol = semanticModel.GetSymbolInfo(elementAccess).Symbol as IPropertySymbol;
             if (propertySymbol != null)
             {
-                List<INamedTypeSymbol?> exceptionTypes = GetPropertyExceptionTypes(context, elementAccess, propertySymbol);
+                HashSet<INamedTypeSymbol> exceptionTypes = GetPropertyExceptionTypes(context, elementAccess, propertySymbol);
 
                 foreach (var exceptionType in exceptionTypes)
                 {
-                    if (exceptionType != null)
+                    if (ShouldIncludeException(exceptionType, elementAccess, options))
                     {
                         exceptions.Add(exceptionType);
                     }
@@ -440,19 +446,44 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             var propertySymbol = semanticModel.GetSymbolInfo(identifier).Symbol as IPropertySymbol;
             if (propertySymbol != null)
             {
-                List<INamedTypeSymbol?> exceptionTypes = GetPropertyExceptionTypes(context, identifier, propertySymbol);
+                HashSet<INamedTypeSymbol> exceptionTypes = GetPropertyExceptionTypes(context, identifier, propertySymbol);
 
                 foreach (var exceptionType in exceptionTypes)
                 {
                     if (exceptionType != null)
                     {
-                        exceptions.Add(exceptionType);
+                        if (ShouldIncludeException(exceptionType, identifier, options))
+                        {
+                            exceptions.Add(exceptionType);
+                        }
                     }
                 }
             }
         }
 
         return exceptions;
+    }
+
+    public bool ShouldIncludeException(INamedTypeSymbol exceptionType, SyntaxNode node, AnalyzerConfig options)
+    {
+        var exceptions = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
+
+        var exceptionName = exceptionType.ToDisplayString();
+
+        if (options.IgnoredExceptions.Contains(exceptionName))
+        {
+            // Completely ignore this exception
+            return false;
+        }
+        else if (options.InformationalExceptions.TryGetValue(exceptionName, out var mode))
+        {
+            if (ShouldIgnore(node, mode))
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private HashSet<INamedTypeSymbol> GetCaughtExceptions(SyntaxList<CatchClauseSyntax> catchClauses, SemanticModel semanticModel)
@@ -777,7 +808,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     private void AnalyzePropertyExceptions(SyntaxNodeAnalysisContext context, ExpressionSyntax expression, IPropertySymbol propertySymbol,
         AnalyzerConfig options)
     {
-        List<INamedTypeSymbol?> exceptionTypes = GetPropertyExceptionTypes(context, expression, propertySymbol);
+        HashSet<INamedTypeSymbol> exceptionTypes = GetPropertyExceptionTypes(context, expression, propertySymbol);
 
         // Deduplicate and analyze each distinct exception type
         foreach (var exceptionType in exceptionTypes.Distinct(SymbolEqualityComparer.Default).OfType<INamedTypeSymbol>())
@@ -786,14 +817,14 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         }
     }
 
-    private List<INamedTypeSymbol?> GetPropertyExceptionTypes(SyntaxNodeAnalysisContext context, ExpressionSyntax expression, IPropertySymbol propertySymbol)
+    private HashSet<INamedTypeSymbol> GetPropertyExceptionTypes(SyntaxNodeAnalysisContext context, ExpressionSyntax expression, IPropertySymbol propertySymbol)
     {
         // Determine if the analyzed expression is for a getter or setter
         bool isGetter = IsPropertyGetter(expression);
         bool isSetter = IsPropertySetter(expression);
 
         // List to collect all relevant exception types
-        var exceptionTypes = new List<INamedTypeSymbol?>();
+        var exceptionTypes = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
 
         // Retrieve exception types documented in XML comments for the property
         var xmlDocumentedExceptions = GetExceptionTypesFromDocumentationCommentXml(context.Compilation, propertySymbol);

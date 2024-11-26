@@ -70,12 +70,9 @@ public partial class AnaylzerConfigTest
             }
             """;
 
-        var expected1 = Verifier.Informational("IOException")
+        var expected2 = Verifier.Informational("IOException")
             .WithSpan(9, 13, 9, 39);
 
-        var expected2 = Verifier.Informational("IOException")
-            .WithSpan(13, 13, 13, 19);
-
-        await Verifier.VerifyAnalyzerAsync2(test, expected1, expected2);
+        await Verifier.VerifyAnalyzerAsync2(test, expected2);
     }
 }
