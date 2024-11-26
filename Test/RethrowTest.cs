@@ -182,6 +182,15 @@ public class RethrowTest
         }
     }
 
+    public int Foo
+    {
+        [Throws(typeof(InvalidOperationException))]
+        set
+        {
+
+        }
+    }
+
     //[Throws(typeof(FormatException))]
     public void Foo5()
     {
@@ -190,13 +199,16 @@ public class RethrowTest
             int.Parse("Foo");
 
             StringBuilder sb = new StringBuilder();
-            //sb.Append("");
+            sb.Append("");
 
             sb.Length = 2;
-        }
-        catch (ArgumentOutOfRangeException)
-        {
-            throw;
+
+            List<int> list = new List<int>();
+            var x = list[-1];
+
+            Foo = 2;
+
+            MethodThatThrows2();
         }
         catch
         {

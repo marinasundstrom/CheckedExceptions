@@ -398,6 +398,59 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         }
 
         // TODO: Collect from MemberAccess and Identifier
+        var memberAccessExpressions = statement.DescendantNodesAndSelf().OfType<MemberAccessExpressionSyntax>();
+        foreach (var memberAccess in memberAccessExpressions)
+        {
+            var propertySymbol = semanticModel.GetSymbolInfo(memberAccess).Symbol as IPropertySymbol;
+            if (propertySymbol != null)
+            {
+                List<INamedTypeSymbol?> exceptionTypes = GetPropertyExceptionTypes(context, memberAccess, propertySymbol);
+
+                foreach (var exceptionType in exceptionTypes)
+                {
+                    if (exceptionType != null)
+                    {
+                        exceptions.Add(exceptionType);
+                    }
+                }
+            }
+        }
+
+        var elementAccessExpressions = statement.DescendantNodesAndSelf().OfType<ElementAccessExpressionSyntax>();
+        foreach (var elementAccess in elementAccessExpressions)
+        {
+            var propertySymbol = semanticModel.GetSymbolInfo(elementAccess).Symbol as IPropertySymbol;
+            if (propertySymbol != null)
+            {
+                List<INamedTypeSymbol?> exceptionTypes = GetPropertyExceptionTypes(context, elementAccess, propertySymbol);
+
+                foreach (var exceptionType in exceptionTypes)
+                {
+                    if (exceptionType != null)
+                    {
+                        exceptions.Add(exceptionType);
+                    }
+                }
+            }
+        }
+
+        var identifierExpressions = statement.DescendantNodesAndSelf().OfType<IdentifierNameSyntax>();
+        foreach (var identifier in identifierExpressions)
+        {
+            var propertySymbol = semanticModel.GetSymbolInfo(identifier).Symbol as IPropertySymbol;
+            if (propertySymbol != null)
+            {
+                List<INamedTypeSymbol?> exceptionTypes = GetPropertyExceptionTypes(context, identifier, propertySymbol);
+
+                foreach (var exceptionType in exceptionTypes)
+                {
+                    if (exceptionType != null)
+                    {
+                        exceptions.Add(exceptionType);
+                    }
+                }
+            }
+        }
 
         return exceptions;
     }
@@ -724,6 +777,17 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     private void AnalyzePropertyExceptions(SyntaxNodeAnalysisContext context, ExpressionSyntax expression, IPropertySymbol propertySymbol,
         AnalyzerConfig options)
     {
+        List<INamedTypeSymbol?> exceptionTypes = GetPropertyExceptionTypes(context, expression, propertySymbol);
+
+        // Deduplicate and analyze each distinct exception type
+        foreach (var exceptionType in exceptionTypes.Distinct(SymbolEqualityComparer.Default).OfType<INamedTypeSymbol>())
+        {
+            AnalyzeExceptionThrowingNode(context, expression, exceptionType, options);
+        }
+    }
+
+    private List<INamedTypeSymbol?> GetPropertyExceptionTypes(SyntaxNodeAnalysisContext context, ExpressionSyntax expression, IPropertySymbol propertySymbol)
+    {
         // Determine if the analyzed expression is for a getter or setter
         bool isGetter = IsPropertyGetter(expression);
         bool isSetter = IsPropertySetter(expression);
@@ -786,12 +850,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
         // Add other exceptions not specific to getters or setters
         exceptionTypes.AddRange(allOtherExceptions.Select(x => x.ExceptionType));
-
-        // Deduplicate and analyze each distinct exception type
-        foreach (var exceptionType in exceptionTypes.Distinct(SymbolEqualityComparer.Default).OfType<INamedTypeSymbol>())
-        {
-            AnalyzeExceptionThrowingNode(context, expression, exceptionType, options);
-        }
+        return exceptionTypes;
     }
 
     /// <summary>
