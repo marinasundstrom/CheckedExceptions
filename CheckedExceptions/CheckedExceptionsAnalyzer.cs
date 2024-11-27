@@ -1171,33 +1171,41 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     {
         foreach (var ancestor in node.Ancestors())
         {
-            IMethodSymbol methodSymbol = null;
+            IMethodSymbol? methodSymbol = null;
 
             switch (ancestor)
             {
                 case MethodDeclarationSyntax methodDeclaration:
-                    methodSymbol = context.SemanticModel.GetDeclaredSymbol(methodDeclaration) as IMethodSymbol;
+                    methodSymbol = context.SemanticModel.GetDeclaredSymbol(methodDeclaration);
                     break;
                 case ConstructorDeclarationSyntax constructorDeclaration:
-                    methodSymbol = context.SemanticModel.GetDeclaredSymbol(constructorDeclaration) as IMethodSymbol;
+                    methodSymbol = context.SemanticModel.GetDeclaredSymbol(constructorDeclaration);
                     break;
                 case AccessorDeclarationSyntax accessorDeclaration:
-                    methodSymbol = context.SemanticModel.GetDeclaredSymbol(accessorDeclaration) as IMethodSymbol;
+                    methodSymbol = context.SemanticModel.GetDeclaredSymbol(accessorDeclaration);
                     break;
                 case LocalFunctionStatementSyntax localFunction:
-                    methodSymbol = context.SemanticModel.GetDeclaredSymbol(localFunction) as IMethodSymbol;
+                    methodSymbol = context.SemanticModel.GetDeclaredSymbol(localFunction);
                     break;
                 case AnonymousFunctionExpressionSyntax anonymousFunction:
                     methodSymbol = context.SemanticModel.GetSymbolInfo(anonymousFunction).Symbol as IMethodSymbol;
                     break;
                 default:
+                    // Continue up to next node
                     continue;
             }
 
-            if (methodSymbol != null)
+            if (methodSymbol is not null)
             {
                 if (IsExceptionDeclaredInSymbol(methodSymbol, exceptionType))
                     return true;
+
+                if (ancestor is LocalFunctionStatementSyntax or AnonymousFunctionExpressionSyntax)
+                {
+                    // Break because you are analyzing a local function or anonymous function (lambda)
+                    // If you don't then it will got to the method, and it will affect analysis of this inline function.
+                    break;
+                }
             }
         }
 

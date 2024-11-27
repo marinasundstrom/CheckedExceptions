@@ -123,6 +123,7 @@ public class OrderProcessor
     [Throws(typeof(InvalidStockException))]
     [Throws(typeof(UnauthorizedAccessException))]
     [Throws(typeof(OverflowException))]
+    [Throws(typeof(FormatException))]
     public void ProcessBatchOrders(List<string> orderIds)
     {
         // Lambda expression that may throw OrderNotFoundException and UnauthorizedAccessException
@@ -154,6 +155,7 @@ public class OrderProcessor
         [Throws(typeof(InvalidStockException))]
         [Throws(typeof(UnauthorizedAccessException))]
         [Throws(typeof(OverflowException))]
+        [Throws(typeof(FormatException))]
         void AdjustInventory(string adjustmentInput)
         {
             // Parse the adjustment input

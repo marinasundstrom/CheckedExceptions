@@ -4,7 +4,7 @@ namespace Sundstrom.CheckedExceptions.Tests.BugFixes;
 
 using Verifier = CSharpAnalyzerVerifier<CheckedExceptionsAnalyzer, DefaultVerifier>;
 
-public partial class TryCatchBugs
+public partial class Bugfix39_TryCatchBugs
 {
     [Fact]
     public async Task Should_ReportDiagnostics_ForUnhandledThrowInCatch()
