@@ -1,47 +1,59 @@
-﻿try
+﻿Calculator calculator = new();
+
+try
 {
+    Console.Write("Add integers\n");
+
+    Console.Write("Left-hand side: ");
+    var lhsStr = Console.ReadLine();
+
+    var lhs = int.Parse(lhsStr!);
+
+    Console.Write("Right-hand side: ");
+    var rhsStr = Console.ReadLine();
+
+    var rhs = int.Parse(rhsStr!);
+
     try
     {
-        Console.Write("Write number: ");
+        var sum = calculator.Add(lhs, rhs);
 
-        var number = Console.ReadLine();
-
-        if (number is null)
-        {
-            throw new InvalidOperationException("Argument is null");
-        }
-
-        var parsedNumber = Process(number);
-
-        Console.WriteLine($"The result was: {parsedNumber}");
+        Console.WriteLine($"Sum is: {sum}");
     }
-    catch (OutOfMemoryException) { }
-    catch (ArgumentOutOfRangeException e)
+    catch (OverflowException e)
     {
-        Console.WriteLine(e.Message);
+        Console.WriteLine($"The sum exceeds the bounds of which min is {int.MinValue} and and max is {int.MaxValue}");
     }
-
-    Console.WriteLine("End");
 }
-catch (InvalidOperationException e)
+catch (OverflowException)
 {
-    Console.WriteLine(e.Message);
+    Console.WriteLine($"Specified number must be between {int.MinValue} and {int.MaxValue}");
+}
+catch (FormatException)
+{
+    Console.WriteLine("Expected integer number");
+}
+catch (ArgumentOutOfRangeException)
+{
+    Console.WriteLine("Argument is out of range");
+}
+catch
+{
+    Console.WriteLine("Out of memory");
 }
 
-[Throws(typeof(InvalidOperationException))]
-static double Process(string value)
+public class Calculator
 {
-    try
+    /// <summary>
+    /// Add numbers
+    /// </summary>
+    /// <param name="a">Left-hand side</param>
+    /// <param name="b">Right-hand side</param>
+    /// <returns>The sum of a and b.</returns>
+    /// <exception cref="System.OverflowException">The result exceeds the bounds.</exception>
+    [Throws(typeof(OverflowException))]
+    public int Add(int a, int b)
     {
-        var no = double.Parse(value);
-        return Math.Pow(no, 42);
-    }
-    catch (FormatException)
-    {
-        throw new InvalidOperationException("Format is invalid");
-    }
-    catch (OverflowException)
-    {
-        throw new InvalidOperationException("Number exceeds values");
+        return a + b;
     }
 }
