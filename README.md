@@ -397,8 +397,8 @@ When you don't handle all exceptions:
 ```csharp
 var fetcher = new DataFetcher();
 
-// THROW001: Exception `NullReferenceException` might be thrown by `FetchData` but not handled
-// THROW001: Exception `ArgumentException` might be thrown by `FetchData` but not handled
+// THROW001: Exception `NullReferenceException` might be thrown but not handled
+// THROW001: Exception `ArgumentException` might be thrown but not handled
 fetcher.FetchData("test");
 ```
 
