@@ -403,6 +403,34 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             }
         }
 
+        var objectCreations = statement.DescendantNodesAndSelf().OfType<ObjectCreationExpressionSyntax>();
+        foreach (var objectCreation in objectCreations)
+        {
+            var methodSymbol = semanticModel.GetSymbolInfo(objectCreation).Symbol as IMethodSymbol;
+            if (methodSymbol != null)
+            {
+                var exceptionTypes = GetExceptionTypes(methodSymbol);
+
+                // Get exceptions from XML documentation
+                var xmlExceptionTypes = GetExceptionTypesFromDocumentationCommentXml(semanticModel.Compilation, methodSymbol);
+
+                xmlExceptionTypes = ProcessNullable(context, objectCreation, methodSymbol, xmlExceptionTypes);
+
+                if (xmlExceptionTypes.Any())
+                {
+                    exceptionTypes.AddRange(xmlExceptionTypes.Select(x => x.ExceptionType));
+                }
+
+                foreach (var exceptionType in exceptionTypes)
+                {
+                    if (ShouldIncludeException(exceptionType, objectCreation, options))
+                    {
+                        exceptions.Add(exceptionType);
+                    }
+                }
+            }
+        }
+
         // Collect from MemberAccess and Identifier
         var memberAccessExpressions = statement.DescendantNodesAndSelf().OfType<MemberAccessExpressionSyntax>();
         foreach (var memberAccess in memberAccessExpressions)

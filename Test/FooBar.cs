@@ -21,8 +21,7 @@ public class FooBar
 
                 Console.WriteLine($"The result was: {parsedNumber}");
             }
-            catch (IOException) { }
-            catch (OutOfMemoryException) { }
+            //catch (OutOfMemoryException) { }
             catch (ArgumentOutOfRangeException e)
             {
                 Console.WriteLine(e.Message);
@@ -32,15 +31,8 @@ public class FooBar
         }
         catch (InvalidOperationException e)
         {
-#pragma warning disable THROW001 // Unhandled exception
             Console.WriteLine(e.Message);
-#pragma warning restore THROW001 // Unhandled exception
         }
-        // catch (IOException)
-        // {
-
-        // }
-
 
         [Throws(typeof(InvalidOperationException))]
         static double Process(string value)

@@ -215,4 +215,24 @@ public class RethrowTest
             throw;
         }
     }
+
+
+    //[Throws(typeof(FormatException))]
+    public void Foo6()
+    {
+        try
+        {
+            var x = new Test();
+        }
+        catch
+        {
+            throw;
+        }
+    }
+
+    public class Test
+    {
+        [Throws(typeof(FormatException))]
+        public Test() { }
+    }
 }
