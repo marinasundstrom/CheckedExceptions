@@ -492,4 +492,33 @@ public partial class RethtrowsTest
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }
+
+    [Fact]
+    public async Task Should_ReportDiagnostics_ForRethrownExceptions_FromThrowExpression_WhenCatchingWithoutSpecificException()
+    {
+        var test = /* lang=c#-test */ """
+        #nullable enable
+        using System;
+
+        public class RethrowTest
+        {
+            public void Foo6()
+            {
+                try
+                {
+                    var x = "Test" ?? throw new ArgumentException();
+                }
+                catch
+                {
+                    throw;
+                }
+            }
+        }
+        """;
+
+        var expected = Verifier.MightBeThrown("ArgumentException")
+            .WithSpan(14, 13, 14, 19);
+
+        await Verifier.VerifyAnalyzerAsync(test, expected);
+    }
 }

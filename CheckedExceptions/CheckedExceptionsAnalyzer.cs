@@ -374,6 +374,23 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             }
         }
 
+        // Collect exceptions from throw expressions
+        var throwExpressions = statement.DescendantNodesAndSelf().OfType<ThrowExpressionSyntax>();
+        foreach (var throwExpression in throwExpressions)
+        {
+            if (throwExpression.Expression != null)
+            {
+                var exceptionType = semanticModel.GetTypeInfo(throwExpression.Expression).Type as INamedTypeSymbol;
+                if (exceptionType != null)
+                {
+                    if (ShouldIncludeException(exceptionType, throwExpression, options))
+                    {
+                        exceptions.Add(exceptionType);
+                    }
+                }
+            }
+        }
+
         // Collect exceptions from method calls and other expressions
         var invocationExpressions = statement.DescendantNodesAndSelf().OfType<InvocationExpressionSyntax>();
         foreach (var invocation in invocationExpressions)

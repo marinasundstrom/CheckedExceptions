@@ -235,4 +235,16 @@ public class RethrowTest
         [Throws(typeof(FormatException))]
         public Test() { }
     }
+
+    public void Foo7()
+    {
+        try
+        {
+            var x = "Test" ?? throw new ArgumentException();
+        }
+        catch
+        {
+            throw;
+        }
+    }
 }
