@@ -457,4 +457,39 @@ public partial class RethtrowsTest
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }
+
+    [Fact]
+    public async Task Should_ReportDiagnostics_ForRethrownExceptions_FromObjectCreation_WhenCatchingWithoutSpecificException()
+    {
+        var test = /* lang=c#-test */ """
+        #nullable enable
+        using System;
+
+        public class RethrowTest
+        {
+            public void Foo6()
+            {
+                try
+                {
+                    var x = new Test();
+                }
+                catch
+                {
+                    throw;
+                }
+            }
+
+            public class Test
+            {
+                [Throws(typeof(FormatException))]
+                public Test() { }
+            }
+        }
+        """;
+
+        var expected = Verifier.MightBeThrown("FormatException")
+            .WithSpan(14, 13, 14, 19);
+
+        await Verifier.VerifyAnalyzerAsync(test, expected);
+    }
 }
