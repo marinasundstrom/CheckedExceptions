@@ -536,7 +536,7 @@ With the above configuration:
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Sundstrom.CheckedExceptions" Version="1.1.9" />
+    <PackageReference Include="Sundstrom.CheckedExceptions" Version="1.2.0" />
   </ItemGroup>
 
 </Project>
