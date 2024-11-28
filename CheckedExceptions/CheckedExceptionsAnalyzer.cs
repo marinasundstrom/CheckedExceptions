@@ -22,9 +22,9 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     public const string DiagnosticIdIgnoredException = "THROW002";
     public const string DiagnosticIdGeneralThrows = "THROW003";
     public const string DiagnosticIdGeneralThrow = "THROW004";
-    public const string DiagnosticIdDuplicateThrow = "THROW005";
+    public const string DiagnosticIdDuplicateDeclarations = "THROW005";
 
-    public static IEnumerable<string> AllDiagnosticsIds = [DiagnosticIdUnhandled, DiagnosticIdGeneralThrows, DiagnosticIdGeneralThrow, DiagnosticIdDuplicateThrow];
+    public static IEnumerable<string> AllDiagnosticsIds = [DiagnosticIdUnhandled, DiagnosticIdGeneralThrows, DiagnosticIdGeneralThrow, DiagnosticIdDuplicateDeclarations];
 
     private static readonly DiagnosticDescriptor RuleUnhandledException = new(
         DiagnosticIdUnhandled,
@@ -44,30 +44,30 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
     private static readonly DiagnosticDescriptor RuleGeneralThrow = new(
         DiagnosticIdGeneralThrow,
-        "Avoid throwing general Exception",
-        "Throwing 'Exception' is too general; use a more specific exception type",
+        "Avoid throwing 'Exception'",
+        "Throwing 'Exception' is too general; use a more specific exception type instead",
         "Usage",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
 
     private static readonly DiagnosticDescriptor RuleGeneralThrows = new DiagnosticDescriptor(
         DiagnosticIdGeneralThrows,
-        "Avoid declaring Throws(typeof(Exception))",
-        "Declaring Throws(typeof(Exception)) is too general; use a more specific exception type",
+        "Avoid declaring exception type 'Exception'",
+        "Declaring 'Exception' is too general; use a more specific exception type instead",
         "Usage",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
 
-    private static readonly DiagnosticDescriptor RuleDuplicateThrow = new DiagnosticDescriptor(
-        DiagnosticIdDuplicateThrow,
-        "Avoid duplicate ThrowsAttributes declaring the same exception type",
-        "Multiple ThrowsAttributes declare the same exception type '{0}'. Remove the duplicates to avoid redundancy.",
+    private static readonly DiagnosticDescriptor RuleDuplicateDeclarations = new DiagnosticDescriptor(
+        DiagnosticIdDuplicateDeclarations,
+        "Avoid duplicate declarations of the same exception type",
+        "Duplicate declarations of the exception type '{0}' found. Remove them to avoid redundancy.",
         "Usage",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
-        [RuleUnhandledException, RuleIgnoredException, RuleGeneralThrows, RuleGeneralThrow, RuleDuplicateThrow];
+        [RuleUnhandledException, RuleIgnoredException, RuleGeneralThrows, RuleGeneralThrow, RuleDuplicateDeclarations];
 
     public override void Initialize(AnalysisContext context)
     {
@@ -177,7 +177,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
         CheckForGeneralExceptionThrows(throwsAttributes, context);
 
-        if (throwsAttributes.Count() > 1)
+        if (throwsAttributes.Any())
         {
             CheckForDuplicateThrowsAttributes(context, throwsAttributes);
         }
@@ -194,8 +194,40 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         if (!attribute.ConstructorArguments.Any())
             return false;
 
-        var exceptionType = attribute.ConstructorArguments[0].Value as INamedTypeSymbol;
-        return exceptionType?.Name == exceptionTypeName;
+        var exceptionTypes = GetDistictExceptionTypes(attribute);
+        return exceptionTypes.Any(exceptionType => exceptionType?.Name == exceptionTypeName);
+    }
+
+    public static IEnumerable<INamedTypeSymbol> GetExceptionTypes(params IEnumerable<AttributeData> exceptionAttributes)
+    {
+        var constructorArguments = exceptionAttributes
+            .SelectMany(attr => attr.ConstructorArguments);
+
+        foreach (var arg in constructorArguments)
+        {
+            if (arg.Kind == TypedConstantKind.Array)
+            {
+                foreach (var t in arg.Values)
+                {
+                    if (t.Kind == TypedConstantKind.Type)
+                    {
+                        yield return (INamedTypeSymbol)t.Value!;
+                    }
+                }
+            }
+            else if (arg.Kind == TypedConstantKind.Type)
+            {
+                yield return (INamedTypeSymbol)arg.Value!;
+            }
+        }
+    }
+
+    public static IEnumerable<INamedTypeSymbol> GetDistictExceptionTypes(params IEnumerable<AttributeData> exceptionAttributes)
+    {
+        var exceptionTypes = GetExceptionTypes(exceptionAttributes);
+
+        return exceptionTypes.Distinct(SymbolEqualityComparer.Default)
+            .OfType<INamedTypeSymbol>();
     }
 
     /// <summary>
@@ -1034,12 +1066,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         // Get exceptions from Throws attributes
         var exceptionAttributes = GetThrowsAttributes(methodSymbol);
 
-        // Get specific exception types from Throws attributes
-        var exceptionTypes = exceptionAttributes
-            .Select(attr => attr.ConstructorArguments[0].Value as INamedTypeSymbol)
-            .Where(type => type != null)
-            .ToList();
-        return exceptionTypes!;
+        return GetDistictExceptionTypes(exceptionAttributes).ToList();
     }
 
     private static List<AttributeData> GetThrowsAttributes(ISymbol symbol)
@@ -1234,23 +1261,10 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         if (methodSymbol == null)
             return false;
 
-        // Retrieve all [Throws] attributes
-        var throwsAttributes = GetThrowsAttributes(methodSymbol);
+        var declaredExceptionTypes = GetExceptionTypes(methodSymbol);
 
-        foreach (var attribute in throwsAttributes)
+        foreach (var declaredExceptionType in declaredExceptionTypes)
         {
-            // Ensure the attribute has at least one constructor argument
-            if (attribute.ConstructorArguments.Length == 0)
-                continue;
-
-            var exceptionTypeArg = attribute.ConstructorArguments[0];
-            if (exceptionTypeArg.Kind != TypedConstantKind.Type)
-                continue;
-
-            var declaredExceptionType = exceptionTypeArg.Value as INamedTypeSymbol;
-            if (declaredExceptionType == null)
-                continue;
-
             if (exceptionType.Equals(declaredExceptionType, SymbolEqualityComparer.Default))
                 return true;
 

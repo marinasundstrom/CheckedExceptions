@@ -302,7 +302,7 @@ Consider the following configuration:
 | `THROW002`    | Informational: Ignored exception may cause runtime issues |
 | `THROW003`    | **General `ThrowsAttribute` usage:** Flags the use of general `Exception` types in `ThrowsAttribute`, encouraging more specific exception declarations. |
 | `THROW004`    | **General exception thrown:** Warns against throwing the general `System.Exception` type directly in the code. |
-| `THROW005`    | **Duplicate `ThrowsAttribute`:** Detects multiple `ThrowsAttribute` declarations for the same exception type within a method or function. |
+| `THROW005`    | **Duplicate exception declarations:** Detects duplicate declarations for the same exception type within a method or function. Multiple  `ThrowsAttribute` declaring the same exception. |
 
 ## Example
 
@@ -549,6 +549,33 @@ namespace Sundstrom.CheckedExceptions
                 throw new ArgumentException("ExceptionType must be an Exception type.");
 
             ExceptionType = exceptionType;
+        }
+    }
+}
+```
+
+This version can be declared to allow for multiple exception types in one declaration:
+
+```csharp
+
+[AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Delegate, AllowMultiple = true)]
+public class ThrowsAttribute : Attribute
+{
+    public List<Type> ExceptionTypes { get; } = new List<Type>();
+
+    public ThrowsAttribute(Type exceptionType, params Type[] exceptionTypes)
+    {
+        if (!typeof(Exception).IsAssignableFrom(exceptionType))
+            throw new ArgumentException("Must be an Exception type.");
+
+        ExceptionTypes.Add(exceptionType);
+
+        foreach (var type in exceptionTypes)
+        {
+            if (!typeof(Exception).IsAssignableFrom(type))
+                throw new ArgumentException("Must be an Exception type.");
+
+            ExceptionTypes.Add(type);
         }
     }
 }

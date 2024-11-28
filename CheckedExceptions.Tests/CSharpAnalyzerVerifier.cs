@@ -24,9 +24,18 @@ public static class CSharpAnalyzerVerifier<TAnalyzer, TVerifier>
         => AnalyzerVerifier<TAnalyzer, AnalyzerTest, TVerifier>.Diagnostic("THROW001")
         .WithArguments(exceptionType, THROW001Verbs.MightBe);
 
-
     public static DiagnosticResult Informational(string exceptionType)
         => AnalyzerVerifier<TAnalyzer, AnalyzerTest, TVerifier>.Diagnostic("THROW002")
+        .WithArguments(exceptionType);
+
+    public static DiagnosticResult AvoidDeclaringTypeException()
+        => AnalyzerVerifier<TAnalyzer, AnalyzerTest, TVerifier>.Diagnostic("THROW003");
+
+    public static DiagnosticResult AvoidThrowingTypeException()
+        => AnalyzerVerifier<TAnalyzer, AnalyzerTest, TVerifier>.Diagnostic("THROW004");
+
+    public static DiagnosticResult DuplicateExceptionDeclared(string exceptionType)
+        => AnalyzerVerifier<TAnalyzer, AnalyzerTest, TVerifier>.Diagnostic("THROW005")
         .WithArguments(exceptionType);
 
     public static async Task VerifyAnalyzerAsync([StringSyntax("c#-test")] string source, params DiagnosticResult[] expected)

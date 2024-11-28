@@ -12,20 +12,23 @@ partial class CheckedExceptionsAnalyzer
 
     private void CheckForDuplicateThrowsAttributes(SymbolAnalysisContext context, ImmutableArray<AttributeData> throwsAttributes)
     {
-        var duplicateGroups = throwsAttributes
-            .GroupBy(attr => GetExceptionTypeName(attr))
-            .Where(group => group.Count() > 1);
+        HashSet<INamedTypeSymbol> exceptionTypesList = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
 
-        foreach (var group in duplicateGroups)
+        foreach (var throwsAttribute in throwsAttributes)
         {
-            // Skip the first occurrence and report duplicates
-            foreach (var duplicateAttribute in group.Skip(1))
+            var exceptionTypes = GetExceptionTypes(throwsAttribute);
+            foreach (var exceptionType in exceptionTypes)
             {
-                var duplicateAttributeSyntax = duplicateAttribute.ApplicationSyntaxReference?.GetSyntax(context.CancellationToken);
-                if (duplicateAttributeSyntax != null)
+                if (exceptionTypesList.FirstOrDefault(x => x.Equals(exceptionType, SymbolEqualityComparer.Default)) is not null)
                 {
-                    context.ReportDiagnostic(Diagnostic.Create(RuleDuplicateThrow, duplicateAttributeSyntax.GetLocation(), group.Key));
+                    var duplicateAttributeSyntax = throwsAttribute.ApplicationSyntaxReference?.GetSyntax(context.CancellationToken);
+                    if (duplicateAttributeSyntax != null)
+                    {
+                        context.ReportDiagnostic(Diagnostic.Create(RuleDuplicateDeclarations, duplicateAttributeSyntax.GetLocation(), exceptionType.Name));
+                    }
                 }
+
+                exceptionTypesList.Add(exceptionType);
             }
         }
     }
@@ -59,7 +62,7 @@ partial class CheckedExceptionsAnalyzer
             foreach (var duplicateAttribute in duplicateAttributes.Skip(1))
             {
                 context.ReportDiagnostic(Diagnostic.Create(
-                    RuleDuplicateThrow,
+                    RuleDuplicateDeclarations,
                     duplicateAttribute.GetLocation(),
                     duplicateGroup.Key));
             }

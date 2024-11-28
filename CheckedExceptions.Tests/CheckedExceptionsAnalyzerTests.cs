@@ -48,9 +48,8 @@ public partial class CheckedExceptionsAnalyzerTests
         var expected1 = Verifier.IsThrown("Exception")
             .WithSpan(7, 9, 7, 31);
 
-        var expected2 = Verifier.Diagnostic("THROW004")
-            .WithSpan(7, 9, 7, 31)
-            .WithArguments("Exception");
+        var expected2 = Verifier.AvoidThrowingTypeException()
+            .WithSpan(7, 9, 7, 31);
 
         await Verifier.VerifyAnalyzerAsync(test, expected1, expected2);
     }
@@ -72,9 +71,8 @@ public partial class CheckedExceptionsAnalyzerTests
             }
             """;
 
-        var expected = Verifier.Diagnostic("THROW003")
-            .WithSpan(5, 6, 5, 31)
-            .WithArguments("Exception");
+        var expected = Verifier.AvoidDeclaringTypeException()
+            .WithSpan(5, 6, 5, 31);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }
@@ -97,9 +95,8 @@ public partial class CheckedExceptionsAnalyzerTests
             }
             """;
 
-        var expected = Verifier.Diagnostic("THROW005")
-            .WithSpan(6, 6, 6, 47)
-            .WithArguments("InvalidOperationException");
+        var expected = Verifier.DuplicateExceptionDeclared("InvalidOperationException")
+            .WithSpan(6, 6, 6, 47);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }
