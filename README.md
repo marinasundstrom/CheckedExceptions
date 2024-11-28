@@ -554,7 +554,9 @@ namespace Sundstrom.CheckedExceptions
 }
 ```
 
-This version can be declared to allow for multiple exception types in one declaration:
+### Improved attribute
+
+In order to get a more convenient experience, this version can be defined to allow for multiple exception types in one declaration:
 
 ```csharp
 
@@ -581,6 +583,8 @@ public class ThrowsAttribute : Attribute
 }
 ```
 
+This attribute is backwards compatible, and serves as a drop-in replacement for previous version.
+
 **Notes:**
 
 - **Namespace Choice:** It's advisable to place `ThrowsAttribute` in a custom namespace (e.g., `CheckedExceptions`) rather than the `System` namespace to avoid potential conflicts with existing .NET types.
@@ -600,6 +604,41 @@ public class Example
     }
 }
 ```
+
+Multiple declarations:
+
+```csharp
+using System;
+
+public class Example
+{
+    [Throws(typeof(InvalidOperationException))]
+    [Throws(typeof(ArgumentException))]
+    public void RiskyMethod()
+    {
+        // Omitted: Code that might throw
+    }
+}
+```
+
+With the second updated version of the attribute you can do this:
+
+```csharp
+using System;
+
+public class Example
+{
+    [Throws(
+        typeof(InvalidOperationException),
+        typeof(ArgumentException))]
+    public void RiskyMethod()
+    {
+        // Omitted: Code that might throw
+    }
+}
+```
+
+The previous behavior is still supported. So you can have multiple `ThrowsAttribute`, if you prefer.
 
 ## Suppressing Diagnostics
 
