@@ -20,7 +20,6 @@ public class ThrowsTest
         }
         catch (FormatException exc)
         {
-            // The cath(FormatException) block should be marked as inapplicable since no throw statement or method is declared as possibly throwing this.
             throw;
         }
     }
@@ -33,7 +32,6 @@ public class ThrowsTest
         }
         catch
         {
-            // This should warn about Exception being thrown if no matching ThrowsAttribute found.
             throw;
         }
     }
@@ -50,7 +48,6 @@ public class ThrowsTest
         }
         catch
         {
-            // This should warn about Exception being thrown if no matching ThrowsAttribute found.
             throw;
         }
     }
