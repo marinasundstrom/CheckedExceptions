@@ -1108,6 +1108,14 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         var current = node.Parent;
         while (current != null)
         {
+            // Stop here since the throwing node is within a lambda or a local function
+            // and the boundary has been reached.
+            if (current is AnonymousFunctionExpressionSyntax
+                or LocalFunctionStatementSyntax)
+            {
+                return false;
+            }
+
             if (current is TryStatementSyntax tryStatement)
             {
                 // Prevents analysis within the first try-catch,
@@ -1244,7 +1252,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
                 if (IsExceptionDeclaredInSymbol(methodSymbol, exceptionType))
                     return true;
 
-                if (ancestor is LocalFunctionStatementSyntax or AnonymousFunctionExpressionSyntax)
+                if (ancestor is AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax)
                 {
                     // Break because you are analyzing a local function or anonymous function (lambda)
                     // If you don't then it will got to the method, and it will affect analysis of this inline function.
