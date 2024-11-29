@@ -4,15 +4,17 @@ namespace Test.Cases;
 
 public class FxTest
 {
-    [Throws(typeof(FormatException))]
-    [Throws(typeof(OverflowException))]
+    [Throws(
+        typeof(FormatException),
+        typeof(OverflowException))]
     public void Foo()
     {
         var x = int.Parse("42");
     }
 
-    [Throws(typeof(ArgumentNullException))]
-    [Throws(typeof(OverflowException))]
+    [Throws(
+        typeof(ArgumentNullException),
+        typeof(OverflowException))]
     public void Foo2()
     {
         try

@@ -73,30 +73,6 @@ dotnet add package Sundstrom.CheckedExceptions
 To utilize **CheckedExceptions**, define the `ThrowsAttribute` in your project. Here's a simple implementation:
 
 ```csharp
-using System;
-
-namespace Sundstrom.CheckedExceptions
-{
-    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Delegate, AllowMultiple = true)]
-    public class ThrowsAttribute : Attribute
-    {
-        public Type ExceptionType { get; }
-
-        public ThrowsAttribute(Type exceptionType)
-        {
-            if (!typeof(Exception).IsAssignableFrom(exceptionType))
-                throw new ArgumentException("ExceptionType must be an Exception type.");
-
-            ExceptionType = exceptionType;
-        }
-    }
-}
-```
-
-This version can be declared to allow for multiple exception types in one declaration:
-
-```csharp
-
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Delegate, AllowMultiple = true)]
 public class ThrowsAttribute : Attribute
 {
@@ -123,6 +99,55 @@ public class ThrowsAttribute : Attribute
 **Notes:**
 
 - **Namespace Choice:** It's advisable to place `ThrowsAttribute` in a custom namespace (e.g., `Sundstrom.CheckedExceptions`) rather than the `System` namespace to avoid potential conflicts with existing .NET types.
+
+#### Usage Example
+
+```csharp
+using System;
+
+public class Example
+{
+    [Throws(typeof(InvalidOperationException))]
+    public void RiskyMethod()
+    {
+        // Method implementation
+        throw new InvalidOperationException("Something went wrong.");
+    }
+}
+```
+
+Multiple declarations:
+
+```csharp
+using System;
+
+public class Example
+{
+    [Throws(
+        typeof(InvalidOperationException),
+        typeof(ArgumentException))]
+    public void RiskyMethod()
+    {
+        // Omitted: Code that might throw
+    }
+}
+```
+
+If you prefer, you can have one exception type per `ThrowsAttribute` :
+
+```csharp
+using System;
+
+public class Example
+{
+    [Throws(typeof(InvalidOperationException))]
+    [Throws(typeof(ArgumentException))]
+    public void RiskyMethod()
+    {
+        // Omitted: Code that might throw
+    }
+}
+```
 
 ### Annotating Methods
 

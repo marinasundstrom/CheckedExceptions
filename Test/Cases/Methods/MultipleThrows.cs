@@ -2,8 +2,9 @@ namespace Test.Cases.Methods;
 
 public class MultipleThrows
 {
-    [Throws(typeof(NullReferenceException))]
-    [Throws(typeof(ArgumentException))]
+    [Throws(
+        typeof(NullReferenceException),
+        typeof(ArgumentException))]
     public void ProcessData1()
     {
         var fetcher = new DataFetcher2();

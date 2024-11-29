@@ -24,9 +24,9 @@ public class AsyncTest
         await FooAsync();
     }
 
-    [Throws(typeof(InvalidOperationException))]
-    [Throws(typeof(TaskCanceledException))]
-    [Throws(typeof(HttpRequestException))]
+    [Throws(typeof(InvalidOperationException),
+        typeof(TaskCanceledException),
+        typeof(HttpRequestException))]
     public async void TestMethod4()
     {
         try

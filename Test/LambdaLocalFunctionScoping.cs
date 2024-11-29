@@ -6,7 +6,7 @@ public class LambdaLocalFunctionScoping
     {
         try
         {
-            var test = [Throws(typeof(InvalidOperationException))] bool (string s) =>
+            var test = bool (string s) =>
             {
                 throw new InvalidOperationException();
                 return true;

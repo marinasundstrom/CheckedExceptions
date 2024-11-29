@@ -52,8 +52,9 @@ public class LocalFunctions
     {
         Foo();
 
-        [Throws(typeof(InvalidOperationException))]
-        [Throws(typeof(FormatException))]
+        [Throws(
+            typeof(InvalidOperationException),
+            typeof(FormatException))]
         static void Foo()
         {
             Foo2();
@@ -71,8 +72,9 @@ public class LocalFunctions
             throw;
         }
 
-        [Throws(typeof(InvalidOperationException))]
-        [Throws(typeof(FormatException))]
+        [Throws(
+            typeof(InvalidOperationException),
+            typeof(FormatException))]
         static void Foo()
         {
             Foo2();

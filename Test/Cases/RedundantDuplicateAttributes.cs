@@ -2,8 +2,9 @@ namespace Test.Cases;
 
 public class RedundantDuplicateAttributes
 {
-    [Throws(typeof(NullReferenceException))]
-    [Throws(typeof(NullReferenceException))]
+    [Throws(
+        typeof(NullReferenceException),
+        typeof(NullReferenceException))]
     public void Foo()
     {
         throw new NullReferenceException("Data source is null.");
@@ -11,7 +12,7 @@ public class RedundantDuplicateAttributes
 
     public void Foo2()
     {
-        var fetcher = [Throws(typeof(NullReferenceException))][Throws(typeof(NullReferenceException))] () =>
+        var fetcher = [Throws(typeof(NullReferenceException), typeof(NullReferenceException))] () =>
         {
             throw new NullReferenceException();
         };
@@ -23,8 +24,9 @@ public class RedundantDuplicateAttributes
     {
         Foo();
 
-        [Throws(typeof(NullReferenceException))]
-        [Throws(typeof(NullReferenceException))]
+        [Throws(
+            typeof(NullReferenceException),
+            typeof(NullReferenceException))]
         static void Foo()
         {
             throw new NullReferenceException();

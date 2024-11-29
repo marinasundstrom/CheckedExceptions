@@ -45,8 +45,9 @@ public class ThrowExpressions
         }
     }
 
-    [Throws(typeof(ArgumentNullException))]
-    [Throws(typeof(InvalidOperationException))]
+    [Throws(
+        typeof(ArgumentNullException),
+        typeof(InvalidOperationException))]
     public void FooBar31(int? x)
     {
         try
@@ -62,8 +63,8 @@ public class ThrowExpressions
         }
     }
 
-    [Throws(typeof(ArgumentNullException))]
-    [Throws(typeof(FormatException))]
+    [Throws(typeof(ArgumentNullException),
+        typeof(FormatException))]
     public void FooBar32(int? x)
     {
         try

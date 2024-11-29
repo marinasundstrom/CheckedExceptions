@@ -534,31 +534,6 @@ Of course, nullable can be enabled on a project level.
 To utilize **CheckedExceptions**, you need to define the `ThrowsAttribute` in your project. Here's a simple implementation:
 
 ```csharp
-using System;
-
-namespace Sundstrom.CheckedExceptions
-{
-    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Delegate, AllowMultiple = true)]
-    public class ThrowsAttribute : Attribute
-    {
-        public Type ExceptionType { get; }
-
-        public ThrowsAttribute(Type exceptionType)
-        {
-            if (!typeof(Exception).IsAssignableFrom(exceptionType))
-                throw new ArgumentException("ExceptionType must be an Exception type.");
-
-            ExceptionType = exceptionType;
-        }
-    }
-}
-```
-
-### Improved attribute
-
-In order to get a more convenient experience, this version can be defined to allow for multiple exception types in one declaration:
-
-```csharp
 
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Delegate, AllowMultiple = true)]
 public class ThrowsAttribute : Attribute
@@ -582,8 +557,6 @@ public class ThrowsAttribute : Attribute
     }
 }
 ```
-
-This attribute is backwards compatible, and serves as a drop-in replacement for previous version.
 
 **Notes:**
 
@@ -612,22 +585,6 @@ using System;
 
 public class Example
 {
-    [Throws(typeof(InvalidOperationException))]
-    [Throws(typeof(ArgumentException))]
-    public void RiskyMethod()
-    {
-        // Omitted: Code that might throw
-    }
-}
-```
-
-With the second updated version of the attribute you can do this:
-
-```csharp
-using System;
-
-public class Example
-{
     [Throws(
         typeof(InvalidOperationException),
         typeof(ArgumentException))]
@@ -638,7 +595,21 @@ public class Example
 }
 ```
 
-The previous behavior is still supported. So you can have multiple `ThrowsAttribute`, if you prefer.
+If you prefer, you can have one exception type per `ThrowsAttribute` :
+
+```csharp
+using System;
+
+public class Example
+{
+    [Throws(typeof(InvalidOperationException))]
+    [Throws(typeof(ArgumentException))]
+    public void RiskyMethod()
+    {
+        // Omitted: Code that might throw
+    }
+}
+```
 
 ## Suppressing Diagnostics
 

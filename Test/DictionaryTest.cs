@@ -2,8 +2,9 @@ namespace Test;
 
 public class DictionaryTest
 {
-    //[Throws(typeof(ArgumentException))]
-    //[Throws(typeof(KeyNotFoundException))]
+    [Throws(
+        typeof(ArgumentException), 
+        typeof(KeyNotFoundException))]
     public void Test()
     {
         var dict = new Dictionary<string, object>();

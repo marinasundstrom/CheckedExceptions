@@ -1,5 +1,3 @@
-using Test;
-
 namespace Test.Cases.Indexers;
 
 public class IndexerGetter
@@ -35,7 +33,6 @@ public class IndexerGetter
             }
         }
     }
-
 
     public void DisplayData()
     {

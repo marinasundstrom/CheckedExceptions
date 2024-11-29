@@ -23,32 +23,24 @@ Each component can throw different exceptions based on various failure scenarios
 Before implementing the components, ensure that the `ThrowsAttribute` is defined in your project. This attribute allows methods to declare the exceptions they can throw, enabling **CheckedExceptionsAnalyzer** to enforce explicit exception handling.
 
 ```csharp
-using System;
-
-namespace System
+[AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Delegate, AllowMultiple = true)]
+public class ThrowsAttribute : Attribute
 {
-    /// <summary>
-    /// Specifies the exceptions that a method can throw.
-    /// </summary>
-    [AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Delegate, AllowMultiple = true)]
-    public class ThrowsAttribute : Attribute
+    public List<Type> ExceptionTypes { get; } = new List<Type>();
+
+    public ThrowsAttribute(Type exceptionType, params Type[] exceptionTypes)
     {
-        /// <summary>
-        /// Gets the type of the exception that the method can throw.
-        /// </summary>
-        public Type ExceptionType { get; }
+        if (!typeof(Exception).IsAssignableFrom(exceptionType))
+            throw new ArgumentException("Must be an Exception type.");
 
-        /// <summary>
-        /// Initializes a new instance of the <see cref="ThrowsAttribute"/> class with the specified exception type.
-        /// </summary>
-        /// <param name="exceptionType">The type of exception that the method can throw.</param>
-        /// <exception cref="ArgumentException">Thrown when the provided type is not assignable from <see cref="Exception"/>.</exception>
-        public ThrowsAttribute(Type exceptionType)
+        ExceptionTypes.Add(exceptionType);
+
+        foreach (var type in exceptionTypes)
         {
-            if (!typeof(Exception).IsAssignableFrom(exceptionType))
-                throw new ArgumentException("ExceptionType must be an Exception type.");
+            if (!typeof(Exception).IsAssignableFrom(type))
+                throw new ArgumentException("Must be an Exception type.");
 
-            ExceptionType = exceptionType;
+            ExceptionTypes.Add(type);
         }
     }
 }

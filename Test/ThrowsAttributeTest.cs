@@ -3,9 +3,9 @@ namespace Test;
 public class ThrowsAttributeTest
 {
     [Throws(
-    typeof(InvalidOperationException),
-    typeof(FormatException),
-    typeof(OverflowException))]
+        typeof(InvalidOperationException),
+        typeof(FormatException),
+        typeof(OverflowException))]
     [Throws(typeof(ArgumentException))]
     public void MethodThatThrows()
     {
@@ -19,9 +19,9 @@ public class ThrowsAttributeTest
     }
 
     [Throws(
-    typeof(InvalidOperationException),
-    typeof(FormatException),
-    typeof(OverflowException))]
+        typeof(InvalidOperationException),
+        typeof(FormatException),
+        typeof(OverflowException))]
     [Throws(typeof(ArgumentException))]
     public void MethodThatThrows2()
     {
@@ -35,9 +35,9 @@ public class ThrowsAttributeTest
     }
 
     [Throws(
-    typeof(InvalidOperationException),
-    typeof(FormatException),
-    typeof(OverflowException))]
+        typeof(InvalidOperationException),
+        typeof(FormatException),
+        typeof(OverflowException))]
     public void MethodThatThrows3()
     {
         try
@@ -57,8 +57,8 @@ public class ThrowsAttributeTest
     }
 
     [Throws(
-    typeof(InvalidOperationException),
-    typeof(FormatException),
+        typeof(InvalidOperationException),
+        typeof(FormatException),
     typeof(OverflowException))]
     [Throws(typeof(ArgumentOutOfRangeException))]
     public void MethodThatThrows4()
