@@ -146,7 +146,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
         CheckForGeneralExceptionThrows(context, throwsAttributes);
 
-        if (throwsAttributes.Count > 1)
+        if (throwsAttributes.Any())
         {
             CheckForDuplicateThrowsAttributes(throwsAttributes, context);
         }

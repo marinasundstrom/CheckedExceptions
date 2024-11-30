@@ -1,8 +1,5 @@
-using System.Collections.Immutable;
-
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
-using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace Sundstrom.CheckedExceptions;
 
@@ -78,6 +75,45 @@ partial class CheckedExceptionsAnalyzer
         }
 
         return string.Empty;
+    }
+
+    /// <summary>
+    /// Retrieves the name of the exception type from a ThrowsAttribute's AttributeSyntax.
+    /// </summary>
+    private IEnumerable<INamedTypeSymbol> GetExceptionTypes(AttributeSyntax attributeSyntax, SemanticModel semanticModel)
+    {
+        // Ensure the attribute is ThrowsAttribute
+        var attributeType = semanticModel.GetTypeInfo(attributeSyntax).Type;
+        if (attributeType == null || attributeType.Name != "ThrowsAttribute")
+            yield break;
+
+        // Ensure there is at least one argument
+        var argumentList = attributeSyntax.ArgumentList;
+
+        if (argumentList is null)
+            yield break;
+
+        foreach (var args in argumentList.Arguments)
+        {
+            var expr = args.Expression;
+
+            // Check if it's a typeof expression
+            if (expr is TypeOfExpressionSyntax typeOfExpr)
+            {
+                var typeSyntax = typeOfExpr.Type;
+                var typeInfo = semanticModel.GetTypeInfo(typeSyntax);
+                var typeSymbol = typeInfo.Type as INamedTypeSymbol;
+                if (typeSymbol != null)
+                {
+                    yield return typeSymbol;
+                }
+            }
+            else
+            {
+                // Handle other possible expressions if necessary
+                // For example, directly passing a Type variable, which is uncommon for attributes
+            }
+        }
     }
 
     /// <summary>

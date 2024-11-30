@@ -46,25 +46,23 @@ partial class CheckedExceptionsAnalyzer
     {
         var semanticModel = context.SemanticModel;
 
-        // Extract exception type names for each ThrowsAttribute
-        var duplicateGroups = throwsAttributes
-            .GroupBy(attr => GetExceptionTypeName(attr, semanticModel))
-            .Where(group => group.Count() > 1)
-            .ToList();
+        HashSet<INamedTypeSymbol> exceptionTypesList = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
 
-
-        foreach (var duplicateGroup in duplicateGroups)
+        foreach (var throwsAttribute in throwsAttributes)
         {
-            // Identify all Attributes with this exception type
-            var duplicateAttributes = duplicateGroup.ToList();
-
-            // Skip the first occurrence and report duplicates
-            foreach (var duplicateAttribute in duplicateAttributes.Skip(1))
+            var exceptionTypes = GetExceptionTypes(throwsAttribute, semanticModel);
+            foreach (var exceptionType in exceptionTypes)
             {
-                context.ReportDiagnostic(Diagnostic.Create(
-                    RuleDuplicateDeclarations,
-                    duplicateAttribute.GetLocation(),
-                    duplicateGroup.Key));
+                if (exceptionTypesList.FirstOrDefault(x => x.Equals(exceptionType, SymbolEqualityComparer.Default)) is not null)
+                {
+                    var duplicateAttributeSyntax = throwsAttribute;
+                    if (duplicateAttributeSyntax != null)
+                    {
+                        context.ReportDiagnostic(Diagnostic.Create(RuleDuplicateDeclarations, duplicateAttributeSyntax.GetLocation(), exceptionType.Name));
+                    }
+                }
+
+                exceptionTypesList.Add(exceptionType);
             }
         }
     }
