@@ -95,19 +95,21 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         context.RegisterSyntaxNodeAction(AnalyzeEventAssignment, SyntaxKind.SubtractAssignmentExpression);
     }
 
+    private const string SettingsFileName = "CheckedExceptions.settings.json";
+
     private AnalyzerConfig GetAnalyzerOptions(AnalyzerOptions analyzerOptions)
     {
         if (!configs.TryGetValue(analyzerOptions, out var config))
         {
             foreach (var additionalFile in analyzerOptions.AdditionalFiles)
             {
-                if (Path.GetFileName(additionalFile.Path).Equals("CheckedExceptions.settings.json", StringComparison.OrdinalIgnoreCase))
+                if (Path.GetFileName(additionalFile.Path).Equals(SettingsFileName, StringComparison.OrdinalIgnoreCase))
                 {
                     var text = additionalFile.GetText();
                     if (text != null)
                     {
                         var json = text.ToString();
-                        config = System.Text.Json.JsonSerializer.Deserialize<AnalyzerConfig>(json);
+                        config = JsonSerializer.Deserialize<AnalyzerConfig>(json);
                         break;
                     }
                 }
