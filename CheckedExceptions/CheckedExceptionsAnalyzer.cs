@@ -238,7 +238,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     /// </summary>
     private void AnalyzeThrowStatement(SyntaxNodeAnalysisContext context)
     {
-        var options = GetAnalyzerSettings(context.Options);
+        var settings = GetAnalyzerSettings(context.Options);
 
         var throwStatement = (ThrowStatementSyntax)context.Node;
 
@@ -256,13 +256,13 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
                         var tryStatement = catchClause.Ancestors().OfType<TryStatementSyntax>().FirstOrDefault();
                         if (tryStatement is not null)
                         {
-                            AnalyzeExceptionsInTryBlock(context, tryStatement, catchClause, throwStatement, options);
+                            AnalyzeExceptionsInTryBlock(context, tryStatement, catchClause, throwStatement, settings);
                         }
                     }
                     else
                     {
                         var exceptionType = context.SemanticModel.GetTypeInfo(catchClause.Declaration.Type).Type as INamedTypeSymbol;
-                        AnalyzeExceptionThrowingNode(context, throwStatement, exceptionType, options);
+                        AnalyzeExceptionThrowingNode(context, throwStatement, exceptionType, settings);
                     }
                 }
             }
@@ -273,7 +273,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         if (throwStatement.Expression is ObjectCreationExpressionSyntax creationExpression)
         {
             var exceptionType = context.SemanticModel.GetTypeInfo(creationExpression).Type as INamedTypeSymbol;
-            AnalyzeExceptionThrowingNode(context, throwStatement, exceptionType, options);
+            AnalyzeExceptionThrowingNode(context, throwStatement, exceptionType, settings);
         }
     }
 
@@ -606,7 +606,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
     private void AnalyzeAwait(SyntaxNodeAnalysisContext context)
     {
-        var options = GetAnalyzerSettings(context.Options);
+        var settings = GetAnalyzerSettings(context.Options);
 
         var awaitExpression = (AwaitExpressionSyntax)context.Node;
 
@@ -634,15 +634,15 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
                 }
             }
 
-            AnalyzeMemberExceptions(context, invocation, methodSymbol, options);
+            AnalyzeMemberExceptions(context, invocation, methodSymbol, settings);
         }
         else if (awaitExpression.Expression is MemberAccessExpressionSyntax memberAccess)
         {
-            AnalyzeIdentifierAndMemberAccess(context, memberAccess, options);
+            AnalyzeIdentifierAndMemberAccess(context, memberAccess, settings);
         }
         else if (awaitExpression.Expression is IdentifierNameSyntax identifier)
         {
-            AnalyzeIdentifierAndMemberAccess(context, identifier, options);
+            AnalyzeIdentifierAndMemberAccess(context, identifier, settings);
         }
     }
 
@@ -660,14 +660,14 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     /// </summary>
     private void AnalyzeThrowExpression(SyntaxNodeAnalysisContext context)
     {
-        var options = GetAnalyzerSettings(context.Options);
+        var settings = GetAnalyzerSettings(context.Options);
 
         var throwExpression = (ThrowExpressionSyntax)context.Node;
 
         if (throwExpression.Expression is ObjectCreationExpressionSyntax creationExpression)
         {
             var exceptionType = context.SemanticModel.GetTypeInfo(creationExpression).Type as INamedTypeSymbol;
-            AnalyzeExceptionThrowingNode(context, throwExpression, exceptionType, options);
+            AnalyzeExceptionThrowingNode(context, throwExpression, exceptionType, settings);
         }
     }
 
@@ -676,7 +676,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     /// </summary>
     private void AnalyzeMethodCall(SyntaxNodeAnalysisContext context)
     {
-        var options = GetAnalyzerSettings(context.Options);
+        var settings = GetAnalyzerSettings(context.Options);
 
         var invocation = (InvocationExpressionSyntax)context.Node;
 
@@ -708,7 +708,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             }
         }
 
-        AnalyzeMemberExceptions(context, invocation, methodSymbol, options);
+        AnalyzeMemberExceptions(context, invocation, methodSymbol, settings);
     }
 
     /// <summary>
@@ -776,7 +776,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     /// </summary>
     private void AnalyzeObjectCreation(SyntaxNodeAnalysisContext context)
     {
-        var options = GetAnalyzerSettings(context.Options);
+        var settings = GetAnalyzerSettings(context.Options);
 
         var objectCreation = (ObjectCreationExpressionSyntax)context.Node;
 
@@ -784,7 +784,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         if (constructorSymbol is null)
             return;
 
-        AnalyzeMemberExceptions(context, objectCreation, constructorSymbol, options);
+        AnalyzeMemberExceptions(context, objectCreation, constructorSymbol, settings);
     }
 
     /// <summary>
@@ -792,11 +792,11 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     /// </summary>
     private void AnalyzeMemberAccess(SyntaxNodeAnalysisContext context)
     {
-        var options = GetAnalyzerSettings(context.Options);
+        var settings = GetAnalyzerSettings(context.Options);
 
         var memberAccess = (MemberAccessExpressionSyntax)context.Node;
 
-        AnalyzeIdentifierAndMemberAccess(context, memberAccess, options);
+        AnalyzeIdentifierAndMemberAccess(context, memberAccess, settings);
     }
 
     /// <summary>
@@ -804,7 +804,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     /// </summary>
     private void AnalyzeIdentifier(SyntaxNodeAnalysisContext context)
     {
-        var options = GetAnalyzerSettings(context.Options);
+        var settings = GetAnalyzerSettings(context.Options);
 
         var identifierName = (IdentifierNameSyntax)context.Node;
 
@@ -816,7 +816,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         if (identifierName.Parent is MemberAccessExpressionSyntax)
             return;
 
-        AnalyzeIdentifierAndMemberAccess(context, identifierName, options);
+        AnalyzeIdentifierAndMemberAccess(context, identifierName, settings);
     }
 
     private void AnalyzeIdentifierAndMemberAccess(SyntaxNodeAnalysisContext context, ExpressionSyntax expression, AnalyzerSettings settings)
@@ -837,7 +837,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     /// </summary>
     private void AnalyzeElementAccess(SyntaxNodeAnalysisContext context)
     {
-        var options = GetAnalyzerSettings(context.Options);
+        var settings = GetAnalyzerSettings(context.Options);
 
         var elementAccess = (ElementAccessExpressionSyntax)context.Node;
 
@@ -847,7 +847,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
         if (symbol is IPropertySymbol propertySymbol)
         {
-            AnalyzePropertyExceptions(context, elementAccess, symbol, options);
+            AnalyzePropertyExceptions(context, elementAccess, symbol, settings);
         }
     }
 
@@ -856,7 +856,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     /// </summary>
     private void AnalyzeEventAssignment(SyntaxNodeAnalysisContext context)
     {
-        var options = GetAnalyzerSettings(context.Options);
+        var settings = GetAnalyzerSettings(context.Options);
 
         var assignment = (AssignmentExpressionSyntax)context.Node;
 
@@ -878,7 +878,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
         if (methodSymbol is not null)
         {
-            AnalyzeMemberExceptions(context, assignment, methodSymbol, options);
+            AnalyzeMemberExceptions(context, assignment, methodSymbol, settings);
         }
     }
 
