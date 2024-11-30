@@ -20,7 +20,7 @@ partial class CheckedExceptionsAnalyzer
         {
             // Report diagnostic for [Throws(typeof(Exception))]
             var attributeSyntax = attribute.ApplicationSyntaxReference?.GetSyntax(context.CancellationToken);
-            if (attributeSyntax != null)
+            if (attributeSyntax is not null)
             {
                 context.ReportDiagnostic(Diagnostic.Create(RuleGeneralThrows, attributeSyntax.GetLocation()));
             }

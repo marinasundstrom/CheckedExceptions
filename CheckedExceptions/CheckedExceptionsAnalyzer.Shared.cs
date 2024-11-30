@@ -10,7 +10,7 @@ partial class CheckedExceptionsAnalyzer
     /// </summary>
     private string GetExceptionTypeName(AttributeData attributeData)
     {
-        if (attributeData == null)
+        if (attributeData is null)
             return string.Empty;
 
         // Ensure the attribute is ThrowsAttribute
@@ -46,12 +46,12 @@ partial class CheckedExceptionsAnalyzer
     {
         // Ensure the attribute is ThrowsAttribute
         var attributeType = semanticModel.GetTypeInfo(attributeSyntax).Type;
-        if (attributeType == null || attributeType.Name != "ThrowsAttribute")
+        if (attributeType is null || attributeType.Name is not "ThrowsAttribute")
             return string.Empty;
 
         // Ensure there is at least one argument
         var argumentList = attributeSyntax.ArgumentList;
-        if (argumentList == null || argumentList.Arguments.Count == 0)
+        if (argumentList is null || argumentList.Arguments.Count == 0)
             return string.Empty;
 
         var firstArg = argumentList.Arguments[0];
@@ -63,7 +63,7 @@ partial class CheckedExceptionsAnalyzer
             var typeSyntax = typeOfExpr.Type;
             var typeInfo = semanticModel.GetTypeInfo(typeSyntax);
             var typeSymbol = typeInfo.Type as INamedTypeSymbol;
-            if (typeSymbol != null)
+            if (typeSymbol is not null)
             {
                 return typeSymbol.Name;
             }
@@ -84,7 +84,7 @@ partial class CheckedExceptionsAnalyzer
     {
         // Ensure the attribute is ThrowsAttribute
         var attributeType = semanticModel.GetTypeInfo(attributeSyntax).Type;
-        if (attributeType == null || attributeType.Name != "ThrowsAttribute")
+        if (attributeType is null || attributeType.Name is not "ThrowsAttribute")
             yield break;
 
         // Ensure there is at least one argument
@@ -103,7 +103,7 @@ partial class CheckedExceptionsAnalyzer
                 var typeSyntax = typeOfExpr.Type;
                 var typeInfo = semanticModel.GetTypeInfo(typeSyntax);
                 var typeSymbol = typeInfo.Type as INamedTypeSymbol;
-                if (typeSymbol != null)
+                if (typeSymbol is not null)
                 {
                     yield return typeSymbol;
                 }

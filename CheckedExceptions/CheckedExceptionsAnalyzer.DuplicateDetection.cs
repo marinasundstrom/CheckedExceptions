@@ -22,7 +22,7 @@ partial class CheckedExceptionsAnalyzer
                 if (exceptionTypesList.FirstOrDefault(x => x.Equals(exceptionType, SymbolEqualityComparer.Default)) is not null)
                 {
                     var duplicateAttributeSyntax = throwsAttribute.ApplicationSyntaxReference?.GetSyntax(context.CancellationToken);
-                    if (duplicateAttributeSyntax != null)
+                    if (duplicateAttributeSyntax is not null)
                     {
                         context.ReportDiagnostic(Diagnostic.Create(RuleDuplicateDeclarations, duplicateAttributeSyntax.GetLocation(), exceptionType.Name));
                     }
@@ -56,7 +56,7 @@ partial class CheckedExceptionsAnalyzer
                 if (exceptionTypesList.FirstOrDefault(x => x.Equals(exceptionType, SymbolEqualityComparer.Default)) is not null)
                 {
                     var duplicateAttributeSyntax = throwsAttribute;
-                    if (duplicateAttributeSyntax != null)
+                    if (duplicateAttributeSyntax is not null)
                     {
                         context.ReportDiagnostic(Diagnostic.Create(RuleDuplicateDeclarations, duplicateAttributeSyntax.GetLocation(), exceptionType.Name));
                     }

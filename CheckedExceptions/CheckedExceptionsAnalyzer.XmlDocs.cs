@@ -23,7 +23,7 @@ partial class CheckedExceptionsAnalyzer
             var metadataReference = compilation.References
                 .FirstOrDefault(r => compilation.GetAssemblyOrModuleSymbol(r)?.Name == assemblyName);
 
-            if (metadataReference != null)
+            if (metadataReference is not null)
             {
                 if (metadataReference is PortableExecutableReference peReference)
                 {
