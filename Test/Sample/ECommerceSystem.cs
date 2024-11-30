@@ -193,7 +193,7 @@ public class OrderProcessor
 
 public class OrderService
 {
-    private OrderProcessor _processor = new OrderProcessor();
+    private readonly OrderProcessor _processor = new OrderProcessor();
 
     // Method may throw multiple exceptions
     [Throws(typeof(InsufficientInventoryException))]

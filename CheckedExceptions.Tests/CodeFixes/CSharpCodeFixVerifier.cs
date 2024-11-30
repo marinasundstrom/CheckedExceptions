@@ -1,14 +1,14 @@
 namespace Sundstrom.CheckedExceptions.Tests.CodeFixes;
 
+using System.Diagnostics.CodeAnalysis;
+using System.Linq;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeFixes;
 using Microsoft.CodeAnalysis.CSharp.Testing;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Testing;
 using Microsoft.CodeAnalysis.Text;
-
-using System.Diagnostics.CodeAnalysis;
-using System.Linq;
 
 using static Microsoft.CodeAnalysis.Testing.ReferenceAssemblies;
 

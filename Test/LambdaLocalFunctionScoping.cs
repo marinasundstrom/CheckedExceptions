@@ -27,7 +27,7 @@ public class LambdaLocalFunctionScoping
             Test("");
 
             [Throws(typeof(InvalidOperationException))]
-            bool Test(string s)
+            static bool Test(string s)
             {
                 throw new InvalidOperationException();
                 return true;

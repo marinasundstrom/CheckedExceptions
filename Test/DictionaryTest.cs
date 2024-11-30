@@ -3,7 +3,7 @@ namespace Test;
 public class DictionaryTest
 {
     [Throws(
-        typeof(ArgumentException), 
+        typeof(ArgumentException),
         typeof(KeyNotFoundException))]
     public void Test()
     {

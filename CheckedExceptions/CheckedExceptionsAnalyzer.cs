@@ -1,21 +1,22 @@
 ﻿namespace Sundstrom.CheckedExceptions;
 
-using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.Diagnostics;
-using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Linq;
-using System.Xml.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 using System.Text.Json;
-using System.Collections.Concurrent;
-using System.Linq.Expressions;
+using System.Xml.Linq;
+
+using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Diagnostics;
 
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 {
-    static ConcurrentDictionary<AnalyzerOptions, AnalyzerConfig> configs = new ConcurrentDictionary<AnalyzerOptions, AnalyzerConfig>();
+    static readonly ConcurrentDictionary<AnalyzerOptions, AnalyzerConfig> configs = new ConcurrentDictionary<AnalyzerOptions, AnalyzerConfig>();
 
     // Diagnostic IDs
     public const string DiagnosticIdUnhandled = "THROW001";

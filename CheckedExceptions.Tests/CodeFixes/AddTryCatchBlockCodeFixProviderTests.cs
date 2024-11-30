@@ -1,10 +1,11 @@
 namespace Sundstrom.CheckedExceptions.Tests.CodeFixes;
 
 using System.Threading.Tasks;
+
 using Xunit;
+using Xunit.Abstractions;
 
 using Verifier = CSharpCodeFixVerifier<CheckedExceptionsAnalyzer, AddTryCatchBlockCodeFixProvider, Microsoft.CodeAnalysis.Testing.DefaultVerifier>;
-using Xunit.Abstractions;
 
 public class AddTryCatchBlockCodeFixProviderTests
 {

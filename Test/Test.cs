@@ -10,7 +10,7 @@ public class Test
 
     public void TestMethod()
     {
-        void LocalFunction()
+        static void LocalFunction()
         {
             // Should trigger THROW001
             throw new InvalidOperationException();

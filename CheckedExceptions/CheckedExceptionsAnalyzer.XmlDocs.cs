@@ -1,8 +1,8 @@
-using Microsoft.CodeAnalysis;
-
 using System.Collections.Concurrent;
 using System.Xml;
 using System.Xml.Linq;
+
+using Microsoft.CodeAnalysis;
 
 namespace Sundstrom.CheckedExceptions;
 
@@ -124,7 +124,7 @@ partial class CheckedExceptionsAnalyzer
         return GetExceptionTypesFromDocumentationCommentXml(compilation, docCommentXml).ToList();
     }
 
-    bool loadFromProject = true;
+    readonly bool loadFromProject = true;
 
     private XElement? GetDocumentationCommentXmlForSymbol(Compilation compilation, ISymbol symbol)
     {
