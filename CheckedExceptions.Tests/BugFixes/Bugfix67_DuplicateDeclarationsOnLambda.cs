@@ -7,7 +7,7 @@ using Verifier = CSharpAnalyzerVerifier<CheckedExceptionsAnalyzer, DefaultVerifi
 public partial class Bugfix67_DuplicateDeclarationsOnLambda
 {
     [Fact]
-    public async Task WarnsForNonNullableContextWithMultipleExceptions()
+    public async Task SingleExceptionTypeInThrowsAttribute_ShouldNotReportDiagnostic()
     {
         var test = /* lang=c#-test */ """
         using System;
@@ -27,7 +27,7 @@ public partial class Bugfix67_DuplicateDeclarationsOnLambda
     }
 
     [Fact]
-    public async Task WarnsForNonNullableContextWithMultipleExceptions2()
+    public async Task SameExceptionTypeDeclaredTwiceInThrowsAttribute_ShouldReportDiagnostic()
     {
         var test = /* lang=c#-test */ """
         using System;
