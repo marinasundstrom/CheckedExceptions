@@ -11,7 +11,7 @@ public class EventPublisher
         [Throws(typeof(InvalidOperationException))]
         add
         {
-            if (value == null)
+            if (value is null)
                 throw new InvalidOperationException("Cannot add a null handler.");
 
             handlers += value;
@@ -20,7 +20,7 @@ public class EventPublisher
         [Throws(typeof(InvalidOperationException))]
         remove
         {
-            if (value == null)
+            if (value is null)
                 throw new InvalidOperationException("Cannot remove a null handler.");
 
             handlers -= value;
@@ -32,7 +32,7 @@ public class EventPublisher
         [Throws(typeof(InvalidOperationException))]
         add
         {
-            if (value == null)
+            if (value is null)
                 throw new InvalidOperationException("Cannot add a null handler.");
 
             handlers += value;

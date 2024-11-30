@@ -12,11 +12,11 @@ public static class TypeSymbolExtensions
     /// </summary>
     public static bool InheritsFrom(this INamedTypeSymbol type, INamedTypeSymbol baseType)
     {
-        if (type == null || baseType == null)
+        if (type is null || baseType is null)
             return false;
 
         var current = type.BaseType;
-        while (current != null)
+        while (current is not null)
         {
             if (current.Equals(baseType, SymbolEqualityComparer.Default))
                 return true;

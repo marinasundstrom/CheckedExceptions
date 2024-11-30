@@ -141,7 +141,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             .Where(attr => IsThrowsAttribute(attr, semanticModel))
             .ToList();
 
-        if (throwsAttributes.Count == 0)
+        if (throwsAttributes.Count is 0)
             return;
 
         CheckForGeneralExceptionThrows(context, throwsAttributes);
@@ -162,7 +162,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             return false;
 
         var attributeType = attributeSymbol.ContainingType;
-        return attributeType.Name == "ThrowsAttribute";
+        return attributeType.Name is "ThrowsAttribute";
     }
 
     private void AnalyzeMethodSymbol(SymbolAnalysisContext context)
@@ -174,7 +174,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
         var throwsAttributes = GetThrowsAttributes(methodSymbol).ToImmutableArray();
 
-        if (throwsAttributes.Count() == 0)
+        if (throwsAttributes.Count() is 0)
             return;
 
         CheckForGeneralExceptionThrows(throwsAttributes, context);
@@ -207,17 +207,17 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
         foreach (var arg in constructorArguments)
         {
-            if (arg.Kind == TypedConstantKind.Array)
+            if (arg.Kind is TypedConstantKind.Array)
             {
                 foreach (var t in arg.Values)
                 {
-                    if (t.Kind == TypedConstantKind.Type)
+                    if (t.Kind is TypedConstantKind.Type)
                     {
                         yield return (INamedTypeSymbol)t.Value!;
                     }
                 }
             }
-            else if (arg.Kind == TypedConstantKind.Type)
+            else if (arg.Kind is TypedConstantKind.Type)
             {
                 yield return (INamedTypeSymbol)arg.Value!;
             }
@@ -1013,7 +1013,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
                 return exceptionInfos.Where(x => !x.ExceptionType.Equals(argumentNullExceptionTypeSymbol, SymbolEqualityComparer.Default));
             }
 
-            if (methodSymbol.Parameters.Count() == 1)
+            if (methodSymbol.Parameters.Count() is 1)
             {
                 var p = methodSymbol.Parameters.First();
 
@@ -1027,7 +1027,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
                 exceptionInfos = exceptionInfos.Where(x =>
                 {
                     var p = methodSymbol.Parameters.FirstOrDefault(p => x.Parameters.Any(p2 => p.Name == p2.Name));
-                    if (p != default)
+                    if (p is not null)
                     {
                         if (x.ExceptionType.Equals(argumentNullExceptionTypeSymbol, SymbolEqualityComparer.Default)
                         && p.NullableAnnotation is NullableAnnotation.NotAnnotated)
@@ -1079,7 +1079,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     private static List<AttributeData> GetThrowsAttributes(IEnumerable<AttributeData> attributes)
     {
         return attributes
-                    .Where(attr => attr.AttributeClass?.Name == "ThrowsAttribute")
+                    .Where(attr => attr.AttributeClass?.Name is "ThrowsAttribute")
                     .ToList();
     }
 
@@ -1206,13 +1206,13 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
     private bool ShouldIgnore(SyntaxNode node, ExceptionMode mode)
     {
-        if (mode == ExceptionMode.Always)
+        if (mode is ExceptionMode.Always)
             return true;
 
-        if (mode == ExceptionMode.Throw && node is ThrowStatementSyntax or ThrowExpressionSyntax)
+        if (mode is ExceptionMode.Throw && node is ThrowStatementSyntax or ThrowExpressionSyntax)
             return true;
 
-        if (mode == ExceptionMode.Propagation && node
+        if (mode is ExceptionMode.Propagation && node
             is MemberAccessExpressionSyntax
             or IdentifierNameSyntax
             or InvocationExpressionSyntax)
@@ -1288,7 +1288,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
     private bool IsGeneralException(INamedTypeSymbol exceptionType)
     {
-        return exceptionType.ToDisplayString() == "System.Exception";
+        return exceptionType.ToDisplayString() is "System.Exception";
     }
 
     private bool IsPropertyGetter(ExpressionSyntax expression)

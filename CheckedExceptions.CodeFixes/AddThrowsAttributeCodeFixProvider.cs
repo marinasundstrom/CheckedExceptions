@@ -48,7 +48,7 @@ public class AddThrowsAttributeCodeFixProvider : CodeFixProvider
 
         var ancestor = GetContainingMethodOrConstruct(node);
 
-        if (ancestor == null)
+        if (ancestor is null)
             return document;
 
         var editor = await DocumentEditor.CreateAsync(document, cancellationToken).ConfigureAwait(false);
@@ -59,7 +59,7 @@ public class AddThrowsAttributeCodeFixProvider : CodeFixProvider
         {
             var exceptionType = SyntaxFactory.ParseTypeName(exceptionTypeName);
 
-            if (exceptionType == null)
+            if (exceptionType is null)
                 return document;
 
             if (ancestor is BaseMethodDeclarationSyntax m && HasThrowsAttribute(m, exceptionType))
@@ -114,7 +114,7 @@ public class AddThrowsAttributeCodeFixProvider : CodeFixProvider
             newAncestor = lambdaExpression.WithAttributeLists(lambdaExpression.AttributeLists.Add(attributeList));
         }
 
-        if (newAncestor != null)
+        if (newAncestor is not null)
         {
             editor.ReplaceNode(ancestor, newAncestor
                 .WithAdditionalAnnotations(Formatter.Annotation)
@@ -158,7 +158,7 @@ public class AddThrowsAttributeCodeFixProvider : CodeFixProvider
     private static bool CheckHasExceptionType(TypeSyntax exceptionType, SeparatedSyntaxList<AttributeSyntax>? attributes)
     {
         return attributes.Value
-            .Where(x => x.Name.ToString() == "ThrowsAttribute")
+            .Where(x => x.Name.ToString() is "ThrowsAttribute")
             .Any(x => x.ArgumentList
                 .Arguments.Any(x => x.Expression is TypeOfExpressionSyntax z && z.Type == exceptionType));
     }

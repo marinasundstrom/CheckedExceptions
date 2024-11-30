@@ -14,11 +14,11 @@ partial class CheckedExceptionsAnalyzer
             return string.Empty;
 
         // Ensure the attribute is ThrowsAttribute
-        if (attributeData.AttributeClass?.Name != "ThrowsAttribute")
+        if (attributeData.AttributeClass?.Name is not "ThrowsAttribute")
             return string.Empty;
 
         // Ensure there's at least one constructor argument
-        if (attributeData.ConstructorArguments.Length == 0)
+        if (attributeData.ConstructorArguments.Length is 0)
             return string.Empty;
 
         // The first constructor argument should be the exception type (typeof(Foo))
@@ -31,7 +31,7 @@ partial class CheckedExceptionsAnalyzer
         }
 
         // If not directly a named type, attempt to get the type from the type argument
-        if (exceptionTypeArg.Kind == TypedConstantKind.Type && exceptionTypeArg.Value is ITypeSymbol typeSymbol)
+        if (exceptionTypeArg.Kind is TypedConstantKind.Type && exceptionTypeArg.Value is ITypeSymbol typeSymbol)
         {
             return typeSymbol.Name;
         }
@@ -51,7 +51,7 @@ partial class CheckedExceptionsAnalyzer
 
         // Ensure there is at least one argument
         var argumentList = attributeSyntax.ArgumentList;
-        if (argumentList is null || argumentList.Arguments.Count == 0)
+        if (argumentList is null || argumentList.Arguments.Count is 0)
             return string.Empty;
 
         var firstArg = argumentList.Arguments[0];

@@ -152,7 +152,7 @@ namespace DataProcessingApp
         public void Process(XmlDocument xmlDoc)
         {
             // Example processing logic
-            if (xmlDoc == null)
+            if (xmlDoc is null)
                 throw new InvalidOperationException("XML document cannot be null.");
 
             // Further processing...

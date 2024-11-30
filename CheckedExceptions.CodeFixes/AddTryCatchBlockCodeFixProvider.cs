@@ -32,7 +32,7 @@ namespace Sundstrom.CheckedExceptions
 
             // Register the code fix only if the node is a statement or within a statement
             var statement = node.FirstAncestorOrSelf<StatementSyntax>();
-            if (statement == null)
+            if (statement is null)
                 return;
 
             context.RegisterCodeFix(
@@ -59,13 +59,13 @@ namespace Sundstrom.CheckedExceptions
             var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
 
             var parentBlock = statement.Parent as BlockSyntax;
-            if (parentBlock == null)
+            if (parentBlock is null)
                 return document; // Cannot proceed if the parent is not a block
 
             var statements = parentBlock.Statements;
             var targetIndex = statements.IndexOf(statement);
 
-            if (targetIndex == -1)
+            if (targetIndex is -1)
                 return document; // Statement not found in the parent block
 
             // Check if the statement is already inside a try-catch block
@@ -78,7 +78,7 @@ namespace Sundstrom.CheckedExceptions
             {
                 // Check if any existing catch clause handles the exception types
                 var existingCatchTypes = existingTryStatement.Catches
-                    .SelectMany(catchClause => catchClause.Declaration != null
+                    .SelectMany(catchClause => catchClause.Declaration is not null
                         ? new[] { catchClause.Declaration.Type.ToString() }
                         : []);
 
@@ -194,7 +194,7 @@ namespace Sundstrom.CheckedExceptions
 
             string catchExceptionVariableName;
 
-            if (level == 0)
+            if (level is 0)
             {
                 catchExceptionVariableName = "ex";
             }

@@ -11,9 +11,9 @@ public static class HashSetExtensions
     /// <exception cref="ArgumentNullException">Thrown if the set or items are null.</exception>
     public static void AddRange<T>(this HashSet<T> set, IEnumerable<T> items)
     {
-        if (set == null)
+        if (set is null)
             throw new ArgumentNullException(nameof(set));
-        if (items == null)
+        if (items is null)
             throw new ArgumentNullException(nameof(items));
 
         foreach (var item in items)

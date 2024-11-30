@@ -7,13 +7,13 @@ public static class AttributeHelper
 {
     public static AttributeData? GetSpecificAttributeData(AttributeSyntax attributeSyntax, SemanticModel semanticModel)
     {
-        if (attributeSyntax == null || semanticModel == null)
+        if (attributeSyntax is null || semanticModel is null)
             return null;
 
         // Get the symbol to which the attribute is applied
         var declaredSymbol = semanticModel.GetDeclaredSymbol(attributeSyntax.Parent?.Parent);
 
-        if (declaredSymbol == null)
+        if (declaredSymbol is null)
             return null;
 
         // Get all attributes applied to the symbol

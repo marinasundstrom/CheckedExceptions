@@ -715,7 +715,7 @@ public class Calculator
     [Throws(typeof(DivideByZeroException))]
     public int Divide(int numerator, int denominator)
     {
-        if (denominator == 0)
+        if (denominator is 0)
             throw new DivideByZeroException("Denominator cannot be zero.");
 
         return numerator / denominator;
