@@ -2,7 +2,7 @@ namespace Sundstrom.CheckedExceptions;
 
 using System.Text.Json.Serialization;
 
-public partial class AnalyzerConfig
+public partial class AnalyzerSettings
 {
     [JsonPropertyName("ignoredExceptions")]
     public IEnumerable<string> IgnoredExceptions { get; set; } = new List<string>();
