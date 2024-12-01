@@ -203,7 +203,7 @@ A simple `throw` statement without handling generates a diagnostic indicating th
 ```csharp
 public void Foo()
 {
-    // THROW001: Exception "InvalidOperationException" is thrown or unhandled
+    // THROW001: Exception "InvalidOperationException" is thrown but not handled
     throw new InvalidOperationException();
 }
 ```
@@ -241,7 +241,7 @@ public void Foo()
 When unhandled at call site:
 
 ```csharp
-// THROW001: Exception "InvalidOperationException" might be thrown or unhandled
+// THROW001: Exception "InvalidOperationException" might be thrown but not handled
 
 Foo();
 ```
@@ -280,8 +280,8 @@ public void Foo()
 When unhandled at call site:
 
 ```csharp
-// THROW001: Exception "ArgumentOutOfRangeException" might be thrown or unhandled
-// THROW001: Exception "InvalidOperationException" might be thrown or unhandled
+// THROW001: Exception "ArgumentOutOfRangeException" might be thrown but not handled
+// THROW001: Exception "InvalidOperationException" might be thrown but not handled
 
 Foo();
 ```
