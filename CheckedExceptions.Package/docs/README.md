@@ -618,12 +618,14 @@ Create a `CheckedExceptions.settings.json` file in the root of your project with
         "System.ArgumentNullException"
     ],
     "informationalExceptions": {
-        "System.NotImplementedException": "Propagation",
+        "System.NotImplementedException": "Throw",
         "System.IO.IOException": "Propagation",
         "System.TimeoutException": "Always"
     }
 }
 ```
+
+There is a JSON schema provided.
 
 #### Registering the Settings File
 
