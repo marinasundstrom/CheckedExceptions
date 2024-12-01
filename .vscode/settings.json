@@ -1,1 +1,8 @@
-{}
+{
+    "json.schemas": [
+      {
+        "fileMatch": ["CheckedExceptions.settings.json"],
+        "url": "./schemas/settings-schema.json"
+      }
+    ]
+  }

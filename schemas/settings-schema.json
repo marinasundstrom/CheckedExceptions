@@ -1,0 +1,24 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "ignoredExceptions": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[a-zA-Z0-9_.]+$"
+      },
+      "description": "A list of fully qualified exception type names to be ignored."
+    },
+    "informationalExceptions": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string",
+        "enum": [ "Throw", "Propagation", "Always" ]
+      },
+      "description": "A mapping of fully qualified exception type names to their informational handling strategy."
+    }
+  },
+  "required": [ "ignoredExceptions", "informationalExceptions" ],
+  "additionalProperties": false
+}
