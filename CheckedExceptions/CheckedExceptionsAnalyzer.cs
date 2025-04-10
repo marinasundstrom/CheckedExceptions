@@ -24,6 +24,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     public const string DiagnosticIdGeneralThrows = "THROW003";
     public const string DiagnosticIdGeneralThrow = "THROW004";
     public const string DiagnosticIdDuplicateDeclarations = "THROW005";
+    public const string DiagnosticIdMissingThrowsOnBaseMember = "THROW006";
 
     public static IEnumerable<string> AllDiagnosticsIds = [DiagnosticIdUnhandled, DiagnosticIdGeneralThrows, DiagnosticIdGeneralThrow, DiagnosticIdDuplicateDeclarations];
 
@@ -67,8 +68,17 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
 
+    private static readonly DiagnosticDescriptor RuleMissingThrowsOnBaseMember = new DiagnosticDescriptor(
+        DiagnosticIdMissingThrowsOnBaseMember,
+        "Missing Throws declaration",
+        "'{0}' is not declaring exception '{1}' that is declared by an overriding or implementing member",
+        "Usage",
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "Base or interface members should declare compatible exceptions when overridden or implemented members declare them using [Throws].");
+
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
-        [RuleUnhandledException, RuleIgnoredException, RuleGeneralThrows, RuleGeneralThrow, RuleDuplicateDeclarations];
+        [RuleUnhandledException, RuleIgnoredException, RuleGeneralThrows, RuleGeneralThrow, RuleDuplicateDeclarations, RuleMissingThrowsOnBaseMember];
 
     public override void Initialize(AnalysisContext context)
     {
@@ -175,15 +185,13 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
         var throwsAttributes = GetThrowsAttributes(methodSymbol).ToImmutableArray();
 
-        if (throwsAttributes.Count() is 0)
+        CheckForCompatibilityWithBaseOrInterface(context, throwsAttributes);
+
+        if (throwsAttributes.Length == 0)
             return;
 
         CheckForGeneralExceptionThrows(throwsAttributes, context);
-
-        if (throwsAttributes.Any())
-        {
-            CheckForDuplicateThrowsAttributes(context, throwsAttributes);
-        }
+        CheckForDuplicateThrowsAttributes(context, throwsAttributes);
     }
 
     private static IEnumerable<AttributeData> FilterThrowsAttributesByException(ImmutableArray<AttributeData> exceptionAttributes, string exceptionTypeName)
