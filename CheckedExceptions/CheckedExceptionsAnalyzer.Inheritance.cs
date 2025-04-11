@@ -46,10 +46,6 @@ partial class CheckedExceptionsAnalyzer
                     var location = baseMethod.Locations.FirstOrDefault();
                     var memberName = $"{baseMethod.ContainingType.Name}.{baseMethod.Name}";
 
-#pragma warning disable RS1035 // Do not use APIs banned for analyzers
-                    Console.WriteLine($"❌ Incompatible: {memberName} lacks {declared.Name}\n{location.GetLineSpan()}");
-#pragma warning restore RS1035 // Do not use APIs banned for analyzers
-
                     var diagnostic = Diagnostic.Create(
                         RuleMissingThrowsOnBaseMember,
                         location,
