@@ -43,6 +43,7 @@ public class NetworkOperation : IOperation
 
 public interface IOperation2
 {
+    //[Throws(typeof(IOException))]
     void Run();
 }
 
