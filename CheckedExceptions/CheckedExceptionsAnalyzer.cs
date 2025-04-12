@@ -35,7 +35,8 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         "Exception '{0}' {1} thrown but not handled",
         "Usage",
         DiagnosticSeverity.Warning,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true,
+        description: "Reports exceptions that are thrown but not caught or declared with [Throws], potentially violating exception safety.");
 
     private static readonly DiagnosticDescriptor RuleIgnoredException = new DiagnosticDescriptor(
         DiagnosticIdIgnoredException,
@@ -43,7 +44,8 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         "Exception '{0}' is ignored by configuration but may cause runtime issues if unhandled",
         "Usage",
         DiagnosticSeverity.Info,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true,
+        description: "Informs about exceptions excluded from analysis but which may still propagate at runtime if not properly handled.");
 
     private static readonly DiagnosticDescriptor RuleGeneralThrow = new(
         DiagnosticIdGeneralThrow,
@@ -51,7 +53,8 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         "Throwing 'Exception' is too general; use a more specific exception type instead",
         "Usage",
         DiagnosticSeverity.Warning,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true,
+        description: "Discourages throwing the base System.Exception type directly, encouraging clearer and more actionable error semantics.");
 
     private static readonly DiagnosticDescriptor RuleGeneralThrows = new DiagnosticDescriptor(
         DiagnosticIdGeneralThrows,
@@ -59,7 +62,8 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         "Declaring 'Exception' is too general; use a more specific exception type instead",
         "Usage",
         DiagnosticSeverity.Warning,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true,
+        description: "Discourages the use of System.Exception in [Throws] attributes. Prefer declaring more specific exception types.");
 
     private static readonly DiagnosticDescriptor RuleDuplicateDeclarations = new DiagnosticDescriptor(
         DiagnosticIdDuplicateDeclarations,
@@ -67,7 +71,8 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         "Duplicate declarations of the exception type '{0}' found. Remove them to avoid redundancy.",
         "Usage",
         DiagnosticSeverity.Warning,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true,
+        description: "Detects multiple [Throws] declarations for the same exception type on a single member, which is redundant.");
 
     private static readonly DiagnosticDescriptor RuleMissingThrowsOnBaseMember = new DiagnosticDescriptor(
         DiagnosticIdMissingThrowsOnBaseMember,
@@ -84,7 +89,8 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         "Base member '{0}' declares exception '{1}' which is not declared here",
         "Usage",
         DiagnosticSeverity.Warning,
-        isEnabledByDefault: true);
+        isEnabledByDefault: true,
+        description: "Ensures that overridden or implemented members declare exceptions required by their base or interface definitions.");
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
         [RuleUnhandledException, RuleIgnoredException, RuleGeneralThrows, RuleGeneralThrow, RuleDuplicateDeclarations, RuleMissingThrowsOnBaseMember, RuleMissingThrowsFromBaseMember];
