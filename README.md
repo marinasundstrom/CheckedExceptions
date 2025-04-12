@@ -63,6 +63,12 @@ Unlike Java's checked exceptions, **CheckedExceptions** is **opt-in** and treats
   
 - **Prevention of Duplicate Throws Attributes (`THROW005`):**
   - Detects multiple `ThrowsAttribute` declarations for the same exception type within a method or function to eliminate redundancy.
+
+- **Missing [Throws] on base member (THROW006):**
+  - Reports when an overridden or implemented member declares an exception not present on the corresponding base member.
+
+- **Missing [Throws] from derived member (THROW007):**
+  - Reports when a base or interface member declares an exception that is not declared by the overriding or implementing member.
   
 - **Comprehensive Analysis:**
   - Analyzes various C# constructs including methods, constructors, lambda expressions, local functions, property accessors, event assignments, and more to ensure consistent exception handling.
@@ -304,7 +310,9 @@ Consider the following configuration:
 | `THROW002`    | Informational: Ignored exception may cause runtime issues |
 | `THROW003`    | **General `ThrowsAttribute` usage:** Flags the use of general `Exception` types in `ThrowsAttribute`, encouraging more specific exception declarations. |
 | `THROW004`    | **General exception thrown:** Warns against throwing the general `System.Exception` type directly in the code. |
-| `THROW005`    | **Duplicate exception declarations:** Detects duplicate declarations for the same exception type within a method or function. Multiple  `ThrowsAttribute` declaring the same exception. |
+| `THROW005`    | **Duplicate exception declarations:** Detects duplicate declarations for the same exception type within a method or function. Multiple `ThrowsAttribute` declaring the same exception. |
+| `THROW006`    | **Missing `[Throws]` on base member:** Declared exception on overriding or implementing member is not present on the corresponding base member. |
+| `THROW007`    | **Missing `[Throws]` from derived member:** Base or interface member declares an exception that is not declared by the overriding or implementing member. |
 
 ## Example
 
