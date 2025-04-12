@@ -8,4 +8,4 @@ THROW003 | Usage   | Warning  | CheckedExceptionsAnalyzer
 THROW004 | Usage   | Warning  | CheckedExceptionsAnalyzer
 THROW005 | Usage   | Warning  | CheckedExceptionsAnalyzer
 THROW006 | Usage   | Warning  | CheckedExceptionsAnalyzer
-
+THROW007 | Usage   | Warning  | CheckedExceptionsAnalyzer

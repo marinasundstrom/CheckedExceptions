@@ -35,27 +35,80 @@ partial class CheckedExceptionsAnalyzer
         {
             var baseExceptions = GetExceptionTypes(baseMethod).ToImmutableHashSet(SymbolEqualityComparer.Default);
 
-            foreach (var declared in declaredExceptions)
+            AnalyzeMissingThrowsOnBaseMember(context, method, declaredExceptions, baseMethod, baseExceptions);
+
+            AnalyzeMissingThrowsFromBaseMember(context, method, declaredExceptions, baseMethod, baseExceptions);
+        }
+    }
+
+    private void AnalyzeMissingThrowsFromBaseMember(SymbolAnalysisContext context, IMethodSymbol method, ImmutableHashSet<ISymbol?> declaredExceptions, IMethodSymbol baseMethod, ImmutableHashSet<ISymbol?> baseExceptions)
+    {
+        foreach (var baseException in baseExceptions.OfType<ITypeSymbol>())
+        {
+            // Skip if base exception is System.Exception or a base class thereof
+            if (IsTooGenericException(baseException))
+                continue;
+
+            var isCovered = declaredExceptions.Any(declared =>
             {
-                var isCompatible = baseExceptions.Any(baseEx =>
-                    declared.Equals(baseEx, SymbolEqualityComparer.Default) ||
-                    ((INamedTypeSymbol)declared).InheritsFrom((INamedTypeSymbol)baseEx));
+                if (declared.Equals(baseException, SymbolEqualityComparer.Default))
+                    return true;
 
-                if (!isCompatible)
-                {
-                    var location = method.Locations.FirstOrDefault();
-                    var memberName = $"{baseMethod.ContainingType.Name}.{baseMethod.Name}";
+                var declaredNamed = declared as INamedTypeSymbol;
+                var baseNamed = baseException as INamedTypeSymbol;
 
-                    var diagnostic = Diagnostic.Create(
-                        RuleMissingThrowsOnBaseMember,
-                        location,
-                        memberName,
-                        declared.Name);
+                return declaredNamed != null && baseNamed != null && declaredNamed.InheritsFrom(baseNamed);
+            });
 
-                    context.ReportDiagnostic(diagnostic);
-                }
+            if (!isCovered)
+            {
+                var location = method.Locations.FirstOrDefault();
+                var baseName = $"{baseMethod.ContainingType.Name}.{baseMethod.Name}";
+
+                var diagnostic = Diagnostic.Create(
+                    RuleMissingThrowsFromBaseMember,
+                    location,
+                    baseName,
+                    baseException.Name);
+
+                context.ReportDiagnostic(diagnostic);
             }
         }
+    }
+
+    private static void AnalyzeMissingThrowsOnBaseMember(SymbolAnalysisContext context, IMethodSymbol method, ImmutableHashSet<ISymbol?> declaredExceptions, IMethodSymbol baseMethod, ImmutableHashSet<ISymbol?> baseExceptions)
+    {
+        foreach (var declared in declaredExceptions)
+        {
+            var isCompatible = baseExceptions.Any(baseEx =>
+                declared.Equals(baseEx, SymbolEqualityComparer.Default) ||
+                ((INamedTypeSymbol)declared).InheritsFrom((INamedTypeSymbol)baseEx));
+
+            if (!isCompatible)
+            {
+                var location = method.Locations.FirstOrDefault();
+                var memberName = $"{baseMethod.ContainingType.Name}.{baseMethod.Name}";
+
+                var diagnostic = Diagnostic.Create(
+                    RuleMissingThrowsOnBaseMember,
+                    location,
+                    memberName,
+                    declared.Name);
+
+                context.ReportDiagnostic(diagnostic);
+            }
+        }
+    }
+
+    private bool IsTooGenericException(ITypeSymbol ex)
+    {
+        var namedType = ex as INamedTypeSymbol;
+        if (namedType == null)
+            return false;
+
+        var fullName = namedType.ToDisplayString();
+
+        return fullName == "System.Exception" || fullName == "System.SystemException";
     }
 
     private IEnumerable<IMethodSymbol> GetBaseOrInterfaceMethods(IMethodSymbol method)

@@ -25,6 +25,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     public const string DiagnosticIdGeneralThrow = "THROW004";
     public const string DiagnosticIdDuplicateDeclarations = "THROW005";
     public const string DiagnosticIdMissingThrowsOnBaseMember = "THROW006";
+    public const string DiagnosticIdMissingThrowsFromBaseMember = "THROW007";
 
     public static IEnumerable<string> AllDiagnosticsIds = [DiagnosticIdUnhandled, DiagnosticIdGeneralThrows, DiagnosticIdGeneralThrow, DiagnosticIdDuplicateDeclarations];
 
@@ -77,8 +78,16 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         isEnabledByDefault: true,
         description: "Base or interface members should declare compatible exceptions when overridden or implemented members declare them using [Throws].");
 
+    private static readonly DiagnosticDescriptor RuleMissingThrowsFromBaseMember = new(
+        DiagnosticIdMissingThrowsFromBaseMember,
+        "Missing Throws declaration for exception declared on base member",
+        "Base member '{0}' declares exception '{1}' which is not declared here",
+        "Usage",
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
-        [RuleUnhandledException, RuleIgnoredException, RuleGeneralThrows, RuleGeneralThrow, RuleDuplicateDeclarations, RuleMissingThrowsOnBaseMember];
+        [RuleUnhandledException, RuleIgnoredException, RuleGeneralThrows, RuleGeneralThrow, RuleDuplicateDeclarations, RuleMissingThrowsOnBaseMember, RuleMissingThrowsFromBaseMember];
 
     public override void Initialize(AnalysisContext context)
     {

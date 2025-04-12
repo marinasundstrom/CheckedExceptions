@@ -10,6 +10,8 @@ public interface IOperation
 
     bool Foo
     {
+        [Throws(typeof(InvalidDataException))]
+        [Throws(typeof(IOException))]
         get;
     }
 }
@@ -19,6 +21,7 @@ public class FileOperation : IOperation
     public bool Foo
     {
         [Throws(typeof(InvalidDataException))]
+        [Throws(typeof(IOException))]
         get;
     }
 

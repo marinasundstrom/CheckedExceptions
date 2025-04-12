@@ -38,6 +38,16 @@ public static class CSharpAnalyzerVerifier<TAnalyzer, TVerifier>
         => AnalyzerVerifier<TAnalyzer, AnalyzerTest, TVerifier>.Diagnostic("THROW005")
         .WithArguments(exceptionType);
 
+    public static DiagnosticResult MissingThrowsOnBaseMember(string exceptionType, string memberName)
+        => AnalyzerVerifier<TAnalyzer, AnalyzerTest, TVerifier>.Diagnostic("THROW006")
+        .WithArguments(memberName, exceptionType);
+
+
+    public static DiagnosticResult MissingThrowsFromBaseMember(string exceptionType, string memberName)
+        => AnalyzerVerifier<TAnalyzer, AnalyzerTest, TVerifier>.Diagnostic("THROW007")
+        .WithArguments(memberName, exceptionType);
+
+
     public static async Task VerifyAnalyzerAsync([StringSyntax("c#-test")] string source, params DiagnosticResult[] expected)
     {
         await VerifyAnalyzerAsync(source, (test) =>
