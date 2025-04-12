@@ -43,7 +43,7 @@ partial class CheckedExceptionsAnalyzer
 
                 if (!isCompatible)
                 {
-                    var location = baseMethod.Locations.FirstOrDefault();
+                    var location = method.Locations.FirstOrDefault();
                     var memberName = $"{baseMethod.ContainingType.Name}.{baseMethod.Name}";
 
                     var diagnostic = Diagnostic.Create(

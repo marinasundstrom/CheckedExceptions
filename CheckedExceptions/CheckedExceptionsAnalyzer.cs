@@ -71,7 +71,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor RuleMissingThrowsOnBaseMember = new DiagnosticDescriptor(
         DiagnosticIdMissingThrowsOnBaseMember,
         "Missing Throws declaration",
-        "'{0}' is not declaring exception '{1}' that is declared by an overriding or implementing member",
+        "Exception '{1}' is not declared on base member '{0}'",
         "Usage",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
