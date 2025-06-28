@@ -130,6 +130,9 @@ partial class CheckedExceptionsAnalyzer
         if (expression is InvocationExpressionSyntax)
             return GetSignificantInvocationLocation(expression);
 
+        if (expression is ElementAccessExpressionSyntax)
+            return GetSignificantInvocationLocation(expression);
+
         var node = GetSignificantNodeCore(expression);
         return node.GetLocation();
     }
@@ -139,6 +142,11 @@ partial class CheckedExceptionsAnalyzer
         if (expression is InvocationExpressionSyntax ie)
         {
             return GetSignificantNodeCore(ie.Expression);
+        }
+
+        if (expression is ElementAccessExpressionSyntax ea)
+        {
+            return GetSignificantNodeCore(ea.Expression);
         }
 
         if (expression is MemberAccessExpressionSyntax mae)
@@ -162,6 +170,18 @@ partial class CheckedExceptionsAnalyzer
 
             var span = TextSpan.FromBounds(start, end);
             return Location.Create(invocation.SyntaxTree, span);
+        }
+        else if (expression is ElementAccessExpressionSyntax elementAccess)
+        {
+            // Get the name part (e.g., bar in foo.bar[2])
+            var nameNode = GetSignificantNodeCore(elementAccess.Expression);
+
+            // Compute the span from name start to the full invocation end
+            var start = nameNode.SpanStart;
+            var end = elementAccess.Span.End;
+
+            var span = TextSpan.FromBounds(start, end);
+            return Location.Create(elementAccess.SyntaxTree, span);
         }
 
         return expression.GetLocation();
