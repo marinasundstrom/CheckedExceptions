@@ -57,13 +57,13 @@ public partial class XmlDocTest
             """;
 
         var expected1 = Verifier.MightBeThrown("ArgumentNullException")
-            .WithSpan(7, 9, 7, 24);
+            .WithSpan(7, 13, 7, 24);
 
         var expected2 = Verifier.MightBeThrown("FormatException")
-            .WithSpan(7, 9, 7, 24);
+            .WithSpan(7, 13, 7, 24);
 
         var expected3 = Verifier.MightBeThrown("OverflowException")
-            .WithSpan(7, 9, 7, 24);
+            .WithSpan(7, 13, 7, 24);
 
         await Verifier.VerifyAnalyzerAsync(test, expected1, expected2, expected3);
     }
@@ -87,10 +87,10 @@ public partial class XmlDocTest
             """;
 
         var expected2 = Verifier.MightBeThrown("FormatException")
-            .WithSpan(8, 9, 8, 24);
+            .WithSpan(8, 13, 8, 24);
 
         var expected3 = Verifier.MightBeThrown("OverflowException")
-            .WithSpan(8, 9, 8, 24);
+            .WithSpan(8, 13, 8, 24);
 
         await Verifier.VerifyAnalyzerAsync(test, [expected2, expected3]);
     }
@@ -139,7 +139,7 @@ public partial class XmlDocTest
             """;
 
         var expected = Verifier.MightBeThrown("ArgumentOutOfRangeException")
-            .WithSpan(11, 9, 11, 29);
+            .WithSpan(11, 23, 11, 29);
 
         await Verifier.VerifyAnalyzerAsync(test, [expected]);
     }

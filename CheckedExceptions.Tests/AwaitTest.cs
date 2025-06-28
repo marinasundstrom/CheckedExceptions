@@ -90,7 +90,7 @@ public partial class AwaitTest
             """;
 
         var expected = Verifier.MightBeThrown("InvalidOperationException")
-            .WithSpan(14, 15, 14, 35);
+            .WithSpan(14, 20, 14, 35);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }

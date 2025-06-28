@@ -29,7 +29,7 @@ public partial class DictionaryTest
             """;
 
         var expected = Verifier.MightBeThrown("ArgumentException")
-            .WithSpan(10, 9, 10, 28);
+            .WithSpan(10, 14, 10, 28);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }

@@ -31,7 +31,7 @@ public partial class MemberAccessAndIdentifierNameTest
             """;
 
         var expected = Verifier.MightBeThrown("ArgumentNullException")
-            .WithSpan(15, 9, 15, 19);
+            .WithSpan(15, 14, 15, 19);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }
@@ -89,7 +89,7 @@ public partial class MemberAccessAndIdentifierNameTest
             """;
 
         var expected = Verifier.MightBeThrown("ArgumentNullException")
-            .WithSpan(15, 9, 15, 19);
+            .WithSpan(15, 14, 15, 19);
 
         await Verifier.VerifyAnalyzerAsync(test, [expected]);
     }
