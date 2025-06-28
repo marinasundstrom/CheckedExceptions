@@ -351,7 +351,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
                 if (ShouldIgnore(throwStatement, mode))
                 {
                     // Report as THROW002 (Info level)
-                    var diagnostic = Diagnostic.Create(RuleIgnoredException, throwStatement.GetLocation(), exceptionType.Name);
+                    var diagnostic = Diagnostic.Create(RuleIgnoredException, GetSignificantLocation(throwStatement), exceptionType.Name);
                     context.ReportDiagnostic(diagnostic);
                     continue;
                 }
@@ -368,7 +368,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
                 // Report diagnostic for unhandled exception
                 var diagnostic = Diagnostic.Create(
                     RuleUnhandledException,
-                    throwStatement.GetLocation(),
+                    GetSignificantLocation(throwStatement),
                     exceptionType.Name,
                     THROW001Verbs.MightBe);
 
@@ -1195,7 +1195,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             if (ShouldIgnore(node, mode))
             {
                 // Report as THROW002 (Info level)
-                var diagnostic = Diagnostic.Create(RuleIgnoredException, node.GetLocation(), exceptionType.Name);
+                var diagnostic = Diagnostic.Create(RuleIgnoredException, GetSignificantLocation(node), exceptionType.Name);
                 context.ReportDiagnostic(diagnostic);
                 return;
             }
@@ -1204,7 +1204,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         // Check for general exceptions
         if (IsGeneralException(exceptionType))
         {
-            context.ReportDiagnostic(Diagnostic.Create(RuleGeneralThrow, node.GetLocation()));
+            context.ReportDiagnostic(Diagnostic.Create(RuleGeneralThrow, GetSignificantLocation(node)));
         }
 
         // Check if the exception is declared via [Throws]
@@ -1223,7 +1223,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
             var verb = isThrowingConstruct ? THROW001Verbs.Is : THROW001Verbs.MightBe;
 
-            var diagnostic = Diagnostic.Create(RuleUnhandledException, node.GetLocation(), properties, exceptionType.Name, verb);
+            var diagnostic = Diagnostic.Create(RuleUnhandledException, GetSignificantLocation(node), properties, exceptionType.Name, verb);
             context.ReportDiagnostic(diagnostic);
         }
     }

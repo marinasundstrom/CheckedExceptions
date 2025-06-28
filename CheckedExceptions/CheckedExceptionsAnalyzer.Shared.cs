@@ -1,5 +1,6 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Text;
 
 namespace Sundstrom.CheckedExceptions;
 
@@ -122,5 +123,47 @@ partial class CheckedExceptionsAnalyzer
     private CatchClauseSyntax? GetEnclosingCatchClause(SyntaxNode node)
     {
         return node.Ancestors().OfType<CatchClauseSyntax>().FirstOrDefault();
+    }
+
+    private static Location GetSignificantLocation(SyntaxNode expression)
+    {
+        if (expression is InvocationExpressionSyntax)
+            return GetSignificantInvocationLocation(expression);
+
+        var node = GetSignificantNodeCore(expression);
+        return node.GetLocation();
+    }
+
+    private static SyntaxNode GetSignificantNodeCore(SyntaxNode expression)
+    {
+        if (expression is InvocationExpressionSyntax ie)
+        {
+            return GetSignificantNodeCore(ie.Expression);
+        }
+
+        if (expression is MemberAccessExpressionSyntax mae)
+        {
+            return mae.Name;
+        }
+
+        return expression;
+    }
+
+    private static Location GetSignificantInvocationLocation(SyntaxNode expression)
+    {
+        if (expression is InvocationExpressionSyntax invocation)
+        {
+            // Get the name part (e.g., bar in foo.bar(s))
+            var nameNode = GetSignificantNodeCore(invocation.Expression);
+
+            // Compute the span from name start to the full invocation end
+            var start = nameNode.SpanStart;
+            var end = invocation.Span.End;
+
+            var span = TextSpan.FromBounds(start, end);
+            return Location.Create(invocation.SyntaxTree, span);
+        }
+
+        return expression.GetLocation();
     }
 }
