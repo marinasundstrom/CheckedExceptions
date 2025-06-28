@@ -1202,7 +1202,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         }
 
         // Check for general exceptions
-        if (IsGeneralException(exceptionType))
+        if (context.Node is not InvocationExpressionSyntax && IsGeneralException(exceptionType))
         {
             context.ReportDiagnostic(Diagnostic.Create(RuleGeneralThrow, node.GetLocation()));
         }
