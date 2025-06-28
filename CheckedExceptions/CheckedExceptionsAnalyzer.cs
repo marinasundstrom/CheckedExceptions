@@ -113,6 +113,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         // Register additional actions for method calls, object creations, etc.
         context.RegisterSyntaxNodeAction(AnalyzeMethodCall, SyntaxKind.InvocationExpression);
         context.RegisterSyntaxNodeAction(AnalyzeObjectCreation, SyntaxKind.ObjectCreationExpression);
+        context.RegisterSyntaxNodeAction(AnalyzeImplicitObjectCreation, SyntaxKind.ImplicitObjectCreationExpression);
         context.RegisterSyntaxNodeAction(AnalyzeIdentifier, SyntaxKind.IdentifierName);
         context.RegisterSyntaxNodeAction(AnalyzeMemberAccess, SyntaxKind.SimpleMemberAccessExpression);
         context.RegisterSyntaxNodeAction(AnalyzeAwait, SyntaxKind.AwaitExpression);
@@ -802,6 +803,23 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         var settings = GetAnalyzerSettings(context.Options);
 
         var objectCreation = (ObjectCreationExpressionSyntax)context.Node;
+
+        var constructorSymbol = context.SemanticModel.GetSymbolInfo(objectCreation).Symbol as IMethodSymbol;
+        if (constructorSymbol is null)
+            return;
+
+        AnalyzeMemberExceptions(context, objectCreation, constructorSymbol, settings);
+    }
+
+
+    /// <summary>
+    /// Analyzes implicit object creation expressions to determine if exceptions are handled or declared.
+    /// </summary>
+    private void AnalyzeImplicitObjectCreation(SyntaxNodeAnalysisContext context)
+    {
+        var settings = GetAnalyzerSettings(context.Options);
+
+        var objectCreation = (ImplicitObjectCreationExpressionSyntax)context.Node;
 
         var constructorSymbol = context.SemanticModel.GetSymbolInfo(objectCreation).Symbol as IMethodSymbol;
         if (constructorSymbol is null)
