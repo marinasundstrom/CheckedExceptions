@@ -48,4 +48,21 @@ public class Example
             Console.WriteLine("Handled exception: " + ex.Message);
         }
     }
+
+    public void ProcessData3()
+    {
+        DataFetcher3 fetcher = new();
+    }
+
+    public void ProcessData4()
+    {
+        try
+        {
+            DataFetcher3 fetcher = new();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine("Handled exception: " + ex.Message);
+        }
+    }
 }
