@@ -1195,7 +1195,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             if (ShouldIgnore(node, mode))
             {
                 // Report as THROW002 (Info level)
-                var diagnostic = Diagnostic.Create(RuleIgnoredException, GetExpression(node).GetLocation(), exceptionType.Name);
+                var diagnostic = Diagnostic.Create(RuleIgnoredException, GetSignificantNode(node).GetLocation(), exceptionType.Name);
                 context.ReportDiagnostic(diagnostic);
                 return;
             }
@@ -1204,7 +1204,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         // Check for general exceptions
         if (IsGeneralException(exceptionType))
         {
-            context.ReportDiagnostic(Diagnostic.Create(RuleGeneralThrow, GetExpression(node).GetLocation()));
+            context.ReportDiagnostic(Diagnostic.Create(RuleGeneralThrow, GetSignificantNode(node).GetLocation()));
         }
 
         // Check if the exception is declared via [Throws]
@@ -1223,7 +1223,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
             var verb = isThrowingConstruct ? THROW001Verbs.Is : THROW001Verbs.MightBe;
 
-            var diagnostic = Diagnostic.Create(RuleUnhandledException, GetExpression(node).GetLocation(), properties, exceptionType.Name, verb);
+            var diagnostic = Diagnostic.Create(RuleUnhandledException, GetSignificantNode(node).GetLocation(), properties, exceptionType.Name, verb);
             context.ReportDiagnostic(diagnostic);
         }
     }

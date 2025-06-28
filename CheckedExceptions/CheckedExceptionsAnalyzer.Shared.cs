@@ -124,11 +124,11 @@ partial class CheckedExceptionsAnalyzer
         return node.Ancestors().OfType<CatchClauseSyntax>().FirstOrDefault();
     }
 
-    private static SyntaxNode GetExpression(SyntaxNode expression)
+    private static SyntaxNode GetSignificantNode(SyntaxNode expression)
     {
         if (expression is InvocationExpressionSyntax ie)
         {
-            return GetExpression(ie.Expression);
+            return GetSignificantNode(ie.Expression);
         }
 
         if (expression is MemberAccessExpressionSyntax mae)
