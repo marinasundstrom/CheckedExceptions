@@ -1,4 +1,5 @@
 using System.Collections.Immutable;
+using System.Diagnostics;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -46,23 +47,23 @@ partial class CheckedExceptionsAnalyzer
     {
         var semanticModel = context.SemanticModel;
 
-        HashSet<INamedTypeSymbol> exceptionTypesList = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
+        HashSet<INamedTypeSymbol>? exceptionTypesSet = null;
 
-        foreach (var throwsAttribute in throwsAttributes)
+        foreach (AttributeSyntax throwsAttribute in throwsAttributes)
         {
-            var exceptionTypes = GetExceptionTypes(throwsAttribute, semanticModel);
+            Debug.Assert(throwsAttribute is not null);
+
+            IEnumerable<INamedTypeSymbol> exceptionTypes = GetExceptionTypes(throwsAttribute!, semanticModel);
+            
+            exceptionTypesSet ??= new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
+
             foreach (var exceptionType in exceptionTypes)
             {
-                if (exceptionTypesList.FirstOrDefault(x => x.Equals(exceptionType, SymbolEqualityComparer.Default)) is not null)
+                if (!exceptionTypesSet.Add(exceptionType))
                 {
-                    var duplicateAttributeSyntax = throwsAttribute;
-                    if (duplicateAttributeSyntax is not null)
-                    {
-                        context.ReportDiagnostic(Diagnostic.Create(RuleDuplicateDeclarations, duplicateAttributeSyntax.GetLocation(), exceptionType.Name));
-                    }
+                    AttributeSyntax duplicateAttributeSyntax = throwsAttribute!;
+                    context.ReportDiagnostic(Diagnostic.Create(RuleDuplicateDeclarations, duplicateAttributeSyntax.GetLocation(), exceptionType.Name));
                 }
-
-                exceptionTypesList.Add(exceptionType);
             }
         }
     }

@@ -1,5 +1,7 @@
 namespace Sundstrom.CheckedExceptions;
 
+using System.Diagnostics;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 
@@ -11,7 +13,8 @@ public static class AttributeHelper
             return null;
 
         // Get the symbol to which the attribute is applied
-        var declaredSymbol = semanticModel.GetDeclaredSymbol(attributeSyntax.Parent?.Parent);
+        Debug.Assert(attributeSyntax.Parent?.Parent is not null);
+        var declaredSymbol = semanticModel.GetDeclaredSymbol(attributeSyntax.Parent?.Parent!);
 
         if (declaredSymbol is null)
             return null;

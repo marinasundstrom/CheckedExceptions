@@ -31,20 +31,18 @@ partial class CheckedExceptionsAnalyzer
 
     #region Lambda expression and Local functions
 
-    private void CheckForGeneralExceptionThrows(SyntaxNodeAnalysisContext context, List<AttributeSyntax> throwsAttributes)
+    private void CheckForGeneralExceptionThrows(IEnumerable<AttributeSyntax> throwsAttributes, SyntaxNodeAnalysisContext context)
     {
-        string generalExceptionName = "Exception";
-
         // Check for general Throws(typeof(Exception)) attributes
         foreach (var attribute in throwsAttributes)
         {
             var exceptionTypeName = GetExceptionTypeName(attribute, context.SemanticModel);
-            if (exceptionTypeName == generalExceptionName)
+            if (nameof(Exception).Equals(exceptionTypeName, StringComparison.Ordinal))
             {
                 context.ReportDiagnostic(Diagnostic.Create(
                     RuleGeneralThrows,
                     attribute.GetLocation(),
-                    generalExceptionName));
+                    nameof(Exception)));
             }
         }
     }

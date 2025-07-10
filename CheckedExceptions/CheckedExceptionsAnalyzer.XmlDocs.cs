@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Xml;
 using System.Xml.Linq;
 
 using Microsoft.CodeAnalysis;
@@ -32,7 +31,8 @@ partial class CheckedExceptionsAnalyzer
             }
         }
 
-        if (string.IsNullOrEmpty(assemblyPath))
+        // explicitly check instead of using string.IsNullOrEmpty because netstandard2.0 does not support NotNullWhenAttribute
+        if (assemblyPath is null || assemblyPath.Length == 0)
             return null;
 
         // Check cache first
@@ -82,29 +82,67 @@ partial class CheckedExceptionsAnalyzer
 
     public record struct ExceptionInfo(INamedTypeSymbol ExceptionType, string Description, IEnumerable<ParamInfo> Parameters);
 
-    private static IEnumerable<ExceptionInfo> GetExceptionTypesFromDocumentationCommentXml(Compilation compilation, XElement? xml)
+    private static IEnumerable<ExceptionInfo> GetExceptionTypesFromDocumentationCommentXml(Compilation compilation, XElement xml)
     {
         try
         {
             return xml.Descendants("exception")
                 .Select(e =>
                 {
-                    var cref = e.Attribute("cref")?.Value;
-                    var crefValue = cref.StartsWith("T:") ? cref.Substring(2) : cref;
-                    var innerText = e.Value;
+                    string? cref = e.Attribute("cref")?.Value;
+                    if (string.IsNullOrWhiteSpace(cref))
+                    {
+                        return default;
+                    }
 
-                    var name = compilation.GetTypeByMetadataName(crefValue) ??
-                           compilation.GetTypeByMetadataName(crefValue.Split('.').Last());
+                    string exceptionTypeName = cref!.StartsWith("T:", StringComparison.Ordinal) ? cref.Substring(2) : cref;
+                    string cleanExceptionTypeName = RemoveGenericParameters(exceptionTypeName);
 
-                    var parameters = e.Elements("paramref").Select(x => new ParamInfo(x.Attribute("name").Value));
+                    INamedTypeSymbol? typeSymbol = compilation.GetTypeByMetadataName(cleanExceptionTypeName);
+                    if (typeSymbol is null && !cleanExceptionTypeName.Contains('.'))
+                    {
+                        typeSymbol = compilation.GetTypeByMetadataName($"System.{cleanExceptionTypeName}");
+                    }
 
-                    return new ExceptionInfo(name, innerText, parameters);
-                });
+                    if (typeSymbol is null)
+                    {
+                        return default;
+                    }
+
+                    string innerText = e.Value;
+
+                    IEnumerable<ParamInfo> parameters = e.Elements("paramref")
+                        .Select(x => new ParamInfo(x.Attribute("name")?.Value!))
+                        .Where(p => !string.IsNullOrWhiteSpace(p.Name));
+
+                    return new ExceptionInfo(typeSymbol, innerText, parameters);
+                })
+                .Where(x => x != default)
+                .ToList(); // Materialize to catch parsing errors
         }
         catch
         {
             // Handle or log parsing errors
             return Enumerable.Empty<ExceptionInfo>();
+        }
+
+        static string RemoveGenericParameters(string typeName)
+        {
+            // Handle generic types like "System.Collections.Generic.List`1"
+            var backtickIndex = typeName.IndexOf('`');
+            if (backtickIndex >= 0)
+            {
+                return typeName.Substring(0, backtickIndex);
+            }
+
+            // Handle generic syntax like "List<T>"
+            var angleIndex = typeName.IndexOf('<');
+            if (angleIndex >= 0)
+            {
+                return typeName.Substring(0, angleIndex);
+            }
+
+            return typeName;
         }
     }
 
@@ -121,7 +159,7 @@ partial class CheckedExceptionsAnalyzer
         }
 
         // Attempt to get exceptions from XML documentation
-        return GetExceptionTypesFromDocumentationCommentXml(compilation, docCommentXml).ToList();
+        return GetExceptionTypesFromDocumentationCommentXml(compilation, docCommentXml);
     }
 
     readonly bool loadFromProject = true;
@@ -157,22 +195,20 @@ partial class CheckedExceptionsAnalyzer
     public XElement? GetXmlDocumentation(Compilation compilation, ISymbol symbol)
     {
         var path = GetXmlDocumentationPath(compilation, symbol.ContainingAssembly);
-        if (path is not null)
+        if (path is null)
         {
-            if (!XmlDocPathsAndMembers.TryGetValue(path, out var lookup))
-            {
-                var file = XmlDocumentationHelper.CreateMemberLookup(XDocument.Load(path));
-                lookup = new ConcurrentDictionary<string, XElement>(file);
-                XmlDocPathsAndMembers.TryAdd(path, lookup);
-            }
-            var member = symbol.GetDocumentationCommentId();
-
-            if (lookup.TryGetValue(member, out var xml))
-            {
-                return xml;
-            }
+            return null;
         }
 
-        return null;
+        if (!XmlDocPathsAndMembers.TryGetValue(path, out var lookup) || lookup is null)
+        {
+            var file = XmlDocumentationHelper.CreateMemberLookup(XDocument.Load(path));
+            lookup = new ConcurrentDictionary<string, XElement>(file);
+            XmlDocPathsAndMembers[path] = lookup;
+        }
+
+        var member = symbol.GetDocumentationCommentId();
+
+        return member is not null && lookup.TryGetValue(member, out var xml) ? xml : null;
     }
 }
