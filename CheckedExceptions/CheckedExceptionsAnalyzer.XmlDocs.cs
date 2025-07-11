@@ -95,16 +95,8 @@ partial class CheckedExceptionsAnalyzer
                         return default;
                     }
 
-                    string exceptionTypeName = cref!.StartsWith("T:", StringComparison.Ordinal) ? cref.Substring(2) : cref;
-                    string cleanExceptionTypeName = RemoveGenericParameters(exceptionTypeName);
-
-                    INamedTypeSymbol? typeSymbol = compilation.GetTypeByMetadataName(cleanExceptionTypeName);
-                    if (typeSymbol is null && !cleanExceptionTypeName.Contains('.'))
-                    {
-                        typeSymbol = compilation.GetTypeByMetadataName($"System.{cleanExceptionTypeName}");
-                    }
-
-                    if (typeSymbol is null)
+                    var exceptionTypeSymbol = GetExceptionTypeSymbolFromCref(cref!, compilation);
+                    if (exceptionTypeSymbol is null)
                     {
                         return default;
                     }
@@ -115,7 +107,7 @@ partial class CheckedExceptionsAnalyzer
                         .Select(x => new ParamInfo(x.Attribute("name")?.Value!))
                         .Where(p => !string.IsNullOrWhiteSpace(p.Name));
 
-                    return new ExceptionInfo(typeSymbol, innerText, parameters);
+                    return new ExceptionInfo(exceptionTypeSymbol, innerText, parameters);
                 })
                 .Where(x => x != default)
                 .ToList(); // Materialize to catch parsing errors
@@ -124,6 +116,20 @@ partial class CheckedExceptionsAnalyzer
         {
             // Handle or log parsing errors
             return Enumerable.Empty<ExceptionInfo>();
+        }
+
+        static INamedTypeSymbol? GetExceptionTypeSymbolFromCref(string cref, Compilation compilation)
+        {
+            string exceptionTypeName = cref.StartsWith("T:", StringComparison.Ordinal) ? cref.Substring(2) : cref;
+            string cleanExceptionTypeName = RemoveGenericParameters(exceptionTypeName);
+
+            INamedTypeSymbol? typeSymbol = compilation.GetTypeByMetadataName(cleanExceptionTypeName);
+            if (typeSymbol is null && !cleanExceptionTypeName.Contains('.'))
+            {
+                typeSymbol = compilation.GetTypeByMetadataName($"System.{cleanExceptionTypeName}");
+            }
+
+            return typeSymbol;
         }
 
         static string RemoveGenericParameters(string typeName)
