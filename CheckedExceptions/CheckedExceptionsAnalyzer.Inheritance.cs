@@ -20,7 +20,7 @@ partial class CheckedExceptionsAnalyzer
             MethodKind.EventRemove))
             return;
 
-        ImmutableHashSet<ISymbol> declaredExceptions = GetDistictExceptionTypes(throwsAttributes).Where(x => x is not null).ToImmutableHashSet(SymbolEqualityComparer.Default)!;
+        ImmutableHashSet<ISymbol> declaredExceptions = GetDistinctExceptionTypes(throwsAttributes).Where(x => x is not null).ToImmutableHashSet(SymbolEqualityComparer.Default)!;
         Debug.Assert(!declaredExceptions.Any(x => x is null));
 
         if (declaredExceptions.Count == 0)
@@ -50,7 +50,7 @@ partial class CheckedExceptionsAnalyzer
 
             var isCovered = declaredExceptions.Any(declared =>
             {
-                if (baseException.Equals(declared, SymbolEqualityComparer.Default))
+                if (declared.Equals(baseException, SymbolEqualityComparer.Default))
                     return true;
 
                 var declaredNamed = declared as INamedTypeSymbol;
@@ -102,7 +102,7 @@ partial class CheckedExceptionsAnalyzer
     private bool IsTooGenericException(ITypeSymbol ex)
     {
         if (ex is not INamedTypeSymbol namedTypeSymbol) return false;
-        
+
         var fullName = namedTypeSymbol.ToDisplayString();
 
         return fullName.Equals(typeof(Exception).FullName, StringComparison.Ordinal) || fullName.Equals(typeof(SystemException).FullName, StringComparison.Ordinal);

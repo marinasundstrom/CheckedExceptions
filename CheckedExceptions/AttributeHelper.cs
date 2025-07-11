@@ -7,7 +7,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 public static class AttributeHelper
 {
-    public static AttributeData? GetSpecificAttributeData(AttributeSyntax attributeSyntax, SemanticModel semanticModel)
+    public static AttributeData? GetSpecificAttributeData(AttributeSyntax? attributeSyntax, SemanticModel? semanticModel)
     {
         if (attributeSyntax is null || semanticModel is null)
             return null;
