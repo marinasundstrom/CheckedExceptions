@@ -127,7 +127,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         context.RegisterSyntaxNodeAction(AnalyzeEventAssignment, SyntaxKind.SubtractAssignmentExpression);
     }
 
-    private AnalyzerSettings LoadAnalyzerSettings(AnalyzerOptions analyzerOptions)
+    private AnalyzerSettings GetAnalyzerSettings(AnalyzerOptions analyzerOptions)
     {
         return configs.GetOrAdd(analyzerOptions, _ =>
         {
@@ -249,7 +249,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     /// </summary>
     private void AnalyzeThrowStatement(SyntaxNodeAnalysisContext context)
     {
-        var settings = LoadAnalyzerSettings(context.Options);
+        var settings = GetAnalyzerSettings(context.Options);
 
         var throwStatement = (ThrowStatementSyntax)context.Node;
 
@@ -546,7 +546,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
     private void AnalyzeAwait(SyntaxNodeAnalysisContext context)
     {
-        var settings = LoadAnalyzerSettings(context.Options);
+        var settings = GetAnalyzerSettings(context.Options);
 
         var awaitExpression = (AwaitExpressionSyntax)context.Node;
 
@@ -600,7 +600,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     /// </summary>
     private void AnalyzeThrowExpression(SyntaxNodeAnalysisContext context)
     {
-        var settings = LoadAnalyzerSettings(context.Options);
+        var settings = GetAnalyzerSettings(context.Options);
 
         var throwExpression = (ThrowExpressionSyntax)context.Node;
 
@@ -616,7 +616,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     /// </summary>
     private void AnalyzeMethodCall(SyntaxNodeAnalysisContext context)
     {
-        var settings = LoadAnalyzerSettings(context.Options);
+        var settings = GetAnalyzerSettings(context.Options);
 
         var invocation = (InvocationExpressionSyntax)context.Node;
 
@@ -716,7 +716,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     /// </summary>
     private void AnalyzeObjectCreation(SyntaxNodeAnalysisContext context)
     {
-        var settings = LoadAnalyzerSettings(context.Options);
+        var settings = GetAnalyzerSettings(context.Options);
 
         var objectCreation = (ObjectCreationExpressionSyntax)context.Node;
 
@@ -733,7 +733,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     /// </summary>
     private void AnalyzeImplicitObjectCreation(SyntaxNodeAnalysisContext context)
     {
-        var settings = LoadAnalyzerSettings(context.Options);
+        var settings = GetAnalyzerSettings(context.Options);
 
         var objectCreation = (ImplicitObjectCreationExpressionSyntax)context.Node;
 
@@ -749,7 +749,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     /// </summary>
     private void AnalyzeMemberAccess(SyntaxNodeAnalysisContext context)
     {
-        var settings = LoadAnalyzerSettings(context.Options);
+        var settings = GetAnalyzerSettings(context.Options);
 
         var memberAccess = (MemberAccessExpressionSyntax)context.Node;
 
@@ -761,7 +761,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     /// </summary>
     private void AnalyzeIdentifier(SyntaxNodeAnalysisContext context)
     {
-        var settings = LoadAnalyzerSettings(context.Options);
+        var settings = GetAnalyzerSettings(context.Options);
 
         var identifierName = (IdentifierNameSyntax)context.Node;
 
@@ -789,7 +789,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     /// </summary>
     private void AnalyzeElementAccess(SyntaxNodeAnalysisContext context)
     {
-        var settings = LoadAnalyzerSettings(context.Options);
+        var settings = GetAnalyzerSettings(context.Options);
 
         var elementAccess = (ElementAccessExpressionSyntax)context.Node;
 
@@ -804,7 +804,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     /// </summary>
     private void AnalyzeEventAssignment(SyntaxNodeAnalysisContext context)
     {
-        var settings = LoadAnalyzerSettings(context.Options);
+        var settings = GetAnalyzerSettings(context.Options);
 
         var assignment = (AssignmentExpressionSyntax)context.Node;
 
