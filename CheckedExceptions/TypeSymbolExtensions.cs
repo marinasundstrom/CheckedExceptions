@@ -10,7 +10,7 @@ public static class TypeSymbolExtensions
     /// <summary>
     /// Determines if a type inherits from a base type.
     /// </summary>
-    public static bool InheritsFrom(this INamedTypeSymbol type, INamedTypeSymbol baseType)
+    public static bool InheritsFrom(this INamedTypeSymbol? type, INamedTypeSymbol? baseType)
     {
         if (type is null || baseType is null)
             return false;
