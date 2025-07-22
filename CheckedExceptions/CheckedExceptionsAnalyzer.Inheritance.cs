@@ -63,7 +63,7 @@ partial class CheckedExceptionsAnalyzer
             if (!isCovered)
             {
                 var location = method.Locations.FirstOrDefault();
-                var baseName = $"{baseMethod.ContainingType.Name}.{baseMethod.Name}";
+                var baseName = FormatMethodSignature(baseMethod);
 
                 var diagnostic = Diagnostic.Create(
                     RuleMissingThrowsFromBaseMember,
@@ -87,7 +87,7 @@ partial class CheckedExceptionsAnalyzer
             if (!isCompatible)
             {
                 var location = method.Locations.FirstOrDefault();
-                var memberName = $"{baseMethod.ContainingType.Name}.{baseMethod.Name}";
+                var memberName = FormatMethodSignature(baseMethod);
 
                 var diagnostic = Diagnostic.Create(
                     RuleMissingThrowsOnBaseMember,
@@ -98,6 +98,18 @@ partial class CheckedExceptionsAnalyzer
                 context.ReportDiagnostic(diagnostic);
             }
         }
+    }
+
+    public static string FormatMethodSignature(IMethodSymbol methodSymbol)
+    {
+        var containingType = methodSymbol.ContainingType;
+        var typeName = containingType.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat);
+
+        var methodName = methodSymbol.Name;
+        var parameters = string.Join(", ", methodSymbol.Parameters.Select(p =>
+            p.Type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat)));
+
+        return $"{typeName}.{methodName}({parameters})";
     }
 
     private bool IsTooGenericException(ITypeSymbol ex)

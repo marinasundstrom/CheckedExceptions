@@ -241,7 +241,7 @@ public void Foo()
 When unhandled at call site:
 
 ```csharp
-// THROW001: Exception "InvalidOperationException" might be thrown but not handled
+// THROW001: Unhandled exception type "InvalidOperationException"
 
 Foo();
 ```
@@ -280,8 +280,8 @@ public void Foo()
 When unhandled at call site:
 
 ```csharp
-// THROW001: Exception "ArgumentOutOfRangeException" might be thrown but not handled
-// THROW001: Exception "InvalidOperationException" might be thrown but not handled
+// THROW001: Unhandled exception type "ArgumentOutOfRangeException"
+// THROW001: Unhandled exception type "InvalidOperationException"
 
 Foo();
 ```

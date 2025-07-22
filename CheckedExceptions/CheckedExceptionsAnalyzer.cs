@@ -32,7 +32,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor RuleUnhandledException = new(
         DiagnosticIdUnhandled,
         "Unhandled exception",
-        "Exception '{0}' {1} thrown but not handled",
+        "Unhandled exception type '{0}'",
         "Usage",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
@@ -50,7 +50,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor RuleGeneralThrow = new(
         DiagnosticIdGeneralThrow,
         "Avoid throwing 'Exception'",
-        "Throwing 'Exception' is too general; use a more specific exception type instead",
+        "Avoid throwing 'System.Exception'; use a more specific exception type",
         "Usage",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
@@ -58,8 +58,8 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
     private static readonly DiagnosticDescriptor RuleGeneralThrows = new DiagnosticDescriptor(
         DiagnosticIdGeneralThrows,
-        "Avoid declaring exception type 'Exception'",
-        "Declaring 'Exception' is too general; use a more specific exception type instead",
+        "Avoid declaring exception type 'System.Exception'",
+        "Avoid declaring exception type 'System.Exception'; use a more specific exception type",
         "Usage",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
@@ -77,7 +77,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor RuleMissingThrowsOnBaseMember = new DiagnosticDescriptor(
         DiagnosticIdMissingThrowsOnBaseMember,
         "Missing Throws declaration",
-        "Exception '{1}' is not declared on base member '{0}'",
+        "Exception '{1}' is not declared in '{0}'",
         "Usage",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
@@ -86,7 +86,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor RuleMissingThrowsFromBaseMember = new(
         DiagnosticIdMissingThrowsFromBaseMember,
         "Missing Throws declaration for exception declared on base member",
-        "Base member '{0}' declares exception '{1}' which is not declared here",
+        "Exception '{1}' is not compatible with throws declaration in '{0}'",
         "Usage",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
