@@ -86,7 +86,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor RuleMissingThrowsFromBaseMember = new(
         DiagnosticIdMissingThrowsFromBaseMember,
         "Missing Throws declaration for exception declared on base member",
-        "Exception '{1}' is not compatible with throws declaration in '{0}'",
+        "Exception '{1}' is not compatible with throws declaration(s) in '{0}'",
         "Usage",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
