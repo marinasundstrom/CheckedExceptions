@@ -28,7 +28,7 @@ public partial class DictionaryTest
             }
             """;
 
-        var expected = Verifier.MightBeThrown("ArgumentException")
+        var expected = Verifier.UnhandledException("ArgumentException")
             .WithSpan(10, 14, 10, 28);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
@@ -76,7 +76,7 @@ public partial class DictionaryTest
             }
             """;
 
-        var expected = Verifier.MightBeThrown("KeyNotFoundException")
+        var expected = Verifier.UnhandledException("KeyNotFoundException")
             .WithSpan(10, 17, 10, 28);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);

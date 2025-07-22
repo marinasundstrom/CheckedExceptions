@@ -27,7 +27,7 @@ partial class CheckedExceptionsAnalyzerTests
             }
             """;
 
-        var expected = Verifier.IsThrown("InvalidOperationException")
+        var expected = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(7, 9, 7, 47);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
@@ -123,10 +123,10 @@ partial class CheckedExceptionsAnalyzerTests
             }
             """;
 
-        var expected1 = Verifier.IsThrown("InvalidOperationException")
+        var expected1 = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(7, 9, 7, 47);
 
-        var expected2 = Verifier.IsThrown("ArgumentException")
+        var expected2 = Verifier.UnhandledException("ArgumentException")
             .WithSpan(12, 9, 12, 39);
 
         await Verifier.VerifyAnalyzerAsync(test, expected1, expected2);

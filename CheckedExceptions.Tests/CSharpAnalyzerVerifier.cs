@@ -16,13 +16,9 @@ public static class CSharpAnalyzerVerifier<TAnalyzer, TVerifier>
     public static DiagnosticResult Diagnostic(string diagnosticId)
         => AnalyzerVerifier<TAnalyzer, AnalyzerTest, TVerifier>.Diagnostic(diagnosticId);
 
-    public static DiagnosticResult IsThrown(string exceptionType)
+    public static DiagnosticResult UnhandledException(string exceptionType)
         => AnalyzerVerifier<TAnalyzer, AnalyzerTest, TVerifier>.Diagnostic("THROW001")
-        .WithArguments(exceptionType, THROW001Verbs.Is);
-
-    public static DiagnosticResult MightBeThrown(string exceptionType)
-        => AnalyzerVerifier<TAnalyzer, AnalyzerTest, TVerifier>.Diagnostic("THROW001")
-        .WithArguments(exceptionType, THROW001Verbs.MightBe);
+        .WithArguments(exceptionType);
 
     public static DiagnosticResult Informational(string exceptionType)
         => AnalyzerVerifier<TAnalyzer, AnalyzerTest, TVerifier>.Diagnostic("THROW002")

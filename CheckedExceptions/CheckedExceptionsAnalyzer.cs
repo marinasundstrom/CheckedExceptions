@@ -370,8 +370,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
                 var diagnostic = Diagnostic.Create(
                     RuleUnhandledException,
                     GetSignificantLocation(throwStatement),
-                    exceptionType.Name,
-                    THROW001Verbs.MightBe);
+                    exceptionType.Name);
 
                 context.ReportDiagnostic(diagnostic);
             }
@@ -1237,11 +1236,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             var properties = ImmutableDictionary.Create<string, string?>()
                 .Add("ExceptionType", exceptionType.Name);
 
-            var isThrowingConstruct = node is ThrowStatementSyntax or ThrowExpressionSyntax;
-
-            var verb = isThrowingConstruct ? THROW001Verbs.Is : THROW001Verbs.MightBe;
-
-            var diagnostic = Diagnostic.Create(RuleUnhandledException, GetSignificantLocation(node), properties, exceptionType.Name, verb);
+            var diagnostic = Diagnostic.Create(RuleUnhandledException, GetSignificantLocation(node), properties, exceptionType.Name);
             context.ReportDiagnostic(diagnostic);
         }
     }

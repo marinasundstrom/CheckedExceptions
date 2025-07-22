@@ -34,10 +34,10 @@ public partial class Bugfix19_CatchBlockSilencesExceptionInCatchClauses
             }
             """;
 
-        var expected1 = Verifier.MightBeThrown("IOException")
+        var expected1 = Verifier.UnhandledException("IOException")
             .WithSpan(10, 21, 10, 33); // Position of Console.Write("Foo");
 
-        var expected2 = Verifier.MightBeThrown("IOException")
+        var expected2 = Verifier.UnhandledException("IOException")
             .WithSpan(14, 21, 14, 41); // Position of Console.WriteLine(e.Message);
 
         await Verifier.VerifyAnalyzerAsync(test, [expected1, expected2]);
@@ -71,7 +71,7 @@ public partial class Bugfix19_CatchBlockSilencesExceptionInCatchClauses
             }
             """;
 
-        var expected = Verifier.MightBeThrown("IOException")
+        var expected = Verifier.UnhandledException("IOException")
             .WithSpan(15, 21, 15, 41); // Position of Console.WriteLine(e.Message);
 
         await Verifier.VerifyAnalyzerAsync(test, [expected]);

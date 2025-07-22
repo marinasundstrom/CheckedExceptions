@@ -45,7 +45,7 @@ namespace TestNamespace
 }
 """;
 
-        var expectedDiagnostic = Verifier.IsThrown("Exception")
+        var expectedDiagnostic = Verifier.UnhandledException("Exception")
             .WithSpan(10, 13, 10, 35);
 
         await Verifier.VerifyCodeFixAsync(testCode, expectedDiagnostic, fixedCode);
@@ -87,7 +87,7 @@ namespace TestNamespace
 }
 """;
 
-        var expectedDiagnostic = Verifier.IsThrown("InvalidOperationException")
+        var expectedDiagnostic = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(10, 13, 10, 51);
 
         await Verifier.VerifyCodeFixAsync(testCode, expectedDiagnostic, fixedCode);
@@ -164,7 +164,7 @@ namespace TestNamespace
 }
 """;
 
-        var expectedDiagnostic = Verifier.IsThrown("ArgumentNullException")
+        var expectedDiagnostic = Verifier.UnhandledException("ArgumentNullException")
             .WithSpan(13, 17, 13, 51);
 
         await Verifier.VerifyCodeFixAsync(testCode, expectedDiagnostic, fixedCode, expectedIncrementalIterations: 2);
@@ -216,7 +216,7 @@ namespace TestNamespace
 }
 """;
 
-        var expectedDiagnostic = Verifier.IsThrown("InvalidOperationException")
+        var expectedDiagnostic = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(12, 17, 12, 55);
 
         await Verifier.VerifyCodeFixAsync(testCode, expectedDiagnostic, fixedCode, expectedIncrementalIterations: 2);
@@ -276,7 +276,7 @@ namespace TestNamespace
 }
 """;
 
-        var expectedDiagnostic = Verifier.IsThrown("Exception")
+        var expectedDiagnostic = Verifier.UnhandledException("Exception")
             .WithSpan(14, 17, 14, 39);
 
         await Verifier.VerifyCodeFixAsync(testCode, expectedDiagnostic, fixedCode);
@@ -342,10 +342,10 @@ namespace TestNamespace
 }
 """;
 
-        var expectedDiagnostic1 = Verifier.IsThrown("InvalidOperationException")
+        var expectedDiagnostic1 = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(14, 17, 14, 55);
 
-        var expectedDiagnostic2 = Verifier.IsThrown("ArgumentNullException")
+        var expectedDiagnostic2 = Verifier.UnhandledException("ArgumentNullException")
             .WithSpan(17, 17, 17, 51);
 
         await Verifier.VerifyCodeFixAsync(testCode, [expectedDiagnostic1, expectedDiagnostic2], fixedCode, 2);
