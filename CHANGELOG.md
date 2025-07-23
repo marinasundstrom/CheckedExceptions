@@ -10,8 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-Improvements to code fixes - should be functional
-
+- PR [#88](https://github.com/marinasundstrom/CheckedExceptions/pull/88) Improvements to code fixes
 
 ## [1.3.5] - 2025-07-23
 
