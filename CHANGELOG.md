@@ -1,0 +1,45 @@
+
+# Change Log
+
+All notable changes to this project will be documented in this file.
+
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
+and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [1.3.6] - 2025-07-23
+
+### Fixed
+
+Improvements to code fixes - should be functional
+
+
+## [1.3.5] - 2025-07-23
+
+### Changed
+
+- PR [#87](https://github.com/marinasundstrom/CheckedExceptions/pull/87)
+  Change message for `THROW001`
+
+## [1.3.1] - 2025-06-28
+
+### Changed
+
+- PR [#83](https://github.com/marinasundstrom/CheckedExceptions/issues/83)
+  Improve source location for element access expression
+
+## [1.3.0] - 2025-06-28
+
+### Changed
+
+- PR [#82](https://github.com/marinasundstrom/CheckedExceptions/pull/82) Report more precise source locations
+- PR [#79](https://github.com/marinasundstrom/CheckedExceptions/pull/79) Handle implicit object creation expressions
+
+### Fixed
+
+- PR [#80](https://github.com/marinasundstrom/CheckedExceptions/pull/80) General exception error not on invocation expression
+
+## [1.2.6] - 2025-04-12
+
+### Added
+
+* [#73](https://github.com/marinasundstrom/CheckedExceptions/issues/73) Inheriting or overriding member should have the same Throws declarations as overridden member"
