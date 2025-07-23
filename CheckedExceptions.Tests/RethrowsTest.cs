@@ -34,7 +34,7 @@ public partial class RethtrowsTest
         }
         """;
 
-        var expected = Verifier.IsThrown("InvalidOperationException")
+        var expected = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(19, 13, 19, 19);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
@@ -102,7 +102,7 @@ public partial class RethtrowsTest
         }
         """;
 
-        var expected = Verifier.MightBeThrown("ArgumentException")
+        var expected = Verifier.UnhandledException("ArgumentException")
          .WithSpan(17, 13, 17, 31);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
@@ -137,10 +137,10 @@ public partial class RethtrowsTest
         }
         """;
 
-        var expected = Verifier.MightBeThrown("ArgumentException")
+        var expected = Verifier.UnhandledException("ArgumentException")
          .WithSpan(20, 13, 20, 19);
 
-        var expected2 = Verifier.MightBeThrown("InvalidOperationException")
+        var expected2 = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(20, 13, 20, 19);
 
         await Verifier.VerifyAnalyzerAsync(test, expected, expected2);
@@ -182,10 +182,10 @@ public partial class RethtrowsTest
         }
         """;
 
-        var expected = Verifier.MightBeThrown("ArgumentException")
+        var expected = Verifier.UnhandledException("ArgumentException")
          .WithSpan(26, 13, 26, 19);
 
-        var expected2 = Verifier.MightBeThrown("InvalidOperationException")
+        var expected2 = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(26, 13, 26, 19);
 
         await Verifier.VerifyAnalyzerAsync(test, expected, expected2);
@@ -222,10 +222,10 @@ public partial class RethtrowsTest
         }
         """;
 
-        var expected = Verifier.MightBeThrown("ArgumentException")
+        var expected = Verifier.UnhandledException("ArgumentException")
          .WithSpan(21, 13, 21, 19);
 
-        var expected2 = Verifier.MightBeThrown("InvalidOperationException")
+        var expected2 = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(21, 13, 21, 19);
 
         await Verifier.VerifyAnalyzerAsync(test, expected, expected2);
@@ -261,7 +261,7 @@ public partial class RethtrowsTest
         }
         """;
 
-        var expected = Verifier.MightBeThrown("InvalidOperationException")
+        var expected = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(21, 13, 21, 19);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
@@ -297,7 +297,7 @@ public partial class RethtrowsTest
         }
         """;
 
-        var expected = Verifier.MightBeThrown("ArgumentException")
+        var expected = Verifier.UnhandledException("ArgumentException")
             .WithSpan(21, 13, 21, 19);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
@@ -365,13 +365,13 @@ public partial class RethtrowsTest
         }
         """;
 
-        var expected = Verifier.MightBeThrown("FormatException")
+        var expected = Verifier.UnhandledException("FormatException")
             .WithSpan(19, 13, 19, 19);
 
-        var expected2 = Verifier.MightBeThrown("OverflowException")
+        var expected2 = Verifier.UnhandledException("OverflowException")
             .WithSpan(19, 13, 19, 19);
 
-        var expected3 = Verifier.MightBeThrown("ArgumentOutOfRangeException")
+        var expected3 = Verifier.UnhandledException("ArgumentOutOfRangeException")
             .WithSpan(19, 13, 19, 19);
 
         await Verifier.VerifyAnalyzerAsync(test, expected, expected2, expected3);
@@ -414,10 +414,10 @@ public partial class RethtrowsTest
         }
         """;
 
-        var expected1 = Verifier.MightBeThrown("ArgumentOutOfRangeException")
+        var expected1 = Verifier.UnhandledException("ArgumentOutOfRangeException")
             .WithSpan(28, 13, 28, 19);
 
-        var expected2 = Verifier.MightBeThrown("InvalidOperationException")
+        var expected2 = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(28, 13, 28, 19);
 
         await Verifier.VerifyAnalyzerAsync(test, expected1, expected2);
@@ -452,7 +452,7 @@ public partial class RethtrowsTest
         }
         """;
 
-        var expected = Verifier.MightBeThrown("ArgumentException")
+        var expected = Verifier.UnhandledException("ArgumentException")
             .WithSpan(20, 13, 20, 19);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
@@ -487,7 +487,7 @@ public partial class RethtrowsTest
         }
         """;
 
-        var expected = Verifier.MightBeThrown("FormatException")
+        var expected = Verifier.UnhandledException("FormatException")
             .WithSpan(14, 13, 14, 19);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
@@ -516,7 +516,7 @@ public partial class RethtrowsTest
         }
         """;
 
-        var expected = Verifier.MightBeThrown("ArgumentException")
+        var expected = Verifier.UnhandledException("ArgumentException")
             .WithSpan(14, 13, 14, 19);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);

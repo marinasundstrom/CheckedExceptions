@@ -25,7 +25,7 @@ partial class CheckedExceptionsAnalyzerTests
             }
             """;
 
-        var expected = Verifier.IsThrown("InvalidOperationException")
+        var expected = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(9, 13, 9, 51);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
@@ -51,7 +51,7 @@ partial class CheckedExceptionsAnalyzerTests
             }
             """;
 
-        var expected = Verifier.IsThrown("InvalidOperationException")
+        var expected = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(11, 13, 11, 51);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
@@ -79,10 +79,10 @@ partial class CheckedExceptionsAnalyzerTests
             }
             """;
 
-        var expected1 = Verifier.IsThrown("InvalidOperationException")
+        var expected1 = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(9, 13, 9, 51);
 
-        var expected2 = Verifier.IsThrown("ArgumentException")
+        var expected2 = Verifier.UnhandledException("ArgumentException")
             .WithSpan(13, 13, 13, 43);
 
         await Verifier.VerifyAnalyzerAsync(test, expected1, expected2);
@@ -108,7 +108,7 @@ partial class CheckedExceptionsAnalyzerTests
             }
             """;
 
-        var expected = Verifier.IsThrown("InvalidOperationException")
+        var expected = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(9, 13, 9, 51);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
@@ -130,7 +130,7 @@ partial class CheckedExceptionsAnalyzerTests
             }
             """;
 
-        var expected = Verifier.IsThrown("InvalidOperationException")
+        var expected = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(7, 31, 7, 68);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
@@ -152,7 +152,7 @@ partial class CheckedExceptionsAnalyzerTests
             }
             """;
 
-        var expected = Verifier.IsThrown("InvalidOperationException")
+        var expected = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(7, 33, 7, 71);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
@@ -176,7 +176,7 @@ partial class CheckedExceptionsAnalyzerTests
         }
         """;
 
-        var expected = Verifier.IsThrown("InvalidOperationException")
+        var expected = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(9, 30, 9, 67);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
@@ -197,7 +197,7 @@ partial class CheckedExceptionsAnalyzerTests
             }
             """;
 
-        var expected = Verifier.IsThrown("InvalidOperationException")
+        var expected = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(7, 9, 7, 47);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
@@ -218,7 +218,7 @@ partial class CheckedExceptionsAnalyzerTests
         }
         """;
 
-        var expected = Verifier.IsThrown("InvalidOperationException")
+        var expected = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(7, 9, 7, 47);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);

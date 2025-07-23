@@ -24,7 +24,7 @@ public partial class Bugfix65_TryCatchAroundLambda
         }
         """;
 
-        var expected = Verifier.IsThrown("InvalidOperationException")
+        var expected = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(8, 13, 8, 51);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
@@ -55,7 +55,7 @@ public partial class Bugfix65_TryCatchAroundLambda
         }
         """;
 
-        var expected = Verifier.IsThrown("InvalidOperationException")
+        var expected = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(10, 17, 10, 55);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
@@ -80,7 +80,7 @@ public partial class Bugfix65_TryCatchAroundLambda
         }
         """;
 
-        var expected = Verifier.IsThrown("InvalidOperationException")
+        var expected = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(9, 13, 9, 51);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
@@ -112,7 +112,7 @@ public partial class Bugfix65_TryCatchAroundLambda
         }
         """;
 
-        var expected = Verifier.IsThrown("InvalidOperationException")
+        var expected = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(11, 17, 11, 55);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);

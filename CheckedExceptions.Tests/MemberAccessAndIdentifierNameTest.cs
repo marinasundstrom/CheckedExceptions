@@ -30,7 +30,7 @@ public partial class MemberAccessAndIdentifierNameTest
             }
             """;
 
-        var expected = Verifier.MightBeThrown("ArgumentNullException")
+        var expected = Verifier.UnhandledException("ArgumentNullException")
             .WithSpan(15, 14, 15, 19);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
@@ -59,7 +59,7 @@ public partial class MemberAccessAndIdentifierNameTest
             }
             """;
 
-        var expected = Verifier.MightBeThrown("ArgumentNullException")
+        var expected = Verifier.UnhandledException("ArgumentNullException")
             .WithSpan(15, 9, 15, 14);
 
         await Verifier.VerifyAnalyzerAsync(test, [expected]);
@@ -88,7 +88,7 @@ public partial class MemberAccessAndIdentifierNameTest
             }
             """;
 
-        var expected = Verifier.MightBeThrown("ArgumentNullException")
+        var expected = Verifier.UnhandledException("ArgumentNullException")
             .WithSpan(15, 14, 15, 19);
 
         await Verifier.VerifyAnalyzerAsync(test, [expected]);

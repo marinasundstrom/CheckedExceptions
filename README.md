@@ -27,7 +27,7 @@ public class Sample
 {
     public void Execute()
     {
-        // ⚠️ THROW001: Unhandled exception
+        // ⚠️ THROW001: Unhandled exception type 'InvalidOperationException'
         Perform();
     }
 

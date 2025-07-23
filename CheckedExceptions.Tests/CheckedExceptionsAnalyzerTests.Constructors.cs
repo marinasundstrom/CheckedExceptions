@@ -36,10 +36,10 @@ partial class CheckedExceptionsAnalyzerTests
         }
         """;
 
-        var expected1 = Verifier.MightBeThrown("InvalidOperationException")
+        var expected1 = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(16, 30, 16, 50); // new ThrowingObject()
 
-        var expected2 = Verifier.MightBeThrown("InvalidOperationException")
+        var expected2 = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(21, 30, 21, 35); // new()
 
         await Verifier.VerifyAnalyzerAsync(test, expected1, expected2);

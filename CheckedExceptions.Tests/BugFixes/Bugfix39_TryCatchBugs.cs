@@ -34,7 +34,7 @@ public partial class Bugfix39_TryCatchBugs
         }
         """;
 
-        var expected = Verifier.IsThrown("ArgumentException")
+        var expected = Verifier.UnhandledException("ArgumentException")
             .WithSpan(19, 13, 19, 43);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
@@ -68,7 +68,7 @@ public partial class Bugfix39_TryCatchBugs
         }
         """;
 
-        var expected = Verifier.IsThrown("InvalidOperationException")
+        var expected = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(19, 13, 19, 51);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
@@ -103,7 +103,7 @@ public partial class Bugfix39_TryCatchBugs
         }
         """;
 
-        var expected = Verifier.MightBeThrown("InvalidOperationException")
+        var expected = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(20, 13, 20, 19);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
@@ -138,7 +138,7 @@ public partial class Bugfix39_TryCatchBugs
         }
         """;
 
-        var expected = Verifier.MightBeThrown("InvalidOperationException")
+        var expected = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(20, 13, 20, 19);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);

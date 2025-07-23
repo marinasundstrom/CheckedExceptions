@@ -29,7 +29,7 @@ public partial class AwaitTest
             }
             """;
 
-        var expected = Verifier.MightBeThrown("InvalidOperationException")
+        var expected = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(14, 15, 14, 30);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
@@ -89,7 +89,7 @@ public partial class AwaitTest
             }
             """;
 
-        var expected = Verifier.MightBeThrown("InvalidOperationException")
+        var expected = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(14, 20, 14, 35);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
