@@ -8,6 +8,9 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Editing;
 using Microsoft.CodeAnalysis.Formatting;
+using Microsoft.CodeAnalysis.Options;
+
+using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Sundstrom.CheckedExceptions;
 
@@ -58,7 +61,7 @@ public class AddThrowsAttributeCodeFixProvider : CodeFixProvider
 
         foreach (var exceptionTypeName in exceptionTypeNames.Distinct())
         {
-            var exceptionType = SyntaxFactory.ParseTypeName(exceptionTypeName);
+            var exceptionType = ParseTypeName(exceptionTypeName);
 
             if (exceptionType is null)
                 return document;
@@ -72,10 +75,10 @@ public class AddThrowsAttributeCodeFixProvider : CodeFixProvider
             if (ancestor is LocalFunctionStatementSyntax lf && HasThrowsAttribute(lf, exceptionType))
                 continue;
 
-            var attributeSyntax = SyntaxFactory.Attribute(SyntaxFactory.ParseName("Throws"))
+            var attributeSyntax = Attribute(ParseName("Throws"))
             .AddArgumentListArguments(
-                SyntaxFactory.AttributeArgument(
-                    SyntaxFactory.TypeOfExpression(
+                AttributeArgument(
+                    TypeOfExpression(
                        exceptionType)));
 
             attributes.Add(attributeSyntax);
@@ -86,40 +89,49 @@ public class AddThrowsAttributeCodeFixProvider : CodeFixProvider
 
         if (lineEndingTrivia == default)
         {
-            lineEndingTrivia = SyntaxFactory.CarriageReturnLineFeed;
+            lineEndingTrivia = CarriageReturnLineFeed;
         }
 
-        var attributeList = SyntaxFactory.AttributeList(SyntaxFactory.SeparatedList(attributes))
-            .WithTrailingTrivia(SyntaxFactory.TriviaList(lineEndingTrivia));
+        var attributeList = AttributeList(SeparatedList(attributes))
+            .WithTrailingTrivia(TriviaList(lineEndingTrivia));
 
         SyntaxNode newAncestor = null;
 
         if (ancestor is MethodDeclarationSyntax methodDeclaration)
         {
-            newAncestor = methodDeclaration.AddAttributeLists(attributeList);
+            newAncestor = methodDeclaration.AddAttributeLists(attributeList)
+                    .WithLeadingTrivia(methodDeclaration.GetLeadingTrivia())
+                    .WithTrailingTrivia(methodDeclaration.GetTrailingTrivia());
         }
         else if (ancestor is ConstructorDeclarationSyntax constructorDeclaration)
         {
-            newAncestor = constructorDeclaration.AddAttributeLists(attributeList);
+            newAncestor = constructorDeclaration.AddAttributeLists(attributeList)
+                    .WithLeadingTrivia(constructorDeclaration.GetLeadingTrivia())
+                    .WithTrailingTrivia(constructorDeclaration.GetTrailingTrivia());
         }
         else if (ancestor is AccessorDeclarationSyntax accessorDeclaration)
         {
-            newAncestor = accessorDeclaration.AddAttributeLists(attributeList);
+            newAncestor = accessorDeclaration
+                    .AddAttributeLists(attributeList)
+                    .WithLeadingTrivia(accessorDeclaration.GetLeadingTrivia())
+                    .WithTrailingTrivia(accessorDeclaration.GetTrailingTrivia());
         }
         else if (ancestor is LocalFunctionStatementSyntax localFunction)
         {
-            newAncestor = localFunction.AddAttributeLists(attributeList);
+            newAncestor = localFunction.AddAttributeLists(attributeList)
+                    .WithLeadingTrivia(localFunction.GetLeadingTrivia())
+                    .WithTrailingTrivia(localFunction.GetTrailingTrivia());
         }
         else if (ancestor is LambdaExpressionSyntax lambdaExpression)
         {
-            newAncestor = lambdaExpression.WithAttributeLists(lambdaExpression.AttributeLists.Add(attributeList));
+            newAncestor = lambdaExpression.WithAttributeLists(lambdaExpression.AttributeLists.Add(attributeList))
+                    .WithLeadingTrivia(lambdaExpression.GetLeadingTrivia())
+                    .WithTrailingTrivia(lambdaExpression.GetTrailingTrivia());
         }
 
         if (newAncestor is not null)
         {
-            editor.ReplaceNode(ancestor, newAncestor
-                .WithAdditionalAnnotations(Formatter.Annotation)
-                .NormalizeWhitespace(elasticTrivia: true));
+            editor.ReplaceNode(ancestor, newAncestor.WithAdditionalAnnotations(Formatter.Annotation));
             return editor.GetChangedDocument();
         }
 

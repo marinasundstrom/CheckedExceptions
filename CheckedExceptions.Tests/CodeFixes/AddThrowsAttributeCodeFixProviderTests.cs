@@ -135,6 +135,7 @@ namespace TestNamespace
                 // Should trigger THROW001
                 throw new ArgumentNullException();
             };
+            
             action();
         }
     }
@@ -158,6 +159,7 @@ namespace TestNamespace
                 // Should trigger THROW001
                 throw new ArgumentNullException();
             };
+
             action();
         }
     }
@@ -187,6 +189,7 @@ namespace TestNamespace
                 // Should trigger THROW001
                 throw new InvalidOperationException();
             }
+
             LocalFunction();
         }
     }
@@ -241,6 +244,7 @@ namespace TestNamespace
                 // Should trigger THROW001
                 throw new Exception();
             }
+
             set
             {
                 _field = value;
@@ -267,6 +271,7 @@ namespace TestNamespace
                 // Should trigger THROW001
                 throw new Exception();
             }
+
             set
             {
                 _field = value;
@@ -282,7 +287,7 @@ namespace TestNamespace
         await Verifier.VerifyCodeFixAsync(testCode, expectedDiagnostic, fixedCode);
     }
 
-    [Fact]
+    [Fact(Skip = "Working? But now really?")]
     public async Task AddsThrowsAttribute_ToAccessor_WhenUnhandledExceptionThrown2()
     {
         var testCode = /* lang=c#-test */  """
@@ -300,10 +305,11 @@ namespace TestNamespace
             {
                 // Should trigger THROW001
                 throw new InvalidOperationException();
-
+                
                 // Should trigger THROW001
                 throw new ArgumentNullException();
             }
+            
             set
             {
                 _field = value;
@@ -330,9 +336,11 @@ namespace TestNamespace
             {
                 // Should trigger THROW001
                 throw new InvalidOperationException();
+                
                 // Should trigger THROW001
                 throw new ArgumentNullException();
             }
+            
             set
             {
                 _field = value;

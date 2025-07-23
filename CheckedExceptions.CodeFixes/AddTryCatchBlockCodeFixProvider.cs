@@ -8,6 +8,8 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Formatting;
 
+using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
+
 namespace Sundstrom.CheckedExceptions
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(AddTryCatchBlockCodeFixProvider)), Shared]
@@ -16,7 +18,7 @@ namespace Sundstrom.CheckedExceptions
         private const string TitleAddTryCatch = "Add try-catch block";
 
         public sealed override ImmutableArray<string> FixableDiagnosticIds =>
-            ImmutableArray.Create(CheckedExceptionsAnalyzer.DiagnosticIdUnhandled);
+            [CheckedExceptionsAnalyzer.DiagnosticIdUnhandled];
 
         public sealed override FixAllProvider GetFixAllProvider() =>
             WellKnownFixAllProviders.BatchFixer;
@@ -101,7 +103,7 @@ namespace Sundstrom.CheckedExceptions
 
                     TryStatementSyntax newTryStatement = existingTryStatement.AddCatches(catchClausesToAdd.ToArray());
 
-                    var newRoot = root.ReplaceNode(existingTryStatement, newTryStatement.NormalizeWhitespace(elasticTrivia: true));
+                    var newRoot = root.ReplaceNode(existingTryStatement, newTryStatement.WithAdditionalAnnotations(Formatter.Annotation));
 
                     return document.WithSyntaxRoot(newRoot);
                 }
@@ -160,7 +162,7 @@ namespace Sundstrom.CheckedExceptions
             var statementsToWrap = statements.Skip(start).Take(end - start + 1).ToList();
 
             // Create the try block
-            var tryBlock = SyntaxFactory.Block(statementsToWrap)
+            var tryBlock = Block(statementsToWrap)
                 .WithAdditionalAnnotations(Formatter.Annotation);
 
             var count = statementsToWrap.First().Ancestors().OfType<TryStatementSyntax>().Count();
@@ -169,20 +171,15 @@ namespace Sundstrom.CheckedExceptions
             List<CatchClauseSyntax> catchClauses = CreateCatchClauses(exceptionTypeNames, count);
 
             // Construct the try-catch statement
-            TryStatementSyntax tryCatchStatement = SyntaxFactory.TryStatement()
+            TryStatementSyntax tryCatchStatement = TryStatement()
                 .WithBlock(tryBlock)
-                .WithCatches(SyntaxFactory.List(catchClauses))
+                .WithCatches(List(catchClauses))
                 .WithAdditionalAnnotations(Formatter.Annotation);
-
-            // Preserve leading trivia (e.g., comments) from the first statement
-            tryCatchStatement = tryCatchStatement
-                .WithLeadingTrivia(statementsToWrap.First().GetLeadingTrivia().Where(x => !x.IsKind(SyntaxKind.SingleLineCommentTrivia) && !x.IsKind(SyntaxKind.MultiLineCommentTrivia)))
-                .WithTrailingTrivia(statementsToWrap.Last().GetTrailingTrivia());
 
             // Replace the original statements with the try-catch statement
             var newRootReplace = root.ReplaceNodes(
                 statementsToWrap,
-                (original, rewritten) => original == statementsToWrap.First() ? tryCatchStatement.NormalizeWhitespace(elasticTrivia: true) : null!
+                (original, rewritten) => original == statementsToWrap.First() ? tryCatchStatement.WithAdditionalAnnotations(Formatter.Annotation) : null!
             );
 
             return document.WithSyntaxRoot(newRootReplace);
@@ -208,13 +205,13 @@ namespace Sundstrom.CheckedExceptions
                 if (string.IsNullOrWhiteSpace(exceptionTypeName))
                     continue;
 
-                var exceptionType = SyntaxFactory.ParseTypeName(exceptionTypeName);
+                var exceptionType = ParseTypeName(exceptionTypeName);
 
-                var catchClause = SyntaxFactory.CatchClause()
+                var catchClause = CatchClause()
                     .WithDeclaration(
-                        SyntaxFactory.CatchDeclaration(exceptionType)
-                        .WithIdentifier(SyntaxFactory.Identifier(catchExceptionVariableName)))
-                    .WithBlock(SyntaxFactory.Block()) // You might want to add meaningful handling here
+                        CatchDeclaration(exceptionType)
+                        .WithIdentifier(Identifier(catchExceptionVariableName)))
+                    .WithBlock(Block()) // You might want to add meaningful handling here
                     .WithAdditionalAnnotations(Formatter.Annotation);
 
                 catchClauses.Add(catchClause);
