@@ -330,8 +330,7 @@ namespace TestNamespace
 
         public string Property
         {
-            [Throws(typeof(InvalidOperationException))]
-            [Throws(typeof(ArgumentNullException))]
+            [Throws(typeof(InvalidOperationException), typeof(ArgumentNullException))]
             get
             {
                 // Should trigger THROW001
