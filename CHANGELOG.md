@@ -6,11 +6,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.0] - 2025-07-24
+
+### Fixed
+
+- PR [#92](https://github.com/marinasundstrom/CheckedExceptions/pull/92) Improvements to code fixers
+  - Rename code fixer actions
+   - [#89](https://github.com/marinasundstrom/CheckedExceptions/issues/89) 
+Fix handling of leading trivia in code fixer
+   - [#93](https://github.com/marinasundstrom/CheckedExceptions/issues/93) 
+Code fixer adds exception type to existing declaration 
+
 ## [1.3.6] - 2025-07-23
 
 ### Fixed
 
-- PR [#88](https://github.com/marinasundstrom/CheckedExceptions/pull/88) Improvements to code fixes
+- PR [#88](https://github.com/marinasundstrom/CheckedExceptions/pull/88) Improvements to code fixers
 
 ## [1.3.5] - 2025-07-23
 
