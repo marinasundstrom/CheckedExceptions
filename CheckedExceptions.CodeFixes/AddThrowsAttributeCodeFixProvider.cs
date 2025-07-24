@@ -59,6 +59,13 @@ public class AddThrowsAttributeCodeFixProvider : CodeFixProvider
 
         List<AttributeSyntax> attributes = new List<AttributeSyntax>();
 
+        var currentThrowsAttributes = GetThrowsAttributes(ancestor);
+
+        var throwsAttributeSyntax = currentThrowsAttributes.FirstOrDefault();
+
+        var existingThrowsAttributeSyntax = throwsAttributeSyntax;
+        var existingAttributeList = throwsAttributeSyntax?.Parent as AttributeListSyntax;
+
         foreach (var exceptionTypeName in exceptionTypeNames.Distinct())
         {
             var exceptionType = ParseTypeName(exceptionTypeName);
@@ -66,66 +73,84 @@ public class AddThrowsAttributeCodeFixProvider : CodeFixProvider
             if (exceptionType is null)
                 return document;
 
-            if (ancestor is BaseMethodDeclarationSyntax m && HasThrowsAttribute(m, exceptionType))
+            if (CheckHasExceptionType(exceptionType, currentThrowsAttributes))
                 continue;
 
-            if (ancestor is LambdaExpressionSyntax l && HasThrowsAttribute(l, exceptionType))
-                continue;
+            if (throwsAttributeSyntax is null)
+            {
+                throwsAttributeSyntax = Attribute(ParseName("Throws"))
+                .AddArgumentListArguments(
+                    AttributeArgument(
+                        TypeOfExpression(
+                           exceptionType)));
+            }
+            else
+            {
+                var newArgList = throwsAttributeSyntax.ArgumentList.Arguments.Add(AttributeArgument(
+                        TypeOfExpression(
+                           exceptionType))
+                    .WithLeadingTrivia(Whitespace(" ")));
 
-            if (ancestor is LocalFunctionStatementSyntax lf && HasThrowsAttribute(lf, exceptionType))
-                continue;
-
-            var attributeSyntax = Attribute(ParseName("Throws"))
-            .AddArgumentListArguments(
-                AttributeArgument(
-                    TypeOfExpression(
-                       exceptionType)));
-
-            attributes.Add(attributeSyntax);
+                throwsAttributeSyntax = throwsAttributeSyntax
+                    .WithArgumentList(AttributeArgumentList(newArgList));
+            }
         }
 
-        var lineEndingTrivia = root.DescendantTrivia().FirstOrDefault(trivia =>
-            trivia.IsKind(SyntaxKind.EndOfLineTrivia));
-
-        if (lineEndingTrivia == default)
-        {
-            lineEndingTrivia = CarriageReturnLineFeed;
-        }
-
-        var attributeList = AttributeList(SeparatedList(attributes));
+        var attributeList = existingAttributeList is not null
+            ? existingAttributeList!.ReplaceNode(existingThrowsAttributeSyntax, throwsAttributeSyntax)
+            : AttributeList([throwsAttributeSyntax]);
 
         SyntaxNode newAncestor = null;
 
         if (ancestor is MethodDeclarationSyntax methodDeclaration)
         {
-            newAncestor = methodDeclaration.AddAttributeLists(attributeList)
-                    .WithLeadingTrivia(methodDeclaration.GetLeadingTrivia())
-                    .WithTrailingTrivia(methodDeclaration.GetTrailingTrivia());
+            methodDeclaration = existingAttributeList is not null
+                ? methodDeclaration.ReplaceNode(existingAttributeList!, attributeList)
+                : methodDeclaration.AddAttributeLists(attributeList);
+
+            newAncestor = methodDeclaration
+                    .WithLeadingTrivia(ancestor.GetLeadingTrivia())
+                    .WithTrailingTrivia(ancestor.GetTrailingTrivia());
         }
         else if (ancestor is ConstructorDeclarationSyntax constructorDeclaration)
         {
-            newAncestor = constructorDeclaration.AddAttributeLists(attributeList)
-                    .WithLeadingTrivia(constructorDeclaration.GetLeadingTrivia())
-                    .WithTrailingTrivia(constructorDeclaration.GetTrailingTrivia());
+            constructorDeclaration = existingAttributeList is not null
+                ? constructorDeclaration.ReplaceNode(existingAttributeList!, attributeList)
+                : constructorDeclaration.AddAttributeLists(attributeList);
+
+            newAncestor = constructorDeclaration
+                    .WithLeadingTrivia(ancestor.GetLeadingTrivia())
+                    .WithTrailingTrivia(ancestor.GetTrailingTrivia());
         }
         else if (ancestor is AccessorDeclarationSyntax accessorDeclaration)
         {
+            accessorDeclaration = existingAttributeList is not null
+                ? accessorDeclaration.ReplaceNode(existingAttributeList!, attributeList)
+                : accessorDeclaration.AddAttributeLists(attributeList);
+
             newAncestor = accessorDeclaration
-                    .AddAttributeLists(attributeList)
-                    .WithLeadingTrivia(accessorDeclaration.GetLeadingTrivia())
-                    .WithTrailingTrivia(accessorDeclaration.GetTrailingTrivia());
+                    .WithLeadingTrivia(ancestor.GetLeadingTrivia())
+                    .WithTrailingTrivia(ancestor.GetTrailingTrivia());
         }
         else if (ancestor is LocalFunctionStatementSyntax localFunction)
         {
-            newAncestor = localFunction.AddAttributeLists(attributeList)
-                    .WithLeadingTrivia(localFunction.GetLeadingTrivia())
-                    .WithTrailingTrivia(localFunction.GetTrailingTrivia());
+            localFunction = existingAttributeList is not null
+                ? localFunction.ReplaceNode(existingAttributeList!, attributeList)
+                : localFunction.AddAttributeLists(attributeList);
+
+            newAncestor = localFunction
+                    .WithLeadingTrivia(ancestor.GetLeadingTrivia())
+                    .WithTrailingTrivia(ancestor.GetTrailingTrivia());
         }
         else if (ancestor is LambdaExpressionSyntax lambdaExpression)
         {
-            newAncestor = lambdaExpression.WithAttributeLists(lambdaExpression.AttributeLists.Add(attributeList))
-                    .WithLeadingTrivia(lambdaExpression.GetLeadingTrivia())
-                    .WithTrailingTrivia(lambdaExpression.GetTrailingTrivia());
+            lambdaExpression = existingAttributeList is not null
+                ? lambdaExpression.ReplaceNode(existingAttributeList!, attributeList)
+                : lambdaExpression.AddAttributeLists(attributeList);
+
+            newAncestor = lambdaExpression
+                    .WithLeadingTrivia(ancestor.GetLeadingTrivia())
+                    .WithTrailingTrivia(ancestor.GetTrailingTrivia());
         }
 
         if (newAncestor is not null)
@@ -137,40 +162,46 @@ public class AddThrowsAttributeCodeFixProvider : CodeFixProvider
         return document;
     }
 
-    private bool HasThrowsAttribute(BaseMethodDeclarationSyntax methodDeclaration, TypeSyntax exceptionType)
+    private IEnumerable<AttributeSyntax>? GetThrowsAttributes(SyntaxNode ancestor)
     {
-        var attributes = methodDeclaration.AttributeLists.FirstOrDefault()?.Attributes;
-
-        if (attributes is null)
-            return false;
-
-        return CheckHasExceptionType(exceptionType, attributes);
+        return ancestor switch
+        {
+            BaseMethodDeclarationSyntax m => GetThrowsAttributes(m),
+            LambdaExpressionSyntax l => GetThrowsAttributes(l),
+            LocalFunctionStatementSyntax lf => GetThrowsAttributes(lf),
+            AccessorDeclarationSyntax a => GetThrowsAttributes(a),
+            _ => throw new InvalidOperationException()
+        };
     }
 
-    private bool HasThrowsAttribute(LambdaExpressionSyntax lambdaExpression, TypeSyntax exceptionType)
+    private IEnumerable<AttributeSyntax> GetThrowsAttributes(BaseMethodDeclarationSyntax methodDeclaration)
     {
-        var attributes = lambdaExpression.AttributeLists.FirstOrDefault()?.Attributes;
-
-        if (attributes is null)
-            return false;
-
-        return CheckHasExceptionType(exceptionType, attributes);
+        return methodDeclaration.AttributeLists.SelectMany(x => x.Attributes)
+            .Where(x => x.Name.ToString() is "Throws" or "ThrowsAttribute");
     }
 
-    private bool HasThrowsAttribute(LocalFunctionStatementSyntax localFunction, TypeSyntax exceptionType)
+    private IEnumerable<AttributeSyntax> GetThrowsAttributes(LambdaExpressionSyntax lambdaExpression)
     {
-        var attributes = localFunction.AttributeLists.FirstOrDefault()?.Attributes;
-
-        if (attributes is null)
-            return false;
-
-        return CheckHasExceptionType(exceptionType, attributes);
+        return lambdaExpression.AttributeLists.SelectMany(x => x.Attributes)
+            .Where(x => x.Name.ToString() is "Throws" or "ThrowsAttribute");
     }
 
-    private static bool CheckHasExceptionType(TypeSyntax exceptionType, SeparatedSyntaxList<AttributeSyntax>? attributes)
+    private IEnumerable<AttributeSyntax> GetThrowsAttributes(LocalFunctionStatementSyntax localFunction)
     {
-        return attributes.Value
-            .Where(x => x.Name.ToString() is "ThrowsAttribute")
+        return localFunction.AttributeLists.SelectMany(x => x.Attributes)
+            .Where(x => x.Name.ToString() is "Throws" or "ThrowsAttribute");
+    }
+
+    private IEnumerable<AttributeSyntax> GetThrowsAttributes(AccessorDeclarationSyntax accessorDeclaration)
+    {
+        return accessorDeclaration.AttributeLists.SelectMany(x => x.Attributes)
+            .Where(x => x.Name.ToString() is "Throws" or "ThrowsAttribute");
+    }
+
+    private static bool CheckHasExceptionType(TypeSyntax exceptionType, IEnumerable<AttributeSyntax>? attributes)
+    {
+        return attributes
+            .Where(x => x.Name.ToString() is "Throws" or "ThrowsAttribute")
             .Any(x => x.ArgumentList
                 .Arguments.Any(x => x.Expression is TypeOfExpressionSyntax z && z.Type == exceptionType));
     }
