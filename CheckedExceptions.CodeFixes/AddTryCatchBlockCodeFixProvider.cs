@@ -15,7 +15,7 @@ namespace Sundstrom.CheckedExceptions
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(AddTryCatchBlockCodeFixProvider)), Shared]
     public class AddTryCatchBlockCodeFixProvider : CodeFixProvider
     {
-        private const string TitleAddTryCatch = "Add try-catch block";
+        private const string TitleAddTryCatch = "Surround with try/catch";
 
         public sealed override ImmutableArray<string> FixableDiagnosticIds =>
             [CheckedExceptionsAnalyzer.DiagnosticIdUnhandled];

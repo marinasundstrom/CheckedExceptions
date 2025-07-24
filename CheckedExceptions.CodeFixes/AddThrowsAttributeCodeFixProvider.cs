@@ -17,7 +17,7 @@ namespace Sundstrom.CheckedExceptions;
 [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(AddThrowsAttributeCodeFixProvider)), Shared]
 public class AddThrowsAttributeCodeFixProvider : CodeFixProvider
 {
-    private const string TitleAddThrowsAttribute = "Add ThrowsAttribute";
+    private const string TitleAddThrowsAttribute = "Add throws declaration";
 
     public sealed override ImmutableArray<string> FixableDiagnosticIds =>
         [CheckedExceptionsAnalyzer.DiagnosticIdUnhandled];
