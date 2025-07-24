@@ -92,8 +92,7 @@ public class AddThrowsAttributeCodeFixProvider : CodeFixProvider
             lineEndingTrivia = CarriageReturnLineFeed;
         }
 
-        var attributeList = AttributeList(SeparatedList(attributes))
-            .WithTrailingTrivia(TriviaList(lineEndingTrivia));
+        var attributeList = AttributeList(SeparatedList(attributes));
 
         SyntaxNode newAncestor = null;
 
