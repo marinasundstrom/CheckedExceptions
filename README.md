@@ -68,6 +68,7 @@ public void Execute()
 - Enforce better error design across your codebase
 - Works with unannotated .NET methods via XML docs
 - Plays nice with nullable annotations
+- Avoid confusing [Throws] with <exception> — enforce contracts, not just documentation
 
 ---
 
@@ -161,6 +162,33 @@ Register in `.csproj`:
 - Merges `[Throws]` with `<exception>` from XML docs
 - Handles nullability context (`#nullable enable`)  
 - Understands standard library exceptions (e.g. `Console.WriteLine` → `IOException`)
+
+---
+
+## ❓ Frequently Asked Questions (FAQ)
+
+### Can I use `<exception>` XML documentation tags instead of the `[Throws]` attribute?
+
+**Answer:**
+
+No — for your own code, `<exception>` tags are **not treated as semantic declarations** by the analyzer. While they are useful for documentation and IntelliSense, they are not part of the C# language’s type system and cannot be reliably analyzed or enforced.
+
+Instead, we encourage and require the use of the `[Throws]` attribute for declaring exceptions in a way that is:
+
+- Explicit and machine-readable  
+- Suitable for static analysis and enforcement  
+- Integrated with code fixes and tooling support
+
+#### 🧩 Interoperability with external libraries
+
+When analyzing external APIs (e.g., referenced .NET assemblies), we **do** recognize `<exception>` tags from their XML documentation — but only for **interop purposes**. That is:
+
+- We treat documented exceptions from public APIs as "declared" when `[Throws]` is not available.
+- This helps maintain compatibility without requiring upstream changes.
+- However, this behavior **does not apply** to code within your own solution.
+
+> ⚠️ Summary:  
+> `<exception>` tags are respected for **interop**, but they are **not a replacement** for `[Throws]` in code you control.
 
 ---
 
