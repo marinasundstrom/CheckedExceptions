@@ -68,7 +68,7 @@ public void Execute()
 - Enforce better error design across your codebase
 - Works with unannotated .NET methods via XML docs
 - Plays nice with nullable annotations
-- Avoid confusing [Throws] with <exception> — enforce contracts, not just documentation
+- Avoid confusing [Throws] with `<exception>` — enforce contracts, not just documentation
 
 ---
 
