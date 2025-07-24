@@ -287,7 +287,7 @@ namespace TestNamespace
         await Verifier.VerifyCodeFixAsync(testCode, expectedDiagnostic, fixedCode);
     }
 
-    [Fact(Skip = "Working? But now really?")]
+    [Fact]
     public async Task AddsThrowsAttribute_ToAccessor_WhenUnhandledExceptionThrown2()
     {
         var testCode = /* lang=c#-test */  """
@@ -305,11 +305,11 @@ namespace TestNamespace
             {
                 // Should trigger THROW001
                 throw new InvalidOperationException();
-                
+
                 // Should trigger THROW001
                 throw new ArgumentNullException();
             }
-            
+
             set
             {
                 _field = value;
@@ -336,11 +336,11 @@ namespace TestNamespace
             {
                 // Should trigger THROW001
                 throw new InvalidOperationException();
-                
+
                 // Should trigger THROW001
                 throw new ArgumentNullException();
             }
-            
+
             set
             {
                 _field = value;
