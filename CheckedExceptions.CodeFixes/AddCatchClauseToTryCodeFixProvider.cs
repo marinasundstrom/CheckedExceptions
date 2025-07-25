@@ -31,9 +31,15 @@ public class AddCatchClauseToTryCodeFixProvider : CodeFixProvider
         var diagnostic = diagnostics.First();
         var node = root.FindNode(diagnostic.Location.SourceSpan);
 
-        // Register the code fix only if the node is a statement or within a statement
+
+        // Proceed only if the node is a statement or within a statement
         var statement = node.FirstAncestorOrSelf<StatementSyntax>();
         if (statement is null)
+            return;
+
+        // Ensure the statement is within the try block (not catch/finally)
+        var tryStatement = node.FirstAncestorOrSelf<TryStatementSyntax>();
+        if (tryStatement?.Block is null || !tryStatement.Block.DescendantNodes().Contains(statement))
             return;
 
         context.RegisterCodeFix(

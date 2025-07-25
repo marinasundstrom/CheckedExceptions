@@ -103,6 +103,6 @@ namespace TestNamespace
         var expectedDiagnostic = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(9, 13, 9, 51);
 
-        await Verifier.VerifyCodeFixAsync(testCode, expectedDiagnostic, fixedCode);
+        await Verifier.VerifyCodeFixAsync(testCode, expectedDiagnostic, fixedCode, expectedIncrementalIterations: 0);
     }
 }
