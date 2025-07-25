@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [1.4.1] - 2025-07-25
+
 ### Added
 
 - PR [#96](https://github.com/marinasundstrom/CheckedExceptions/pull/96) Add fixer that adds catch to existing try block
