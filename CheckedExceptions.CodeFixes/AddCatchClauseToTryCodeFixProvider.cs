@@ -12,10 +12,10 @@ using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Sundstrom.CheckedExceptions
 {
-    [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(AddTryCatchBlockCodeFixProvider)), Shared]
-    public class AddTryCatchBlockCodeFixProvider : CodeFixProvider
+    [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(AddCatchClauseToTryCodeFixProvider)), Shared]
+    public class AddCatchClauseToTryCodeFixProvider : CodeFixProvider
     {
-        private const string TitleAddTryCatch = "Surround with try/catch";
+        private const string TitleAddTryCatch = "Add catch clause to surrounding try";
 
         public sealed override ImmutableArray<string> FixableDiagnosticIds =>
             [CheckedExceptionsAnalyzer.DiagnosticIdUnhandled];
@@ -70,78 +70,40 @@ namespace Sundstrom.CheckedExceptions
             if (targetIndex is -1)
                 return document; // Statement not found in the parent block
 
-            // Perform data flow analysis on the target statement
-            var dataFlow = semanticModel.AnalyzeDataFlow(statement)!;
+            // Check if the statement is already inside a try-catch block
+            var existingTryStatement = statement.Ancestors().OfType<TryStatementSyntax>().FirstOrDefault();
 
-            var variablesToTrack = new HashSet<ISymbol>(dataFlow.ReadInside.Concat(dataFlow.WrittenInside), SymbolEqualityComparer.Default);
+            var existingCatchClause = statement.Ancestors().OfType<CatchClauseSyntax>().FirstOrDefault();
 
-            // Determine the range of statements to include using flow analysis
-            int start = targetIndex;
-            int end = targetIndex;
-
-            // Expand upwards to include related statements
-            for (int i = targetIndex - 1; i >= 0; i--)
+            if (existingTryStatement is not null)
             {
-                var currentStatement = statements[i];
-                var currentDataFlow = semanticModel.AnalyzeDataFlow(currentStatement)!;
+                // Gather existing catch types (simple string comparison)
+                var existingCatchTypes = new HashSet<string>(existingTryStatement.Catches
+                    .Select(c => c.Declaration?.Type?.ToString())
+                    .Where(t => !string.IsNullOrEmpty(t))!);
 
-                if (currentDataFlow.WrittenOutside.Any(v => variablesToTrack.Contains(v)) ||
-                    currentDataFlow.ReadInside.Any(v => variablesToTrack.Contains(v)))
+                // Determine which exception types are not yet handled
+                var newExceptionTypes = exceptionTypeNames
+                    .Where(t => !existingCatchTypes.Contains(t))
+                    .Distinct()
+                    .ToList();
+
+                if (newExceptionTypes.Count == 0)
                 {
-                    start = i;
-                    variablesToTrack.UnionWith(currentDataFlow.ReadInside);
-                    variablesToTrack.UnionWith(currentDataFlow.WrittenInside);
+                    return document; // All exceptions already handled
                 }
-                else
-                {
-                    break;
-                }
+
+                var catchClausesToAdd = CreateCatchClauses(newExceptionTypes, existingTryStatement.Catches.Count);
+
+                var newTry = existingTryStatement.WithCatches(existingTryStatement.Catches.AddRange(catchClausesToAdd))
+                    .WithAdditionalAnnotations(Formatter.Annotation);
+
+                var newRoot = root.ReplaceNode(existingTryStatement, newTry);
+
+                return document.WithSyntaxRoot(newRoot);
             }
 
-            // Expand downwards to include related statements
-            for (int i = targetIndex + 1; i < statements.Count; i++)
-            {
-                var currentStatement = statements[i];
-                var currentDataFlow = semanticModel.AnalyzeDataFlow(currentStatement)!;
-
-                if (currentDataFlow.ReadOutside.Any(v => variablesToTrack.Contains(v)) ||
-                    currentDataFlow.WrittenInside.Any(v => variablesToTrack.Contains(v)))
-                {
-                    end = i;
-                    variablesToTrack.UnionWith(currentDataFlow.ReadInside);
-                    variablesToTrack.UnionWith(currentDataFlow.WrittenInside);
-                }
-                else
-                {
-                    break;
-                }
-            }
-
-            // Extract the related statements
-            var statementsToWrap = statements.Skip(start).Take(end - start + 1).ToList();
-
-            // Create the try block
-            var tryBlock = Block(statementsToWrap)
-                .WithAdditionalAnnotations(Formatter.Annotation);
-
-            var count = statementsToWrap.First().Ancestors().OfType<TryStatementSyntax>().Count();
-
-            // Create catch clauses based on exception types
-            List<CatchClauseSyntax> catchClauses = CreateCatchClauses(exceptionTypeNames, count);
-
-            // Construct the try-catch statement
-            TryStatementSyntax tryCatchStatement = TryStatement()
-                .WithBlock(tryBlock)
-                .WithCatches(List(catchClauses))
-                .WithAdditionalAnnotations(Formatter.Annotation);
-
-            // Replace the original statements with the try-catch statement
-            var newRootReplace = root.ReplaceNodes(
-                statementsToWrap,
-                (original, rewritten) => original == statementsToWrap.First() ? tryCatchStatement.WithAdditionalAnnotations(Formatter.Annotation) : null!
-            );
-
-            return document.WithSyntaxRoot(newRootReplace);
+            return document;
         }
 
         private static List<CatchClauseSyntax> CreateCatchClauses(IEnumerable<string> exceptionTypeNames, int level = 0)
