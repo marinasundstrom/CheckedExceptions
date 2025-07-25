@@ -27,14 +27,12 @@ public class AddTryCatchBlockCodeFixProvider : CodeFixProvider
     public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
     {
         var diagnostics = context.Diagnostics;
-
         var cancellationToken = context.CancellationToken;
         var root = await context.Document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
         var diagnostic = diagnostics.First();
         var node = root.FindNode(diagnostic.Location.SourceSpan);
 
-        // Register the code fix only if the node is a statement or within a statement
-        var statement = node.FirstAncestorOrSelf<StatementSyntax>();
+        StatementSyntax? statement = node is GlobalStatementSyntax g ? g.Statement : node.FirstAncestorOrSelf<StatementSyntax>();
         if (statement is null)
             return;
 
@@ -48,100 +46,162 @@ public class AddTryCatchBlockCodeFixProvider : CodeFixProvider
 
     private async Task<Document> AddTryCatchAsync(Document document, StatementSyntax statement, IEnumerable<Diagnostic> diagnostics, CancellationToken cancellationToken)
     {
-        // Retrieve exception types from diagnostics
         var exceptionTypeNames = diagnostics
-            .Select(diagnostic => diagnostic.Properties.ContainsKey("ExceptionType") ? diagnostic.Properties["ExceptionType"]! : string.Empty);
+            .Select(d => d.Properties.TryGetValue("ExceptionType", out var type) ? type! : string.Empty);
 
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+        if (root is null) return document;
 
-        if (root is null)
+        var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+        SyntaxNode newRoot;
+
+        if (statement.Parent is BlockSyntax parentBlock)
+        {
+            var statements = parentBlock.Statements;
+            var targetIndex = statements.IndexOf(statement);
+            if (targetIndex == -1) return document;
+
+            var dataFlow = semanticModel.AnalyzeDataFlow(statement)!;
+            var readSymbols = new HashSet<ISymbol>(dataFlow.ReadInside, SymbolEqualityComparer.Default);
+
+            int start = targetIndex;
+            for (int i = 0; i < targetIndex; i++)
+            {
+                var flow = semanticModel.AnalyzeDataFlow(statements[i])!;
+                if (flow.WrittenInside.Any(readSymbols.Contains))
+                {
+                    start = i;
+                    break;
+                }
+            }
+
+            int end = targetIndex;
+            var writtenSymbols = new HashSet<ISymbol>(semanticModel.AnalyzeDataFlow(statements[targetIndex])!.WrittenInside, SymbolEqualityComparer.Default);
+
+            for (int i = targetIndex + 1; i < statements.Count; i++)
+            {
+                var current = statements[i];
+                var currentFlow = semanticModel.AnalyzeDataFlow(current)!;
+
+                if (currentFlow.ReadInside.Any(writtenSymbols.Contains))
+                {
+                    end = i;
+                    writtenSymbols.UnionWith(currentFlow.WrittenInside);
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            var statementsToWrap = statements
+                .Skip(start).Take(end - start + 1)
+                .Where(s => s is not LocalFunctionStatementSyntax)
+                .ToList();
+
+            var tryBlock = Block(statementsToWrap).WithAdditionalAnnotations(Formatter.Annotation);
+            var count = statementsToWrap.First().Ancestors().OfType<TryStatementSyntax>().Count();
+            var catchClauses = CreateCatchClauses(exceptionTypeNames, count);
+
+            var tryCatchStatement = TryStatement()
+                .WithBlock(tryBlock)
+                .WithCatches(List(catchClauses))
+                .WithAdditionalAnnotations(Formatter.Annotation);
+
+            newRoot = root.ReplaceNodes(
+                statementsToWrap,
+                (original, _) => original == statementsToWrap.First() ? tryCatchStatement : null!
+            );
+        }
+        else if (statement.Parent is GlobalStatementSyntax globalStatement &&
+                 root is CompilationUnitSyntax compilationUnit)
+        {
+            var members = compilationUnit.Members;
+            var globalStatementsWithIndex = members
+                .Select((m, i) => (m, i))
+                .Where(t => t.m is GlobalStatementSyntax)
+                .Select(t => ((GlobalStatementSyntax)t.m, t.i))
+                .ToList();
+
+            var innerStatements = globalStatementsWithIndex.Select(t => t.Item1.Statement).ToList();
+            var targetIndex = innerStatements.IndexOf(statement);
+            if (targetIndex == -1) return document;
+
+            var dataFlow = semanticModel.AnalyzeDataFlow(statement)!;
+            var readSymbols = new HashSet<ISymbol>(dataFlow.ReadInside, SymbolEqualityComparer.Default);
+
+            int start = targetIndex;
+            for (int i = 0; i < targetIndex; i++)
+            {
+                var flow = semanticModel.AnalyzeDataFlow(innerStatements[i])!;
+                if (flow.WrittenInside.Any(readSymbols.Contains))
+                {
+                    start = i;
+                    break;
+                }
+            }
+
+            int end = targetIndex;
+            var writtenSymbols = new HashSet<ISymbol>(semanticModel.AnalyzeDataFlow(innerStatements[targetIndex])!.WrittenInside, SymbolEqualityComparer.Default);
+
+            for (int i = targetIndex + 1; i < innerStatements.Count; i++)
+            {
+                var current = innerStatements[i];
+                var currentFlow = semanticModel.AnalyzeDataFlow(current)!;
+
+                if (currentFlow.ReadInside.Any(writtenSymbols.Contains))
+                {
+                    end = i;
+                    writtenSymbols.UnionWith(currentFlow.WrittenInside);
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            var statementsToWrap = innerStatements
+                .Skip(start).Take(end - start + 1)
+                .Where(s => s is not LocalFunctionStatementSyntax)
+                .ToList();
+
+            var tryBlock = Block(statementsToWrap).WithAdditionalAnnotations(Formatter.Annotation);
+            var count = globalStatement.Ancestors().OfType<TryStatementSyntax>().Count();
+            var catchClauses = CreateCatchClauses(exceptionTypeNames, count);
+
+            var tryStatement = TryStatement()
+                .WithBlock(tryBlock)
+                .WithCatches(List(catchClauses))
+                .WithAdditionalAnnotations(Formatter.Annotation);
+
+            var tryGlobalStatement = GlobalStatement(tryStatement)
+                .WithTriviaFrom(globalStatementsWithIndex[start].Item1)
+                .WithAdditionalAnnotations(Formatter.Annotation);
+
+            var indicesToWrap = globalStatementsWithIndex
+                .Skip(start).Take(end - start + 1)
+                .Select(t => t.i).ToHashSet();
+
+            var newMembers = new List<MemberDeclarationSyntax>();
+            for (int i = 0; i < members.Count; i++)
+            {
+                if (i == globalStatementsWithIndex[start].i)
+                {
+                    newMembers.Add(tryGlobalStatement);
+                }
+                else if (!indicesToWrap.Contains(i))
+                {
+                    newMembers.Add(members[i]);
+                }
+            }
+
+            newRoot = compilationUnit.WithMembers(List(newMembers));
+        }
+        else
         {
             return document;
         }
 
-        var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
-
-        var parentBlock = statement.Parent as BlockSyntax;
-        if (parentBlock is null)
-            return document; // Cannot proceed if the parent is not a block
-
-        var statements = parentBlock.Statements;
-        var targetIndex = statements.IndexOf(statement);
-
-        if (targetIndex is -1)
-            return document; // Statement not found in the parent block
-
-        // Perform data flow analysis on the target statement
-        var dataFlow = semanticModel.AnalyzeDataFlow(statement)!;
-
-        var variablesToTrack = new HashSet<ISymbol>(dataFlow.ReadInside.Concat(dataFlow.WrittenInside), SymbolEqualityComparer.Default);
-
-        // Determine the range of statements to include using flow analysis
-        int start = targetIndex;
-        int end = targetIndex;
-
-        // Expand upwards to include related statements
-        for (int i = targetIndex - 1; i >= 0; i--)
-        {
-            var currentStatement = statements[i];
-            var currentDataFlow = semanticModel.AnalyzeDataFlow(currentStatement)!;
-
-            if (currentDataFlow.WrittenOutside.Any(v => variablesToTrack.Contains(v)) ||
-                currentDataFlow.ReadInside.Any(v => variablesToTrack.Contains(v)))
-            {
-                start = i;
-                variablesToTrack.UnionWith(currentDataFlow.ReadInside);
-                variablesToTrack.UnionWith(currentDataFlow.WrittenInside);
-            }
-            else
-            {
-                break;
-            }
-        }
-
-        // Expand downwards to include related statements
-        for (int i = targetIndex + 1; i < statements.Count; i++)
-        {
-            var currentStatement = statements[i];
-            var currentDataFlow = semanticModel.AnalyzeDataFlow(currentStatement)!;
-
-            if (currentDataFlow.ReadOutside.Any(v => variablesToTrack.Contains(v)) ||
-                currentDataFlow.WrittenInside.Any(v => variablesToTrack.Contains(v)))
-            {
-                end = i;
-                variablesToTrack.UnionWith(currentDataFlow.ReadInside);
-                variablesToTrack.UnionWith(currentDataFlow.WrittenInside);
-            }
-            else
-            {
-                break;
-            }
-        }
-
-        // Extract the related statements
-        var statementsToWrap = statements.Skip(start).Take(end - start + 1).ToList();
-
-        // Create the try block
-        var tryBlock = Block(statementsToWrap)
-            .WithAdditionalAnnotations(Formatter.Annotation);
-
-        var count = statementsToWrap.First().Ancestors().OfType<TryStatementSyntax>().Count();
-
-        // Create catch clauses based on exception types
-        List<CatchClauseSyntax> catchClauses = CreateCatchClauses(exceptionTypeNames, count);
-
-        // Construct the try-catch statement
-        TryStatementSyntax tryCatchStatement = TryStatement()
-            .WithBlock(tryBlock)
-            .WithCatches(List(catchClauses))
-            .WithAdditionalAnnotations(Formatter.Annotation);
-
-        // Replace the original statements with the try-catch statement
-        var newRootReplace = root.ReplaceNodes(
-            statementsToWrap,
-            (original, rewritten) => original == statementsToWrap.First() ? tryCatchStatement.WithAdditionalAnnotations(Formatter.Annotation) : null!
-        );
-
-        return document.WithSyntaxRoot(newRootReplace);
+        return document.WithSyntaxRoot(newRoot);
     }
 }

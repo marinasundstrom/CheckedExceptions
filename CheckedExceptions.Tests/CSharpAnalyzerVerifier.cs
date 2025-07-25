@@ -87,7 +87,7 @@ public static class CSharpAnalyzerVerifier<TAnalyzer, TVerifier>
         });
     }
 
-    public static Task VerifyAnalyzerAsync([StringSyntax("c#-test")] string source, Action<AnalyzerTest>? setup = null)
+    public static Task VerifyAnalyzerAsync([StringSyntax("c#-test")] string source, Action<AnalyzerTest>? setup = null, bool executable = false)
     {
         var test = new AnalyzerTest
         {
@@ -96,6 +96,11 @@ public static class CSharpAnalyzerVerifier<TAnalyzer, TVerifier>
 
         test.TestState.AdditionalReferences.Add(MetadataReference.CreateFromFile(typeof(ThrowsAttribute).Assembly.Location));
         test.TestState.ReferenceAssemblies = Net.Net90;
+
+        if (executable)
+        {
+            test.TestState.OutputKind = OutputKind.ConsoleApplication;
+        }
 
         setup?.Invoke(test);
 

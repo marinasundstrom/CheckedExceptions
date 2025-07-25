@@ -56,7 +56,6 @@ namespace TestNamespace
         await Verifier.VerifyCodeFixAsync(testCode, expectedDiagnostic, fixedCode);
     }
 
-
     [Fact]
     public async Task WhenExceptionTypeIsException_VariableName_ShouldBe_Ex()
     {
@@ -204,7 +203,7 @@ namespace TestNamespace
                 var x = DoSomething();
                 x = x + 1;
             }
-            catch (InvalidOperationException ex)
+            catch (InvalidOperationException invalidOperationException)
             {
             }
         }
@@ -276,7 +275,7 @@ namespace TestNamespace
                     // Should trigger THROW001
                     DoSomething();
                 }
-                catch (InvalidOperationException exc2)
+                catch (InvalidOperationException invalidOperationException)
                 {
                 }
             }
@@ -295,5 +294,76 @@ namespace TestNamespace
             .WithSpan(16, 17, 16, 30);
 
         await Verifier.VerifyCodeFixAsync(testCode, [expectedDiagnostic1], fixedCode, 1);
+    }
+
+    [Fact]
+    public async Task AddTryCatch_Should_IncludeVariablesInScope()
+    {
+        var testCode = /* lang=c#-test */  """
+using System;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        public void TestMethod()
+        {
+            string str = "";
+            int x = 0;
+            double d = 2;
+            var result = Foo(x);
+            #pragma warning disable THROW001 // Unhandled exception
+            Console.WriteLine(result);
+            #pragma warning restore THROW001
+            char ch = 'a';
+        }
+
+        [Throws(typeof(ArgumentException))]
+        int Foo(int arg) 
+        {
+            throw new ArgumentException();
+        }
+    }
+}
+""";
+
+        var fixedCode = /* lang=c#-test */  """
+using System;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        public void TestMethod()
+        {
+            string str = "";
+            try
+            {
+                int x = 0;
+                double d = 2;
+                var result = Foo(x);
+#pragma warning disable THROW001 // Unhandled exception
+                Console.WriteLine(result);
+            }
+            catch (ArgumentException argumentException)
+            {
+            }
+#pragma warning restore THROW001
+            char ch = 'a';
+        }
+
+        [Throws(typeof(ArgumentException))]
+        int Foo(int arg) 
+        {
+            throw new ArgumentException();
+        }
+    }
+}
+""";
+
+        var expectedDiagnostic = Verifier.UnhandledException("ArgumentException")
+            .WithSpan(12, 26, 12, 32);
+
+        await Verifier.VerifyCodeFixAsync(testCode, expectedDiagnostic, fixedCode);
     }
 }
