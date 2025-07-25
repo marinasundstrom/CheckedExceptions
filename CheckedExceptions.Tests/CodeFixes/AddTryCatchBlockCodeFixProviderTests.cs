@@ -56,7 +56,6 @@ namespace TestNamespace
         await Verifier.VerifyCodeFixAsync(testCode, expectedDiagnostic, fixedCode);
     }
 
-
     [Fact]
     public async Task WhenExceptionTypeIsException_VariableName_ShouldBe_Ex()
     {

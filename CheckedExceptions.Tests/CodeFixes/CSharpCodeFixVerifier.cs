@@ -52,6 +52,7 @@ public static class CSharpCodeFixVerifier<TAnalyzer, TCodeFix, TVerifier>
 
         test.TestState.AdditionalReferences.Add(MetadataReference.CreateFromFile(typeof(ThrowsAttribute).Assembly.Location));
         test.TestState.ReferenceAssemblies = Net.Net90;
+        test.TestState.OutputKind = OutputKind.ConsoleApplication;
 
         if (expected is not null)
         {
