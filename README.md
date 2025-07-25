@@ -149,9 +149,12 @@ Register in `.csproj`:
 
 ## 🛠 Code Fixes
 
-- ✅ Add missing `[Throws]`
-- 🧯 Add try/catch block
-- 🪛 Suppress with `#pragma` or `[SuppressMessage]`
+The analyzer offers the following automated code fixes:
+
+- ✅ **Add `[Throws]` declaration** – Adds a `[Throws(typeof(...))]` attribute to declare the exception.
+- 🧯 **Surround with try/catch** – Wraps the statement in a `try` block with a generated `catch`.
+- 🧯 **Add catch to existing try block** – Appends a new `catch` clause to a nearby `try` block.
+- 🪛 **Suppress warning** – Adds `#pragma warning disable` or `[SuppressMessage]`.
 
 ---
 
