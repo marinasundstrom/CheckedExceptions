@@ -203,7 +203,7 @@ namespace TestNamespace
                 var x = DoSomething();
                 x = x + 1;
             }
-            catch (InvalidOperationException ex)
+            catch (InvalidOperationException invalidOperationException)
             {
             }
         }
@@ -275,7 +275,7 @@ namespace TestNamespace
                     // Should trigger THROW001
                     DoSomething();
                 }
-                catch (InvalidOperationException exc2)
+                catch (InvalidOperationException invalidOperationException)
                 {
                 }
             }
