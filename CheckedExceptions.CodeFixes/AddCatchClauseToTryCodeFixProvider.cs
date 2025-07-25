@@ -4,141 +4,104 @@ using System.Composition;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CodeActions;
 using Microsoft.CodeAnalysis.CodeFixes;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Formatting;
 
-using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
+using static CatchClauseUtils;
 
-namespace Sundstrom.CheckedExceptions
+namespace Sundstrom.CheckedExceptions;
+
+[ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(AddCatchClauseToTryCodeFixProvider)), Shared]
+public class AddCatchClauseToTryCodeFixProvider : CodeFixProvider
 {
-    [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(AddCatchClauseToTryCodeFixProvider)), Shared]
-    public class AddCatchClauseToTryCodeFixProvider : CodeFixProvider
+    private const string TitleAddTryCatch = "Add catch clause to surrounding try";
+
+    public sealed override ImmutableArray<string> FixableDiagnosticIds =>
+        [CheckedExceptionsAnalyzer.DiagnosticIdUnhandled];
+
+    public sealed override FixAllProvider GetFixAllProvider() =>
+        WellKnownFixAllProviders.BatchFixer;
+
+    public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
     {
-        private const string TitleAddTryCatch = "Add catch clause to surrounding try";
+        var diagnostics = context.Diagnostics;
 
-        public sealed override ImmutableArray<string> FixableDiagnosticIds =>
-            [CheckedExceptionsAnalyzer.DiagnosticIdUnhandled];
+        var cancellationToken = context.CancellationToken;
+        var root = await context.Document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+        var diagnostic = diagnostics.First();
+        var node = root.FindNode(diagnostic.Location.SourceSpan);
 
-        public sealed override FixAllProvider GetFixAllProvider() =>
-            WellKnownFixAllProviders.BatchFixer;
+        // Register the code fix only if the node is a statement or within a statement
+        var statement = node.FirstAncestorOrSelf<StatementSyntax>();
+        if (statement is null)
+            return;
 
-        public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
+        context.RegisterCodeFix(
+            CodeAction.Create(
+                title: TitleAddTryCatch,
+                createChangedDocument: c => AddTryCatchAsync(context.Document, statement, diagnostics, c),
+                equivalenceKey: TitleAddTryCatch),
+            diagnostics);
+    }
+
+    private async Task<Document> AddTryCatchAsync(Document document, StatementSyntax statement, IEnumerable<Diagnostic> diagnostics, CancellationToken cancellationToken)
+    {
+        // Retrieve exception types from diagnostics
+        var exceptionTypeNames = diagnostics
+            .Select(diagnostic => diagnostic.Properties.ContainsKey("ExceptionType") ? diagnostic.Properties["ExceptionType"]! : string.Empty);
+
+        var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+
+        if (root is null)
         {
-            var diagnostics = context.Diagnostics;
-
-            var cancellationToken = context.CancellationToken;
-            var root = await context.Document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-            var diagnostic = diagnostics.First();
-            var node = root.FindNode(diagnostic.Location.SourceSpan);
-
-            // Register the code fix only if the node is a statement or within a statement
-            var statement = node.FirstAncestorOrSelf<StatementSyntax>();
-            if (statement is null)
-                return;
-
-            context.RegisterCodeFix(
-                CodeAction.Create(
-                    title: TitleAddTryCatch,
-                    createChangedDocument: c => AddTryCatchAsync(context.Document, statement, diagnostics, c),
-                    equivalenceKey: TitleAddTryCatch),
-                diagnostics);
-        }
-
-        private async Task<Document> AddTryCatchAsync(Document document, StatementSyntax statement, IEnumerable<Diagnostic> diagnostics, CancellationToken cancellationToken)
-        {
-            // Retrieve exception types from diagnostics
-            var exceptionTypeNames = diagnostics
-                .Select(diagnostic => diagnostic.Properties.ContainsKey("ExceptionType") ? diagnostic.Properties["ExceptionType"]! : string.Empty);
-
-            var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-
-            if (root is null)
-            {
-                return document;
-            }
-
-            var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
-
-            var parentBlock = statement.Parent as BlockSyntax;
-            if (parentBlock is null)
-                return document; // Cannot proceed if the parent is not a block
-
-            var statements = parentBlock.Statements;
-            var targetIndex = statements.IndexOf(statement);
-
-            if (targetIndex is -1)
-                return document; // Statement not found in the parent block
-
-            // Check if the statement is already inside a try-catch block
-            var existingTryStatement = statement.Ancestors().OfType<TryStatementSyntax>().FirstOrDefault();
-
-            var existingCatchClause = statement.Ancestors().OfType<CatchClauseSyntax>().FirstOrDefault();
-
-            if (existingTryStatement is not null)
-            {
-                // Gather existing catch types (simple string comparison)
-                var existingCatchTypes = new HashSet<string>(existingTryStatement.Catches
-                    .Select(c => c.Declaration?.Type?.ToString())
-                    .Where(t => !string.IsNullOrEmpty(t))!);
-
-                // Determine which exception types are not yet handled
-                var newExceptionTypes = exceptionTypeNames
-                    .Where(t => !existingCatchTypes.Contains(t))
-                    .Distinct()
-                    .ToList();
-
-                if (newExceptionTypes.Count == 0)
-                {
-                    return document; // All exceptions already handled
-                }
-
-                var catchClausesToAdd = CreateCatchClauses(newExceptionTypes, existingTryStatement.Catches.Count);
-
-                var newTry = existingTryStatement.WithCatches(existingTryStatement.Catches.AddRange(catchClausesToAdd))
-                    .WithAdditionalAnnotations(Formatter.Annotation);
-
-                var newRoot = root.ReplaceNode(existingTryStatement, newTry);
-
-                return document.WithSyntaxRoot(newRoot);
-            }
-
             return document;
         }
 
-        private static List<CatchClauseSyntax> CreateCatchClauses(IEnumerable<string> exceptionTypeNames, int level = 0)
+        var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
+
+        var parentBlock = statement.Parent as BlockSyntax;
+        if (parentBlock is null)
+            return document; // Cannot proceed if the parent is not a block
+
+        var statements = parentBlock.Statements;
+        var targetIndex = statements.IndexOf(statement);
+
+        if (targetIndex is -1)
+            return document; // Statement not found in the parent block
+
+        // Check if the statement is already inside a try-catch block
+        var existingTryStatement = statement.Ancestors().OfType<TryStatementSyntax>().FirstOrDefault();
+
+        var existingCatchClause = statement.Ancestors().OfType<CatchClauseSyntax>().FirstOrDefault();
+
+        if (existingTryStatement is not null)
         {
-            List<CatchClauseSyntax> catchClauses = new List<CatchClauseSyntax>();
+            // Gather existing catch types (simple string comparison)
+            var existingCatchTypes = new HashSet<string>(existingTryStatement.Catches
+                .Select(c => c.Declaration?.Type?.ToString())
+                .Where(t => !string.IsNullOrEmpty(t))!);
 
-            string catchExceptionVariableName;
+            // Determine which exception types are not yet handled
+            var newExceptionTypes = exceptionTypeNames
+                .Where(t => !existingCatchTypes.Contains(t))
+                .Distinct()
+                .ToList();
 
-            if (level is 0)
+            if (newExceptionTypes.Count == 0)
             {
-                catchExceptionVariableName = "ex";
-            }
-            else
-            {
-                catchExceptionVariableName = $"ex{level + 1}";
-            }
-
-            foreach (var exceptionTypeName in exceptionTypeNames.Distinct())
-            {
-                if (string.IsNullOrWhiteSpace(exceptionTypeName))
-                    continue;
-
-                var exceptionType = ParseTypeName(exceptionTypeName);
-
-                var catchClause = CatchClause()
-                    .WithDeclaration(
-                        CatchDeclaration(exceptionType)
-                        .WithIdentifier(Identifier(catchExceptionVariableName)))
-                    .WithBlock(Block()) // You might want to add meaningful handling here
-                    .WithAdditionalAnnotations(Formatter.Annotation);
-
-                catchClauses.Add(catchClause);
+                return document; // All exceptions already handled
             }
 
-            return catchClauses;
+            var catchClausesToAdd = CreateCatchClauses(newExceptionTypes, existingTryStatement.Catches.Count);
+
+            var newTry = existingTryStatement.WithCatches(existingTryStatement.Catches.AddRange(catchClausesToAdd))
+                .WithAdditionalAnnotations(Formatter.Annotation);
+
+            var newRoot = root.ReplaceNode(existingTryStatement, newTry);
+
+            return document.WithSyntaxRoot(newRoot);
         }
+
+        return document;
     }
 }
