@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+
+- PR [#102](https://github.com/marinasundstrom/CheckedExceptions/pull/99) Only display "Add catch clause" fix action when applicable
+
 ## [1.4.2] - 2025-07-25
 
 ### Added
