@@ -27,25 +27,12 @@ public class AddTryCatchBlockCodeFixProvider : CodeFixProvider
     public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
     {
         var diagnostics = context.Diagnostics;
-
         var cancellationToken = context.CancellationToken;
         var root = await context.Document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
         var diagnostic = diagnostics.First();
         var node = root.FindNode(diagnostic.Location.SourceSpan);
 
-        StatementSyntax? statement = null;
-
-        if (node is GlobalStatementSyntax globalStatement)
-        {
-            statement = globalStatement.Statement;
-        }
-
-        if (statement is null)
-        {
-            // Register the code fix only if the node is a statement or within a statement
-            statement = node.FirstAncestorOrSelf<StatementSyntax>();
-        }
-
+        StatementSyntax? statement = node is GlobalStatementSyntax g ? g.Statement : node.FirstAncestorOrSelf<StatementSyntax>();
         if (statement is null)
             return;
 
@@ -59,69 +46,47 @@ public class AddTryCatchBlockCodeFixProvider : CodeFixProvider
 
     private async Task<Document> AddTryCatchAsync(Document document, StatementSyntax statement, IEnumerable<Diagnostic> diagnostics, CancellationToken cancellationToken)
     {
-        // Retrieve exception types from diagnostics
         var exceptionTypeNames = diagnostics
-            .Select(diagnostic => diagnostic.Properties.ContainsKey("ExceptionType") ? diagnostic.Properties["ExceptionType"]! : string.Empty);
+            .Select(d => d.Properties.TryGetValue("ExceptionType", out var type) ? type! : string.Empty);
 
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-
-        if (root is null)
-        {
-            return document;
-        }
+        if (root is null) return document;
 
         var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
-
         SyntaxNode newRoot;
 
         if (statement.Parent is BlockSyntax parentBlock)
         {
-            // Existing block-scope logic
             var statements = parentBlock.Statements;
             var targetIndex = statements.IndexOf(statement);
-            if (targetIndex == -1)
-                return document;
+            if (targetIndex == -1) return document;
 
-            // Perform data flow analysis on the target statement
             var dataFlow = semanticModel.AnalyzeDataFlow(statement)!;
+            var readSymbols = new HashSet<ISymbol>(dataFlow.ReadInside, SymbolEqualityComparer.Default);
 
-            var variablesToTrack = new HashSet<ISymbol>(dataFlow.ReadInside.Concat(dataFlow.WrittenInside), SymbolEqualityComparer.Default);
-
-            // Determine the range of statements to include using flow analysis
             int start = targetIndex;
-            int end = targetIndex;
-
-            // Expand upwards to include related statements
-            for (int i = targetIndex - 1; i >= 0; i--)
+            for (int i = 0; i < targetIndex; i++)
             {
-                var currentStatement = statements[i];
-                var currentDataFlow = semanticModel.AnalyzeDataFlow(currentStatement)!;
-
-                if (currentDataFlow.WrittenOutside.Any(v => variablesToTrack.Contains(v)) ||
-                    currentDataFlow.ReadInside.Any(v => variablesToTrack.Contains(v)))
+                var flow = semanticModel.AnalyzeDataFlow(statements[i])!;
+                if (flow.WrittenInside.Any(readSymbols.Contains))
                 {
                     start = i;
-                    variablesToTrack.UnionWith(currentDataFlow.ReadInside);
-                    variablesToTrack.UnionWith(currentDataFlow.WrittenInside);
-                }
-                else
-                {
                     break;
                 }
             }
 
-            // Expand downwards to include related statements
+            int end = targetIndex;
+            var writtenSymbols = new HashSet<ISymbol>(semanticModel.AnalyzeDataFlow(statements[targetIndex])!.WrittenInside, SymbolEqualityComparer.Default);
+
             for (int i = targetIndex + 1; i < statements.Count; i++)
             {
-                var currentStatement = statements[i];
-                var currentDataFlow = semanticModel.AnalyzeDataFlow(currentStatement)!;
+                var current = statements[i];
+                var currentFlow = semanticModel.AnalyzeDataFlow(current)!;
 
-                if (currentDataFlow.ReadOutside.Any(v => variablesToTrack.Contains(v)) ||
-                    currentDataFlow.WrittenInside.Any(v => variablesToTrack.Contains(v)))
+                if (currentFlow.ReadInside.Any(writtenSymbols.Contains))
                 {
                     end = i;
-                    variablesToTrack.UnionWith(currentDataFlow.ReadInside);
-                    variablesToTrack.UnionWith(currentDataFlow.WrittenInside);
+                    writtenSymbols.UnionWith(currentFlow.WrittenInside);
                 }
                 else
                 {
@@ -129,11 +94,12 @@ public class AddTryCatchBlockCodeFixProvider : CodeFixProvider
                 }
             }
 
-            var statementsToWrap = statements.Skip(start).Take(end - start + 1).ToList();
+            var statementsToWrap = statements
+                .Skip(start).Take(end - start + 1)
+                .Where(s => s is not LocalFunctionStatementSyntax)
+                .ToList();
 
-            var tryBlock = Block(statementsToWrap)
-                .WithAdditionalAnnotations(Formatter.Annotation);
-
+            var tryBlock = Block(statementsToWrap).WithAdditionalAnnotations(Formatter.Annotation);
             var count = statementsToWrap.First().Ancestors().OfType<TryStatementSyntax>().Count();
             var catchClauses = CreateCatchClauses(exceptionTypeNames, count);
 
@@ -144,64 +110,49 @@ public class AddTryCatchBlockCodeFixProvider : CodeFixProvider
 
             newRoot = root.ReplaceNodes(
                 statementsToWrap,
-                (original, rewritten) =>
-                    original == statementsToWrap.First()
-                        ? tryCatchStatement
-                        : null!
+                (original, _) => original == statementsToWrap.First() ? tryCatchStatement : null!
             );
         }
         else if (statement.Parent is GlobalStatementSyntax globalStatement &&
                  root is CompilationUnitSyntax compilationUnit)
         {
-            var globalStatements = compilationUnit.Members
-                .OfType<GlobalStatementSyntax>()
+            var members = compilationUnit.Members;
+            var globalStatementsWithIndex = members
+                .Select((m, i) => (m, i))
+                .Where(t => t.m is GlobalStatementSyntax)
+                .Select(t => ((GlobalStatementSyntax)t.m, t.i))
                 .ToList();
 
-            var innerStatements = globalStatements
-                .Select(gs => gs.Statement)
-                .ToList();
-
+            var innerStatements = globalStatementsWithIndex.Select(t => t.Item1.Statement).ToList();
             var targetIndex = innerStatements.IndexOf(statement);
-            if (targetIndex == -1)
-                return document;
+            if (targetIndex == -1) return document;
 
-            var variablesToTrack = new HashSet<ISymbol>(
-                semanticModel.AnalyzeDataFlow(statement)!.ReadInside
-                .Concat(semanticModel.AnalyzeDataFlow(statement)!.WrittenInside),
-                SymbolEqualityComparer.Default);
+            var dataFlow = semanticModel.AnalyzeDataFlow(statement)!;
+            var readSymbols = new HashSet<ISymbol>(dataFlow.ReadInside, SymbolEqualityComparer.Default);
 
             int start = targetIndex;
-            int end = targetIndex;
-
-            for (int i = targetIndex - 1; i >= 0; i--)
+            for (int i = 0; i < targetIndex; i++)
             {
-                var currentStatement = innerStatements[i];
-                var currentFlow = semanticModel.AnalyzeDataFlow(currentStatement)!;
-
-                if (currentFlow.WrittenOutside.Any(v => variablesToTrack.Contains(v)) ||
-                    currentFlow.ReadInside.Any(v => variablesToTrack.Contains(v)))
+                var flow = semanticModel.AnalyzeDataFlow(innerStatements[i])!;
+                if (flow.WrittenInside.Any(readSymbols.Contains))
                 {
                     start = i;
-                    variablesToTrack.UnionWith(currentFlow.ReadInside);
-                    variablesToTrack.UnionWith(currentFlow.WrittenInside);
-                }
-                else
-                {
                     break;
                 }
             }
+
+            int end = targetIndex;
+            var writtenSymbols = new HashSet<ISymbol>(semanticModel.AnalyzeDataFlow(innerStatements[targetIndex])!.WrittenInside, SymbolEqualityComparer.Default);
 
             for (int i = targetIndex + 1; i < innerStatements.Count; i++)
             {
-                var currentStatement = innerStatements[i];
-                var currentFlow = semanticModel.AnalyzeDataFlow(currentStatement)!;
+                var current = innerStatements[i];
+                var currentFlow = semanticModel.AnalyzeDataFlow(current)!;
 
-                if (currentFlow.ReadOutside.Any(v => variablesToTrack.Contains(v)) ||
-                    currentFlow.WrittenInside.Any(v => variablesToTrack.Contains(v)))
+                if (currentFlow.ReadInside.Any(writtenSymbols.Contains))
                 {
                     end = i;
-                    variablesToTrack.UnionWith(currentFlow.ReadInside);
-                    variablesToTrack.UnionWith(currentFlow.WrittenInside);
+                    writtenSymbols.UnionWith(currentFlow.WrittenInside);
                 }
                 else
                 {
@@ -209,11 +160,12 @@ public class AddTryCatchBlockCodeFixProvider : CodeFixProvider
                 }
             }
 
-            var statementsToWrap = innerStatements.Skip(start).Take(end - start + 1).ToList();
+            var statementsToWrap = innerStatements
+                .Skip(start).Take(end - start + 1)
+                .Where(s => s is not LocalFunctionStatementSyntax)
+                .ToList();
 
-            var tryBlock = Block(statementsToWrap)
-                .WithAdditionalAnnotations(Formatter.Annotation);
-
+            var tryBlock = Block(statementsToWrap).WithAdditionalAnnotations(Formatter.Annotation);
             var count = globalStatement.Ancestors().OfType<TryStatementSyntax>().Count();
             var catchClauses = CreateCatchClauses(exceptionTypeNames, count);
 
@@ -223,15 +175,27 @@ public class AddTryCatchBlockCodeFixProvider : CodeFixProvider
                 .WithAdditionalAnnotations(Formatter.Annotation);
 
             var tryGlobalStatement = GlobalStatement(tryStatement)
-                .WithTriviaFrom(globalStatements[start])
+                .WithTriviaFrom(globalStatementsWithIndex[start].Item1)
                 .WithAdditionalAnnotations(Formatter.Annotation);
 
-            // Replace all statements from start to end with one try/catch statement
-            newRoot = root.ReplaceNodes(
-                globalStatements.Skip(start).Take(end - start + 1),
-                (original, rewritten) =>
-                    original == globalStatements[start] ? tryGlobalStatement : null!
-            );
+            var indicesToWrap = globalStatementsWithIndex
+                .Skip(start).Take(end - start + 1)
+                .Select(t => t.i).ToHashSet();
+
+            var newMembers = new List<MemberDeclarationSyntax>();
+            for (int i = 0; i < members.Count; i++)
+            {
+                if (i == globalStatementsWithIndex[start].i)
+                {
+                    newMembers.Add(tryGlobalStatement);
+                }
+                else if (!indicesToWrap.Contains(i))
+                {
+                    newMembers.Add(members[i]);
+                }
+            }
+
+            newRoot = compilationUnit.WithMembers(List(newMembers));
         }
         else
         {

@@ -24,12 +24,12 @@ public static class CSharpCodeFixVerifier<TAnalyzer, TCodeFix, TVerifier>
         => CodeFixVerifier<TAnalyzer, TCodeFix, CodeFixTest, TVerifier>.Diagnostic("THROW001")
         .WithArguments(exceptionType);
 
-    public static Task VerifyCodeFixAsync([StringSyntax("c#-test")] string source, DiagnosticResult expected, [StringSyntax("c#-test")] string? fixedSource = null, int? expectedIncrementalIterations = 1)
+    public static Task VerifyCodeFixAsync([StringSyntax("c#-test")] string source, DiagnosticResult expected, [StringSyntax("c#-test")] string? fixedSource = null, int? expectedIncrementalIterations = 1, bool executable = false)
     {
-        return VerifyCodeFixAsync(source, new[] { expected }, fixedSource, expectedIncrementalIterations);
+        return VerifyCodeFixAsync(source, new[] { expected }, fixedSource, expectedIncrementalIterations, executable);
     }
 
-    public static Task VerifyCodeFixAsync([StringSyntax("c#-test")] string source, IEnumerable<DiagnosticResult> expected, [StringSyntax("c#-test")] string? fixedSource = null, int? expectedIncrementalIterations = 1)
+    public static Task VerifyCodeFixAsync([StringSyntax("c#-test")] string source, IEnumerable<DiagnosticResult> expected, [StringSyntax("c#-test")] string? fixedSource = null, int? expectedIncrementalIterations = 1, bool executable = false)
     {
         var test = new CodeFixTest
         {
@@ -52,7 +52,11 @@ public static class CSharpCodeFixVerifier<TAnalyzer, TCodeFix, TVerifier>
 
         test.TestState.AdditionalReferences.Add(MetadataReference.CreateFromFile(typeof(ThrowsAttribute).Assembly.Location));
         test.TestState.ReferenceAssemblies = Net.Net90;
-        test.TestState.OutputKind = OutputKind.ConsoleApplication;
+
+        if (executable)
+        {
+            test.TestState.OutputKind = OutputKind.ConsoleApplication;
+        }
 
         if (expected is not null)
         {
