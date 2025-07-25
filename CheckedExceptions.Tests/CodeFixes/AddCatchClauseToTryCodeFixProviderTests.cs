@@ -53,7 +53,7 @@ namespace TestNamespace
             catch (InvalidOperationException ex)
             {
             }
-            catch (ArgumentException ex2)
+            catch (ArgumentException argumentException)
             {
             }
         }

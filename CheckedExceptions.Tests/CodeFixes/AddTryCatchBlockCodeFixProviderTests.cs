@@ -22,6 +22,54 @@ namespace TestNamespace
         public void TestMethod()
         {
             // Should trigger THROW001
+            throw new ArgumentException();
+        }
+    }
+}
+""";
+
+        var fixedCode = /* lang=c#-test */  """
+using System;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        public void TestMethod()
+        {
+            try
+            {
+                // Should trigger THROW001
+                throw new ArgumentException();
+            }
+            catch (ArgumentException argumentException)
+            {
+            }
+        }
+    }
+}
+""";
+
+        var expectedDiagnostic = Verifier.UnhandledException("ArgumentException")
+            .WithSpan(10, 13, 10, 43);
+
+        await Verifier.VerifyCodeFixAsync(testCode, expectedDiagnostic, fixedCode);
+    }
+
+
+    [Fact]
+    public async Task WhenExceptionTypeIsException_VariableName_ShouldBe_Ex()
+    {
+        var testCode = /* lang=c#-test */  """
+using System;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        public void TestMethod()
+        {
+            // Should trigger THROW001
             throw new Exception();
         }
     }
@@ -95,7 +143,7 @@ namespace TestNamespace
                 // Should trigger THROW001
                 DoSomething();
             }
-            catch (InvalidOperationException ex)
+            catch (InvalidOperationException invalidOperationException)
             {
             }
         }
@@ -228,7 +276,7 @@ namespace TestNamespace
                     // Should trigger THROW001
                     DoSomething();
                 }
-                catch (InvalidOperationException ex2)
+                catch (InvalidOperationException exc2)
                 {
                 }
             }
