@@ -172,6 +172,23 @@ The analyzer offers the following automated code fixes:
 
 ## ❓ Frequently Asked Questions (FAQ)
 
+### ❓ How is this different from Java's checked exceptions?
+
+**Answer:**
+
+Java's checked exceptions are **mandatory** — the compiler enforces them, and every method must declare or handle them. While this promotes visibility, it also leads to friction, boilerplate, and workarounds like `throws Exception`.
+
+This analyzer takes a **modern, flexible approach**:
+
+* ⚠️ **Warnings by default**, not errors — you’re in control.
+* ✍️ **Opt-in declaration** using `[Throws]` — only where it matters.
+* 🛠️ **Code fixes and suppression** make adoption practical.
+* 🔄 **Gradual adoption** — use it for new code, leave legacy code untouched.
+* 🎯 **Focused on intention**, not obligation — you declare what callers need to know, not what `int.Parse` might throw.
+
+> ✅ Summary:
+> This is *exception design with intent*, not enforcement by force. It improves exception hygiene without the rigidity of Java’s model.
+
 ### ❓ Can I use `<exception>` XML documentation tags instead of the `[Throws]` attribute?
 
 **Answer:**
