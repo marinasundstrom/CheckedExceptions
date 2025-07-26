@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+
+- PR [#108](https://github.com/marinasundstrom/CheckedExceptions/pull/108) Fix crash on netstandard2.0
+
 ## [1.5.0] - 2025-07-26
 
 ### Fixed
