@@ -1,24 +1,26 @@
-# CheckedExceptions for C#
+# Checked Exceptions for C#
 
-**Bring Java-style checked exceptions to C#: enforce handling or declaration.**
+**Take control of exception flow — enforce explicit handling or declaration in C#**
 
 [![Build](https://github.com/marinasundstrom/CheckedExceptions/actions/workflows/ci.yml/badge.svg)](…)   [![NuGet](https://img.shields.io/nuget/v/Sundstrom.CheckedExceptions.svg)](https://www.nuget.org/packages/Sundstrom.CheckedExceptions/) ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 
-[FAQ](#user-content--frequently-asked-questions-faq) • [Change Log](CHANGELOG.md) • [Documentation](docs) 
+[❓ FAQ](#user-content--frequently-asked-questions-faq) • [🧪 Sample project](https://github.com/marinasundstrom/CheckedExceptions/blob/main/SampleProject/Program.cs) • [📚 Documentation](docs) • [📝 Change Log](CHANGELOG.md)
 
 ---
 
 ## 🚀 What It Does
 
-CheckedExceptions is a Roslyn analyzer that makes exception handling **explicit**.  
+CheckedExceptions is a Roslyn analyzer that makes exception handling **explicit** and reveals how exceptions propagate through your code.
+
 If a method might throw an exception, the caller must either:
 
-- Handle it (with `try/catch`), or
-- Declare it (with `[Throws(typeof(...))]`)
+* 🧯 Handle it (with `try/catch`), or
+* 📣 Declare it (with `[Throws(typeof(...))]`)
 
-✅ Inspired by Java’s checked exceptions.  
-⚙️ Fully opt-in.  
-💡 Analyzer warnings by default, errors if you choose.
+✅ Inspired by Java’s checked exceptions<br />
+⚙️ Fully opt-in<br />
+💡 Analyzer warnings by default — can be elevated to errors<br />
+🛠 Includes code fixes to help you quickly handle or declare exceptions<br />
 
 ---
 
