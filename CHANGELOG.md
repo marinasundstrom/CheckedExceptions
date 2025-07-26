@@ -8,10 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [1.4.3] - 2025-07-26
+
+### Added
+
+- PR [#104](https://github.com/marinasundstrom/CheckedExceptions/pull/104) Detect exception declarations redundant by type hierarchy
+
 ### Fixed
 
 - PR [#102](https://github.com/marinasundstrom/CheckedExceptions/pull/99) Only display "Add catch clause" fix action when applicable
-- PR [#104](https://github.com/marinasundstrom/CheckedExceptions/pull/104) Detect exception declarations redundant by type hierarchy
 
 ## [1.4.2] - 2025-07-25
 
