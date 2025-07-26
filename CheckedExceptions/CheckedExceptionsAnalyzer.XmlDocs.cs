@@ -161,9 +161,26 @@ partial class CheckedExceptionsAnalyzer
         {
             if (!XmlDocPathsAndMembers.TryGetValue(path, out var lookup))
             {
-                var file = XmlDocumentationHelper.CreateMemberLookup(XDocument.Load(path));
-                lookup = new ConcurrentDictionary<string, XElement>(file);
-                XmlDocPathsAndMembers.TryAdd(path, lookup);
+                try
+                {
+                    using var reader = XmlReader.Create(path, new XmlReaderSettings
+                    {
+                        DtdProcessing = DtdProcessing.Ignore,
+                        IgnoreComments = true,
+                        IgnoreWhitespace = true,
+                        CloseInput = true
+                    });
+
+                    var file = XmlDocumentationHelper.CreateMemberLookup(XDocument.Load(reader, LoadOptions.PreserveWhitespace));
+                    lookup = new ConcurrentDictionary<string, XElement>(file);
+                    XmlDocPathsAndMembers.TryAdd(path, lookup);
+                }
+                catch (Exception ex) when (ex is XmlException || ex is IOException || ex is UnauthorizedAccessException)
+                {
+                    // Suppress AD0001-inducing exceptions in analyzers
+                    XmlDocPathsAndMembers.TryAdd(path, new ConcurrentDictionary<string, XElement>());
+                    return null;
+                }
             }
             var member = symbol.GetDocumentationCommentId();
 
