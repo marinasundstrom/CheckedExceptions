@@ -172,7 +172,7 @@ The analyzer offers the following automated code fixes:
 
 ## ❓ Frequently Asked Questions (FAQ)
 
-### Can I use `<exception>` XML documentation tags instead of the `[Throws]` attribute?
+### ❓ Can I use `<exception>` XML documentation tags instead of the `[Throws]` attribute?
 
 **Answer:**
 
@@ -194,6 +194,16 @@ When analyzing external APIs (e.g., referenced .NET assemblies), we **do** recog
 
 > ⚠️ Summary:  
 > `<exception>` tags are respected for **interop**, but they are **not a replacement** for `[Throws]` in code you control.
+
+### ❓ What about .NET Standard 2.0 support?
+
+**Answer:**
+
+The analyzer offers **limited support** for projects targeting .NET Standard 2.0. You’ll still get accurate diagnostics for your own code. However, framework members defined in .NET Standard may not indicate which exceptions they throw.
+
+This is due to a **technical limitation**: the XML documentation files for .NET Standard assemblies are often incomplete or malformed, making it impossible to extract reliable exception information.
+
+✅ **Recommendation:** Target a modern .NET SDK (e.g., .NET 6 or later) to get full analyzer support, including framework exception annotations.
 
 ---
 
