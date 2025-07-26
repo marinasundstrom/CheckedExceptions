@@ -42,7 +42,7 @@ partial class CheckedExceptionsAnalyzer
     /// </summary>
     /// <param name="throwsAttributes">The collection of ThrowsAttribute instances.</param>
     /// <param name="context">The analysis context.</param>
-    private void CheckForDuplicateThrowsAttributes(IEnumerable<AttributeSyntax> throwsAttributes, SyntaxNodeAnalysisContext context)
+    private void CheckForDuplicateThrowsDeclarations(IEnumerable<AttributeSyntax> throwsAttributes, SyntaxNodeAnalysisContext context)
     {
         var semanticModel = context.SemanticModel;
 

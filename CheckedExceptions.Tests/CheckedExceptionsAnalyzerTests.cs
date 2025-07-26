@@ -179,7 +179,7 @@ public partial class CheckedExceptionsAnalyzerTests
     }
 
     // Test 9: Multiple exceptions declared via [Throws] attribute
-    [Fact(Skip = "To be implemented")]
+    [Fact]
     public async Task MultipleExceptionsDeclaredViaThrowsAttribute_ShouldNotReportDiagnostic()
     {
         var test = /* lang=c#-test */ """
