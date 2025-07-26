@@ -138,18 +138,18 @@ Register in `.csproj`:
 
 ---
 
-## 🪪 Diagnostic Codes
+## 🔍 Diagnostics
 
-| ID         | Description |
-|------------|-------------|
-| `THROW001` | Unhandled exception: must be caught or declared |
-| `THROW003` | Avoid general `Exception` in `[Throws]` |
-| `THROW004` | Avoid throwing `Exception` directly |
-| `THROW005` | Duplicate `[Throws]` declarations |
-| `THROW006` | Declared on override, missing from base |
-| `THROW007` | Declared on base, missing from override |
-
----
+| ID         | Message                                                   |
+| ---------- | --------------------------------------------------------- |
+| `THROW001` | ❗ Unhandled exception: must be caught or declared                         |
+| `THROW003` | 🚫 Avoid declaring general `Exception` in `[Throws]`                       |
+| `THROW004` | 🚫 Avoid throwing exception base type `Exception`                          |
+| `THROW005` | 🔁 Duplicate declarations of the same exception type in `[Throws]`         |
+| `THROW006` | 🧬 Declared on override, missing from base                                 |
+| `THROW007` | 🧬 Declared on base, missing from override                                 |
+| `THROW008` | 📦 Exception already handled by declaration of super type in `[Throws]`    |
+| `THROW009` | 🧹 Redundant catch clause                                                  |
 
 ## 🛠 Code Fixes
 
@@ -158,6 +158,7 @@ The analyzer offers the following automated code fixes:
 - ✅ **Add `[Throws]` declaration** – Adds a `[Throws(typeof(...))]` attribute to declare the exception.
 - 🧯 **Surround with try/catch** – Wraps the statement in a `try` block with a generated `catch`.
 - 🧯 **Add catch to existing try block** – Appends a new `catch` clause to a nearby `try` block.
+- 🧹 **Remove redundant catch clause** – Removes the catch clause for an undeclared exception type.
 - 🪛 **Suppress warning** – Adds `#pragma warning disable` or `[SuppressMessage]`.
 
 ---
