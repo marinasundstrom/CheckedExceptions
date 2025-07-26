@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+
+- PR [#107](https://github.com/marinasundstrom/CheckedExceptions/pull/107) Diagnostics tied to `typeof` expression in Throws
+
 ## [1.4.3] - 2025-07-26
 
 ### Added
