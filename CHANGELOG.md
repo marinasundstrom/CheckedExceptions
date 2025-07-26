@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- PR [#117](https://github.com/marinasundstrom/CheckedExceptions/pull/#117) Handle redundant typed catch #114
+
 ## [1.5.2] - 2025-07-26
 
 ## Added

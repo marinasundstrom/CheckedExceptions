@@ -10,3 +10,4 @@ THROW005 | Usage   | Warning  | CheckedExceptionsAnalyzer
 THROW006 | Usage   | Warning  | CheckedExceptionsAnalyzer
 THROW007 | Usage   | Warning  | CheckedExceptionsAnalyzer
 THROW008 | Usage   | Warning  | CheckedExceptionsAnalyzer
+THROW009 | Usage   | Warning  | CheckedExceptionsAnalyzer
