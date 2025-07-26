@@ -146,11 +146,11 @@ public class AddThrowsAttributeCodeFixProvider : CodeFixProvider
         }
         else if (ancestor is LocalFunctionStatementSyntax localFunction)
         {
-            localFunction = localFunction.WithoutLeadingTrivia();
-
             localFunction = existingAttributeList is not null
                 ? localFunction.ReplaceNode(existingAttributeList!, attributeList)
-                : localFunction.AddAttributeLists(attributeList);
+                : localFunction
+                    .WithoutLeadingTrivia()
+                    .AddAttributeLists(attributeList);
 
             newAncestor = localFunction
                     .WithLeadingTrivia(ancestor.GetLeadingTrivia())
@@ -160,7 +160,9 @@ public class AddThrowsAttributeCodeFixProvider : CodeFixProvider
         {
             lambdaExpression = existingAttributeList is not null
                 ? lambdaExpression.ReplaceNode(existingAttributeList!, attributeList)
-                : lambdaExpression.AddAttributeLists(attributeList);
+                : lambdaExpression
+                    .WithoutLeadingTrivia()
+                    .AddAttributeLists(attributeList);
 
             newAncestor = lambdaExpression
                     .WithLeadingTrivia(ancestor.GetLeadingTrivia())
