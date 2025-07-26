@@ -199,7 +199,7 @@ When analyzing external APIs (e.g., referenced .NET assemblies), we **do** recog
 
 **Answer:**
 
-The analyzer offers **limited support** for projects targeting .NET Standard 2.0. You’ll still get accurate diagnostics for your own code. However, framework members defined in .NET Standard may not indicate which exceptions they throw.
+The analyzer offers **limited support** for projects targeting .NET Standard 2.0. You’ll still get accurate diagnostics for your own code, as well as third-party libraries. However, members defined in the .NET Standard framework may not indicate which exceptions they throw.
 
 This is due to a **technical limitation**: the XML documentation files for .NET Standard assemblies are often incomplete or malformed, making it impossible to extract reliable exception information.
 
