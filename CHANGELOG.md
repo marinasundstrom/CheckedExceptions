@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [1.5.2] - 2025-07-26
+
 ## Added
 
 - PR [#113](https://github.com/marinasundstrom/CheckedExceptions/pull/113) Adapt code fix text to reflect how many exceptions affected
