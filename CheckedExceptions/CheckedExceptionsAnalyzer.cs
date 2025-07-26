@@ -27,6 +27,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     public const string DiagnosticIdMissingThrowsOnBaseMember = "THROW006";
     public const string DiagnosticIdMissingThrowsFromBaseMember = "THROW007";
     public const string DiagnosticIdDuplicateThrowsByHierarchy = "THROW008";
+    public const string DiagnosticIdRedundantTypedCatchClause = "THROW009";
 
     public static IEnumerable<string> AllDiagnosticsIds = [DiagnosticIdUnhandled, DiagnosticIdGeneralThrows, DiagnosticIdGeneralThrow, DiagnosticIdDuplicateDeclarations];
 
@@ -102,8 +103,17 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         isEnabledByDefault: true,
         description: "Detects redundant [Throws] declarations where a more general exception type already covers the specific exception.");
 
+    private static readonly DiagnosticDescriptor RuleRedundantTypedCatchClause = new(
+        DiagnosticIdRedundantTypedCatchClause,
+        title: "Redundant catch clause",
+        messageFormat: "Exception type '{0}' is not thrown within the try block",
+        category: "Usage",
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "Detects catch clauses for exception types that are never thrown inside the associated try block, making the catch clause redundant.");
+
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
-        [RuleUnhandledException, RuleIgnoredException, RuleGeneralThrows, RuleGeneralThrow, RuleDuplicateDeclarations, RuleMissingThrowsOnBaseMember, RuleMissingThrowsFromBaseMember, RuleDuplicateThrowsByHierarchy];
+        [RuleUnhandledException, RuleIgnoredException, RuleGeneralThrows, RuleGeneralThrow, RuleDuplicateDeclarations, RuleMissingThrowsOnBaseMember, RuleMissingThrowsFromBaseMember, RuleDuplicateThrowsByHierarchy, RuleRedundantTypedCatchClause];
 
     public override void Initialize(AnalysisContext context)
     {
@@ -130,6 +140,48 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         context.RegisterSyntaxNodeAction(AnalyzeElementAccess, SyntaxKind.ElementAccessExpression);
         context.RegisterSyntaxNodeAction(AnalyzeEventAssignment, SyntaxKind.AddAssignmentExpression);
         context.RegisterSyntaxNodeAction(AnalyzeEventAssignment, SyntaxKind.SubtractAssignmentExpression);
+        context.RegisterSyntaxNodeAction(AnalyzeTryStatement, SyntaxKind.TryStatement);
+    }
+
+    private void AnalyzeTryStatement(SyntaxNodeAnalysisContext context)
+    {
+        var tryStatement = context.Node as TryStatementSyntax;
+
+        if (tryStatement is null)
+            return;
+
+        var settings = GetAnalyzerSettings(context.Options);
+
+        var semanticModel = context.SemanticModel;
+
+        // Check for redundant typed catch clauses
+        foreach (var catchClause in tryStatement.Catches)
+        {
+            if (catchClause.Declaration is null)
+                continue; // Skip general catch
+
+            var catchType = semanticModel.GetTypeInfo(catchClause.Declaration.Type).Type as INamedTypeSymbol;
+            if (catchType is null)
+                continue;
+
+            var thrownExceptions = CollectUnhandledExceptions(context, tryStatement.Block, settings);
+
+            // Check if any thrown exception matches or derives from this catch type
+            bool isRelevant = thrownExceptions.OfType<INamedTypeSymbol>().Any(thrown =>
+                thrown.Equals(catchType, SymbolEqualityComparer.Default) ||
+                thrown.InheritsFrom(catchType));
+
+            if (!isRelevant)
+            {
+                // Report redundant catch clause
+                var diagnostic = Diagnostic.Create(
+                    RuleRedundantTypedCatchClause,
+                    catchClause.Declaration.Type.GetLocation(),
+                    catchType.ToDisplayString());
+
+                context.ReportDiagnostic(diagnostic);
+            }
+        }
     }
 
     private const string SettingsFileName = "CheckedExceptions.settings.json";
