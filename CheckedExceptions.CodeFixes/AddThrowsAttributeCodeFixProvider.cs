@@ -36,10 +36,12 @@ public class AddThrowsAttributeCodeFixProvider : CodeFixProvider
         if (node.IsInTopLevelStatement())
             return;
 
+        var diagnosticsCount = diagnostics.Length;
+
         // Register code fixes
         context.RegisterCodeFix(
         CodeAction.Create(
-            title: TitleAddThrowsAttribute,
+            title: diagnosticsCount > 1 ? TitleAddThrowsAttribute.Replace("declaration", "declarations") : TitleAddThrowsAttribute,
             createChangedDocument: c => AddThrowsAttributeAsync(context.Document, node, diagnostics, c),
             equivalenceKey: TitleAddThrowsAttribute),
         diagnostics);

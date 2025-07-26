@@ -31,7 +31,6 @@ public class AddCatchClauseToTryCodeFixProvider : CodeFixProvider
         var diagnostic = diagnostics.First();
         var node = root.FindNode(diagnostic.Location.SourceSpan);
 
-
         // Proceed only if the node is a statement or within a statement
         var statement = node.FirstAncestorOrSelf<StatementSyntax>();
         if (statement is null)
@@ -42,9 +41,11 @@ public class AddCatchClauseToTryCodeFixProvider : CodeFixProvider
         if (tryStatement?.Block is null || !tryStatement.Block.DescendantNodes().Contains(statement))
             return;
 
+        var diagnosticsCount = diagnostics.Length;
+
         context.RegisterCodeFix(
             CodeAction.Create(
-                title: TitleAddTryCatch,
+                title: diagnosticsCount > 1 ? TitleAddTryCatch.Replace("clause", "clauses") : TitleAddTryCatch,
                 createChangedDocument: c => AddTryCatchAsync(context.Document, statement, diagnostics, c),
                 equivalenceKey: TitleAddTryCatch),
             diagnostics);
