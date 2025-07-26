@@ -9,24 +9,33 @@ namespace Sundstrom.CheckedExceptions;
 
 partial class CheckedExceptionsAnalyzer
 {
-
     private void CheckForRedundantThrowsHandledByDeclaredSuperClass(
         SymbolAnalysisContext context,
         ImmutableArray<AttributeData> throwsAttributes)
     {
         var declaredTypes = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
-        var typeToAttributeMap = new Dictionary<INamedTypeSymbol, AttributeData>(SymbolEqualityComparer.Default);
+        var typeToArgMap = new Dictionary<INamedTypeSymbol, ExpressionSyntax>(SymbolEqualityComparer.Default);
 
         foreach (var attrData in throwsAttributes)
         {
-            var exceptionTypes = GetExceptionTypes(attrData);
-            foreach (var exceptionType in exceptionTypes)
-            {
-                if (exceptionType == null)
-                    continue;
+            var syntaxRef = attrData.ApplicationSyntaxReference;
+            if (syntaxRef?.GetSyntax(context.CancellationToken) is not AttributeSyntax attrSyntax)
+                continue;
 
-                declaredTypes.Add(exceptionType);
-                typeToAttributeMap[exceptionType] = attrData;
+            var semanticModel = context.Compilation.GetSemanticModel(attrSyntax.SyntaxTree);
+
+            foreach (var arg in attrSyntax.ArgumentList?.Arguments ?? default)
+            {
+                if (arg.Expression is TypeOfExpressionSyntax typeOfExpr)
+                {
+                    var typeInfo = semanticModel.GetTypeInfo(typeOfExpr.Type, context.CancellationToken);
+                    var typeSymbol = typeInfo.Type as INamedTypeSymbol;
+                    if (typeSymbol == null)
+                        continue;
+
+                    declaredTypes.Add(typeSymbol);
+                    typeToArgMap[typeSymbol] = typeOfExpr; // more precise location
+                }
             }
         }
 
@@ -39,16 +48,12 @@ partial class CheckedExceptionsAnalyzer
 
                 if (IsSubclassOf(type, otherType))
                 {
-                    if (typeToAttributeMap.TryGetValue(type, out var attr))
+                    if (typeToArgMap.TryGetValue(type, out var expression))
                     {
-                        var syntaxRef = attr.ApplicationSyntaxReference;
-                        if (syntaxRef?.GetSyntax(context.CancellationToken) is AttributeSyntax syntax)
-                        {
-                            context.ReportDiagnostic(Diagnostic.Create(
-                                DuplicateThrowsByHierarchyDiagnostic,
-                                syntax.GetLocation(),
-                                otherType.ToDisplayString()));
-                        }
+                        context.ReportDiagnostic(Diagnostic.Create(
+                            RuleDuplicateThrowsByHierarchy,
+                            expression.GetLocation(), // ✅ precise location
+                            otherType.ToDisplayString()));
                     }
                     break;
                 }
@@ -69,31 +74,31 @@ partial class CheckedExceptionsAnalyzer
     }
 
     private void CheckForRedundantThrowsHandledByDeclaredSuperClass(
-        IEnumerable<AttributeSyntax> throwsAttributes,
-        SyntaxNodeAnalysisContext context)
+     IEnumerable<AttributeSyntax> throwsAttributes,
+     SyntaxNodeAnalysisContext context)
     {
         var semanticModel = context.SemanticModel;
-
-        // Store all declared exception types
         var declaredTypes = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
-        var typeToSyntaxMap = new Dictionary<INamedTypeSymbol, AttributeSyntax>(SymbolEqualityComparer.Default);
+        var typeToExprMap = new Dictionary<INamedTypeSymbol, ExpressionSyntax>(SymbolEqualityComparer.Default);
 
-        // Collect all exception types from all [Throws] attributes
         foreach (var throwsAttribute in throwsAttributes)
         {
-            var exceptionTypes = GetExceptionTypes(throwsAttribute, semanticModel);
-            foreach (var exceptionType in exceptionTypes)
+            foreach (var arg in throwsAttribute.ArgumentList?.Arguments ?? default)
             {
-                // Skip unresolved or non-exception types
-                if (exceptionType == null)
-                    continue;
+                if (arg.Expression is TypeOfExpressionSyntax typeOfExpr)
+                {
+                    var typeInfo = semanticModel.GetTypeInfo(typeOfExpr.Type, context.CancellationToken);
+                    var exceptionType = typeInfo.Type as INamedTypeSymbol;
 
-                declaredTypes.Add(exceptionType);
-                typeToSyntaxMap[exceptionType] = throwsAttribute;
+                    if (exceptionType == null)
+                        continue;
+
+                    declaredTypes.Add(exceptionType);
+                    typeToExprMap[exceptionType] = typeOfExpr;
+                }
             }
         }
 
-        // Check for covered types
         foreach (var type in declaredTypes)
         {
             foreach (var otherType in declaredTypes)
@@ -103,14 +108,13 @@ partial class CheckedExceptionsAnalyzer
 
                 if (IsSubclassOf(type, otherType))
                 {
-                    // type is redundant, covered by otherType
-                    var syntax = typeToSyntaxMap[type];
-                    context.ReportDiagnostic(Diagnostic.Create(
-                        DuplicateThrowsByHierarchyDiagnostic,
-                        syntax.GetLocation(),
-                        //type.ToDisplayString(),
-                        otherType.ToDisplayString()
-                    ));
+                    if (typeToExprMap.TryGetValue(type, out var expr))
+                    {
+                        context.ReportDiagnostic(Diagnostic.Create(
+                            RuleDuplicateThrowsByHierarchy,
+                            expr.GetLocation(),
+                            otherType.ToDisplayString()));
+                    }
                     break;
                 }
             }
