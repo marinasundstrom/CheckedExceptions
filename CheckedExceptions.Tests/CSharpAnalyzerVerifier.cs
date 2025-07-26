@@ -43,6 +43,9 @@ public static class CSharpAnalyzerVerifier<TAnalyzer, TVerifier>
         => AnalyzerVerifier<TAnalyzer, AnalyzerTest, TVerifier>.Diagnostic("THROW007")
         .WithArguments(memberName, exceptionType);
 
+    public static DiagnosticResult RedundantExceptionDeclaration(string exceptionType)
+            => AnalyzerVerifier<TAnalyzer, AnalyzerTest, TVerifier>.Diagnostic("THROW008")
+            .WithArguments(exceptionType);
 
     public static async Task VerifyAnalyzerAsync([StringSyntax("c#-test")] string source, params DiagnosticResult[] expected)
     {

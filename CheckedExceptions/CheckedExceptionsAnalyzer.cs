@@ -26,6 +26,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     public const string DiagnosticIdDuplicateDeclarations = "THROW005";
     public const string DiagnosticIdMissingThrowsOnBaseMember = "THROW006";
     public const string DiagnosticIdMissingThrowsFromBaseMember = "THROW007";
+    public const string DiagnosticIdDuplicateThrowsByHierarchyDiagnostic = "THROW008";
 
     public static IEnumerable<string> AllDiagnosticsIds = [DiagnosticIdUnhandled, DiagnosticIdGeneralThrows, DiagnosticIdGeneralThrow, DiagnosticIdDuplicateDeclarations];
 
@@ -92,8 +93,17 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         isEnabledByDefault: true,
         description: "Ensures that overridden or implemented members declare exceptions required by their base or interface definitions.");
 
+    private static readonly DiagnosticDescriptor DuplicateThrowsByHierarchyDiagnostic = new(
+        DiagnosticIdDuplicateThrowsByHierarchyDiagnostic,
+        title: "Redundant exception declaration",
+        messageFormat: "Exception already handled by declaration of super type ('{0}')",
+        category: "Usage",
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "Detects redundant [Throws] declarations where a more general exception type already covers the specific exception.");
+
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
-        [RuleUnhandledException, RuleIgnoredException, RuleGeneralThrows, RuleGeneralThrow, RuleDuplicateDeclarations, RuleMissingThrowsOnBaseMember, RuleMissingThrowsFromBaseMember];
+        [RuleUnhandledException, RuleIgnoredException, RuleGeneralThrows, RuleGeneralThrow, RuleDuplicateDeclarations, RuleMissingThrowsOnBaseMember, RuleMissingThrowsFromBaseMember, DuplicateThrowsByHierarchyDiagnostic];
 
     public override void Initialize(AnalysisContext context)
     {
@@ -175,7 +185,8 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
         if (throwsAttributes.Any())
         {
-            CheckForDuplicateThrowsAttributes(throwsAttributes, context);
+            CheckForDuplicateThrowsDeclarations(throwsAttributes, context);
+            CheckForRedundantThrowsHandledByDeclaredSuperClass(throwsAttributes, context);
         }
     }
 
@@ -208,6 +219,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
         CheckForGeneralExceptionThrows(throwsAttributes, context);
         CheckForDuplicateThrowsAttributes(context, throwsAttributes);
+        CheckForRedundantThrowsHandledByDeclaredSuperClass(context, throwsAttributes);
     }
 
     private static IEnumerable<AttributeData> FilterThrowsAttributesByException(ImmutableArray<AttributeData> exceptionAttributes, string exceptionTypeName)
