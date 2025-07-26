@@ -112,7 +112,9 @@ public class AddThrowsAttributeCodeFixProvider : CodeFixProvider
         {
             methodDeclaration = existingAttributeList is not null
                 ? methodDeclaration.ReplaceNode(existingAttributeList!, attributeList)
-                : methodDeclaration.AddAttributeLists(attributeList);
+                : methodDeclaration
+                    .WithoutLeadingTrivia()
+                    .AddAttributeLists(attributeList);
 
             newAncestor = methodDeclaration
                     .WithLeadingTrivia(ancestor.GetLeadingTrivia())
@@ -122,7 +124,9 @@ public class AddThrowsAttributeCodeFixProvider : CodeFixProvider
         {
             constructorDeclaration = existingAttributeList is not null
                 ? constructorDeclaration.ReplaceNode(existingAttributeList!, attributeList)
-                : constructorDeclaration.AddAttributeLists(attributeList);
+                : constructorDeclaration
+                    .WithoutLeadingTrivia()
+                    .AddAttributeLists(attributeList);
 
             newAncestor = constructorDeclaration
                     .WithLeadingTrivia(ancestor.GetLeadingTrivia())
@@ -132,7 +136,9 @@ public class AddThrowsAttributeCodeFixProvider : CodeFixProvider
         {
             accessorDeclaration = existingAttributeList is not null
                 ? accessorDeclaration.ReplaceNode(existingAttributeList!, attributeList)
-                : accessorDeclaration.AddAttributeLists(attributeList);
+                : accessorDeclaration
+                    .WithoutLeadingTrivia()
+                    .AddAttributeLists(attributeList);
 
             newAncestor = accessorDeclaration
                     .WithLeadingTrivia(ancestor.GetLeadingTrivia())
@@ -142,7 +148,9 @@ public class AddThrowsAttributeCodeFixProvider : CodeFixProvider
         {
             localFunction = existingAttributeList is not null
                 ? localFunction.ReplaceNode(existingAttributeList!, attributeList)
-                : localFunction.AddAttributeLists(attributeList);
+                : localFunction
+                    .WithoutLeadingTrivia()
+                    .AddAttributeLists(attributeList);
 
             newAncestor = localFunction
                     .WithLeadingTrivia(ancestor.GetLeadingTrivia())
@@ -152,7 +160,9 @@ public class AddThrowsAttributeCodeFixProvider : CodeFixProvider
         {
             lambdaExpression = existingAttributeList is not null
                 ? lambdaExpression.ReplaceNode(existingAttributeList!, attributeList)
-                : lambdaExpression.AddAttributeLists(attributeList);
+                : lambdaExpression
+                    .WithoutLeadingTrivia()
+                    .AddAttributeLists(attributeList);
 
             newAncestor = lambdaExpression
                     .WithLeadingTrivia(ancestor.GetLeadingTrivia())
