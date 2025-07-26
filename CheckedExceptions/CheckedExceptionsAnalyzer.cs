@@ -26,7 +26,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     public const string DiagnosticIdDuplicateDeclarations = "THROW005";
     public const string DiagnosticIdMissingThrowsOnBaseMember = "THROW006";
     public const string DiagnosticIdMissingThrowsFromBaseMember = "THROW007";
-    public const string DiagnosticIdDuplicateThrowsByHierarchyDiagnostic = "THROW008";
+    public const string DiagnosticIdDuplicateThrowsByHierarchy = "THROW008";
 
     public static IEnumerable<string> AllDiagnosticsIds = [DiagnosticIdUnhandled, DiagnosticIdGeneralThrows, DiagnosticIdGeneralThrow, DiagnosticIdDuplicateDeclarations];
 
@@ -69,11 +69,11 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor RuleDuplicateDeclarations = new DiagnosticDescriptor(
         DiagnosticIdDuplicateDeclarations,
         "Avoid duplicate declarations of the same exception type",
-        "Duplicate declarations of the exception type '{0}' found. Remove them to avoid redundancy.",
+        "Duplicate declaration of the exception type '{0}' found. Remove it to avoid redundancy.",
         "Usage",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "Detects multiple [Throws] declarations for the same exception type on a single member, which is redundant.");
+        description: "Detects multiple exception declarations for the same exception type on a single member, which is redundant.");
 
     private static readonly DiagnosticDescriptor RuleMissingThrowsOnBaseMember = new DiagnosticDescriptor(
         DiagnosticIdMissingThrowsOnBaseMember,
@@ -93,8 +93,8 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         isEnabledByDefault: true,
         description: "Ensures that overridden or implemented members declare exceptions required by their base or interface definitions.");
 
-    private static readonly DiagnosticDescriptor DuplicateThrowsByHierarchyDiagnostic = new(
-        DiagnosticIdDuplicateThrowsByHierarchyDiagnostic,
+    private static readonly DiagnosticDescriptor RuleDuplicateThrowsByHierarchy = new(
+        DiagnosticIdDuplicateThrowsByHierarchy,
         title: "Redundant exception declaration",
         messageFormat: "Exception already handled by declaration of super type ('{0}')",
         category: "Usage",
@@ -103,7 +103,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         description: "Detects redundant [Throws] declarations where a more general exception type already covers the specific exception.");
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
-        [RuleUnhandledException, RuleIgnoredException, RuleGeneralThrows, RuleGeneralThrow, RuleDuplicateDeclarations, RuleMissingThrowsOnBaseMember, RuleMissingThrowsFromBaseMember, DuplicateThrowsByHierarchyDiagnostic];
+        [RuleUnhandledException, RuleIgnoredException, RuleGeneralThrows, RuleGeneralThrow, RuleDuplicateDeclarations, RuleMissingThrowsOnBaseMember, RuleMissingThrowsFromBaseMember, RuleDuplicateThrowsByHierarchy];
 
     public override void Initialize(AnalysisContext context)
     {

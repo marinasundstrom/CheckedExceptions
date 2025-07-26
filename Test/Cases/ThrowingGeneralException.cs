@@ -18,4 +18,15 @@ public class ThrowingGeneralException
     {
         Foo1();
     }
+
+    public void Foo3()
+    {
+        [Throws(typeof(Exception))]
+        void F1()
+        {
+
+        }
+
+        var f = [Throws(typeof(Exception))] () => { };
+    }
 }

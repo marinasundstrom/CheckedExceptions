@@ -72,7 +72,7 @@ public partial class CheckedExceptionsAnalyzerTests
             """;
 
         var expected = Verifier.AvoidDeclaringTypeException()
-            .WithSpan(5, 6, 5, 31);
+            .WithSpan(5, 13, 5, 30);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }
@@ -96,7 +96,7 @@ public partial class CheckedExceptionsAnalyzerTests
             """;
 
         var expected = Verifier.DuplicateExceptionDeclared("InvalidOperationException")
-            .WithSpan(6, 6, 6, 47);
+            .WithSpan(6, 13, 6, 46);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }
