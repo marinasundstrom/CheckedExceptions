@@ -59,6 +59,8 @@ public static class CSharpAnalyzerVerifier<TAnalyzer, TVerifier>
             {
                 var allDiagnostics = CheckedExceptionsAnalyzer.AllDiagnosticsIds;
 
+                test.DisabledDiagnostics.Add("THROW009");
+
                 test.DisabledDiagnostics.AddRange(allDiagnostics.Except(expected.Select(x => x.Id)));
             }
 
@@ -103,6 +105,8 @@ public static class CSharpAnalyzerVerifier<TAnalyzer, TVerifier>
 
         test.TestState.AdditionalReferences.Add(MetadataReference.CreateFromFile(typeof(ThrowsAttribute).Assembly.Location));
         test.TestState.ReferenceAssemblies = Net.Net90;
+
+        test.DisabledDiagnostics.Add("THROW009");
 
         if (executable)
         {

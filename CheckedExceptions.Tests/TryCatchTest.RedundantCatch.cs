@@ -32,7 +32,12 @@ public partial class TryCatchTest
         var expected = Verifier.RedundantTypedCatchClause("System.ArgumentException")
             .WithSpan(14, 8, 14, 25);
 
-        await Verifier.VerifyAnalyzerAsync(test, setup: (ex) => { ex.ExpectedDiagnostics.Add(expected); }, executable: true);
+        await Verifier.VerifyAnalyzerAsync(test, setup: (ex) =>
+        {
+            // Enables THROW009
+            ex.DisabledDiagnostics.Clear();
+            ex.ExpectedDiagnostics.Add(expected);
+        }, executable: true);
 
         //await Verifier.VerifyAnalyzerAsync(test, executable: true);
     }
