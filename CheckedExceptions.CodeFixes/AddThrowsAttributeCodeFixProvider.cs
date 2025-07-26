@@ -32,13 +32,17 @@ public class AddThrowsAttributeCodeFixProvider : CodeFixProvider
         var root = await context.Document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
         var node = root.FindNode(diagnostics.First().Location.SourceSpan);
 
+        // This fix is not applicable to top-level statements
+        if (node.IsInTopLevelStatement())
+            return;
+
         // Register code fixes
         context.RegisterCodeFix(
-            CodeAction.Create(
-                title: TitleAddThrowsAttribute,
-                createChangedDocument: c => AddThrowsAttributeAsync(context.Document, node, diagnostics, c),
-                equivalenceKey: TitleAddThrowsAttribute),
-            diagnostics);
+        CodeAction.Create(
+            title: TitleAddThrowsAttribute,
+            createChangedDocument: c => AddThrowsAttributeAsync(context.Document, node, diagnostics, c),
+            equivalenceKey: TitleAddThrowsAttribute),
+        diagnostics);
     }
 
     private async Task<Document> AddThrowsAttributeAsync(Document document, SyntaxNode node, IEnumerable<Diagnostic> diagnostics, CancellationToken cancellationToken)
