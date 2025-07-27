@@ -31,26 +31,31 @@ public class AddCatchClauseToTryCodeFixProvider : CodeFixProvider
         var diagnostic = diagnostics.First();
         var node = root.FindNode(diagnostic.Location.SourceSpan);
 
-        // Get the statement we're analyzing
-        var statement = node.FirstAncestorOrSelf<StatementSyntax>();
-        if (statement is null)
-            return;
+        // This is the throw site — could be any expression
+        var throwSite = node;
 
-        // Ensure the statement is within the try block (not catch/finally)
-        var tryStatement = node.FirstAncestorOrSelf<TryStatementSyntax>();
-        if (tryStatement?.Block is null || !tryStatement.Block.DescendantNodes().Contains(statement))
-            return;
-
-        // If the throw is inside a lambda or local function,
-        // only offer a fix if it's inside a try block within that same function body.
-        if (TryGetEnclosingDeferredContext(statement) is { } deferredContext)
+        // 🔎 Case 1: expression-bodied lambda → no fix possible
+        if (TryGetEnclosingDeferredContext(throwSite) is LambdaExpressionSyntax lambda &&
+            lambda.Body is ExpressionSyntax)
         {
-            var enclosingTry = statement.FirstAncestorOrSelf<TryStatementSyntax>();
+            return; // ❌ can't wrap an expression-bodied lambda in try/catch
+        }
 
-            if (enclosingTry == null || !deferredContext.Span.Contains(enclosingTry.Span))
+        // 🔎 Case 2: inside any lambda or local function
+        if (TryGetEnclosingDeferredContext(throwSite) is { } deferredContext)
+        {
+            var innerTry = throwSite.FirstAncestorOrSelf<TryStatementSyntax>();
+            if (innerTry == null || !deferredContext.Span.Contains(innerTry.Span))
             {
-                return; // Throw is in a lambda/local function, but not in a try block inside that lambda
+                return; // ❌ inside deferred context, but not protected by a nested try
             }
+        }
+
+        // ✅ Normal case: check for enclosing try that covers this throw site
+        var tryStatement = throwSite.FirstAncestorOrSelf<TryStatementSyntax>();
+        if (tryStatement?.Block is null || !tryStatement.Block.DescendantNodes().Contains(throwSite))
+        {
+            return; // ❌ not inside runtime flow of a try
         }
 
         var diagnosticsCount = diagnostics.Length;
@@ -58,7 +63,7 @@ public class AddCatchClauseToTryCodeFixProvider : CodeFixProvider
         context.RegisterCodeFix(
             CodeAction.Create(
                 title: diagnosticsCount > 1 ? TitleAddTryCatch.Replace("clause", "clauses") : TitleAddTryCatch,
-                createChangedDocument: c => AddTryCatchAsync(context.Document, statement, diagnostics, c),
+                createChangedDocument: c => AddTryCatchAsync(context.Document, (StatementSyntax)throwSite, diagnostics, c),
                 equivalenceKey: TitleAddTryCatch),
             diagnostics);
     }
