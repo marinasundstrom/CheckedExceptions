@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+
+- PR [#135](https://github.com/marinasundstrom/CheckedExceptions/pull/135) Fix "Add catch" shouldn't be available in expression-bodies
+
 ## [1.6.1] - 2025-07-27
 
 ### Fixed
