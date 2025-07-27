@@ -10,7 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- PR [#117](https://github.com/marinasundstrom/CheckedExceptions/pull/#117) Handle redundant typed catch #114
+- PR [#117](https://github.com/marinasundstrom/CheckedExceptions/pull/#117) Handle redundant typed catch
+- PR [#124](https://github.com/marinasundstrom/CheckedExceptions/pull/#124) Code fix turns simple lambda into parameterized
 
 ### Fixed
 
