@@ -158,11 +158,19 @@ public class AddThrowsAttributeCodeFixProvider : CodeFixProvider
         }
         else if (ancestor is LambdaExpressionSyntax lambdaExpression)
         {
+            if (existingAttributeList is null && lambdaExpression is SimpleLambdaExpressionSyntax simpleLambda)
+            {
+                lambdaExpression = ParenthesizedLambdaExpression(
+                    ParameterList(
+                        SeparatedList([simpleLambda.Parameter])),
+                    simpleLambda.Body);
+            }
+
             lambdaExpression = existingAttributeList is not null
                 ? lambdaExpression.ReplaceNode(existingAttributeList!, attributeList)
                 : lambdaExpression
                     .WithoutLeadingTrivia()
-                    .AddAttributeLists(attributeList);
+                    .AddAttributeLists(attributeList.WithoutTrailingTrivia());
 
             newAncestor = lambdaExpression
                     .WithLeadingTrivia(ancestor.GetLeadingTrivia())

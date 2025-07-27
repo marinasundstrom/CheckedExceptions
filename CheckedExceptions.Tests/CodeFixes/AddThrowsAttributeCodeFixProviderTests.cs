@@ -153,14 +153,67 @@ namespace TestNamespace
         [Throws(typeof(ArgumentNullException))]
         public void TestMethod()
         {
-            Action action = [Throws(typeof(ArgumentNullException))]
-            () =>
+            Action action = [Throws(typeof(ArgumentNullException))] () =>
             {
                 // Should trigger THROW001
                 throw new ArgumentNullException();
             };
 
             action();
+        }
+    }
+}
+""";
+
+        var expectedDiagnostic = Verifier.UnhandledException("ArgumentNullException")
+            .WithSpan(13, 17, 13, 51);
+
+        await Verifier.VerifyCodeFixAsync(testCode, expectedDiagnostic, fixedCode, expectedIncrementalIterations: 2);
+    }
+
+    [Fact]
+    public async Task AddsThrowsAttribute_ToSimpleLambda_TurnIntoParameterizedLambda()
+    {
+        var testCode = /* lang=c#-test */  """
+using System;
+using System.Linq;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        public void TestMethod()
+        {
+            Action<int> action = x => 
+            {
+                // Should trigger THROW001
+                throw new ArgumentNullException();
+            };
+            
+            action(42);
+        }
+    }
+}
+""";
+
+        var fixedCode = /* lang=c#-test */  """
+using System;
+using System.Linq;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        [Throws(typeof(ArgumentNullException))]
+        public void TestMethod()
+        {
+            Action<int> action = [Throws(typeof(ArgumentNullException))] (x) =>
+            {
+                // Should trigger THROW001
+                throw new ArgumentNullException();
+            };
+
+            action(42);
         }
     }
 }
