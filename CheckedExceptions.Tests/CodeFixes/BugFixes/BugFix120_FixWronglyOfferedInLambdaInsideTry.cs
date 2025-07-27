@@ -9,7 +9,7 @@ using Verifier = CSharpCodeFixVerifier<CheckedExceptionsAnalyzer, AddCatchClause
 public class BugFix120_FixWronglyOfferedInLambdaInsideTry
 {
     [Fact]
-    public async Task FixNotOffered_WhenThrowInsideLambdaBody_DeclaredInTryBlock()
+    public async Task FixShouldNotBeOffered_WhenThrowInsideLambdaBody_DeclaredInTryBlock()
     {
         var testCode = /*lang=c#-test*/ """
 using System;
@@ -57,12 +57,15 @@ namespace TestNamespace
 }
 """;
 
-        // Expect no fix to be registered
-        await Verifier.VerifyCodeFixAsync(testCode, [], expected, expectedIncrementalIterations: 0);
+        var expectedDiagnostic = Verifier.UnhandledException("InvalidOperationException")
+             .WithSpan(13, 21, 13, 59);
+
+        // Expect fix to be registered and applied
+        await Verifier.VerifyCodeFixAsync(testCode, [expectedDiagnostic], expected, expectedIncrementalIterations: 0);
     }
 
     [Fact]
-    public async Task FixOffered_WhenThrowInsideTryBlock_InLambdaBody()
+    public async Task FixShouldBeOffered_WhenThrowInsideTryBlock_InLambdaBody()
     {
         var testCode = /*lang=c#-test*/ """
 using System;

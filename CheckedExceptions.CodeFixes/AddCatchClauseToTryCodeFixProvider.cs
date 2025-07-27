@@ -31,7 +31,7 @@ public class AddCatchClauseToTryCodeFixProvider : CodeFixProvider
         var diagnostic = diagnostics.First();
         var node = root.FindNode(diagnostic.Location.SourceSpan);
 
-        // Proceed only if the node is a statement or within a statement
+        // Get the statement we're analyzing
         var statement = node.FirstAncestorOrSelf<StatementSyntax>();
         if (statement is null)
             return;
@@ -41,9 +41,17 @@ public class AddCatchClauseToTryCodeFixProvider : CodeFixProvider
         if (tryStatement?.Block is null || !tryStatement.Block.DescendantNodes().Contains(statement))
             return;
 
-        // Ensure statement is not *within* a lambda or local function declared inside the try
-        if (IsInsideLambdaOrLocalFunctionDeclaration(statement, tryStatement))
-            return;
+        // If the throw is inside a lambda or local function,
+        // only offer a fix if it's inside a try block within that same function body.
+        if (TryGetEnclosingDeferredContext(statement) is { } deferredContext)
+        {
+            var enclosingTry = statement.FirstAncestorOrSelf<TryStatementSyntax>();
+
+            if (enclosingTry == null || !deferredContext.Span.Contains(enclosingTry.Span))
+            {
+                return; // Throw is in a lambda/local function, but not in a try block inside that lambda
+            }
+        }
 
         var diagnosticsCount = diagnostics.Length;
 
@@ -55,17 +63,10 @@ public class AddCatchClauseToTryCodeFixProvider : CodeFixProvider
             diagnostics);
     }
 
-    private static bool IsInsideLambdaOrLocalFunctionDeclaration(SyntaxNode node, TryStatementSyntax tryStatement)
+    private static SyntaxNode? TryGetEnclosingDeferredContext(SyntaxNode node)
     {
-        var lambda = node.FirstAncestorOrSelf<LambdaExpressionSyntax>();
-        if (lambda != null && tryStatement.Block.Statements.Contains(lambda.Parent))
-            return true;
-
-        var localFunc = node.FirstAncestorOrSelf<LocalFunctionStatementSyntax>();
-        if (localFunc != null && tryStatement.Block.Statements.Contains(localFunc))
-            return true;
-
-        return false;
+        return (SyntaxNode?)node.FirstAncestorOrSelf<LambdaExpressionSyntax>()
+            ?? node.FirstAncestorOrSelf<LocalFunctionStatementSyntax>();
     }
 
     private async Task<Document> AddTryCatchAsync(Document document, StatementSyntax statement, IEnumerable<Diagnostic> diagnostics, CancellationToken cancellationToken)
