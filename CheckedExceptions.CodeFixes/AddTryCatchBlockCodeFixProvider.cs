@@ -32,6 +32,18 @@ public class AddTryCatchBlockCodeFixProvider : CodeFixProvider
         var diagnostic = diagnostics.First();
         var node = root.FindNode(diagnostic.Location.SourceSpan);
 
+        if (IsExpressionBody(node, out var expression))
+        {
+            context.RegisterCodeFix(
+                CodeAction.Create(
+                    title: TitleAddTryCatch,
+                    createChangedDocument: c => AddTryCatchToExpressionBodyAsync(context.Document, expression!, diagnostics, c),
+                    equivalenceKey: TitleAddTryCatch),
+                diagnostics);
+
+            return;
+        }
+
         StatementSyntax? statement = node is GlobalStatementSyntax g ? g.Statement : node.FirstAncestorOrSelf<StatementSyntax>();
         if (statement is null)
             return;
@@ -39,12 +51,88 @@ public class AddTryCatchBlockCodeFixProvider : CodeFixProvider
         context.RegisterCodeFix(
             CodeAction.Create(
                 title: TitleAddTryCatch,
-                createChangedDocument: c => AddTryCatchAsync(context.Document, statement, diagnostics, c),
+                createChangedDocument: c => AddTryCatchAroundStatementAsync(context.Document, statement, diagnostics, c),
                 equivalenceKey: TitleAddTryCatch),
             diagnostics);
     }
 
-    private async Task<Document> AddTryCatchAsync(Document document, StatementSyntax statement, IEnumerable<Diagnostic> diagnostics, CancellationToken cancellationToken)
+    private static bool IsExpressionBody(SyntaxNode node, out ExpressionSyntax? expression)
+    {
+        if (node is ExpressionSyntax expr)
+        {
+            var result = (node.Parent is AnonymousFunctionExpressionSyntax le && le.ExpressionBody == node) ||
+                (node.Parent is BaseMethodDeclarationSyntax bm && bm.ExpressionBody == node) ||
+                (node.Parent is AccessorDeclarationSyntax ac && ac.ExpressionBody == node);
+
+            expression = result ? expr : null;
+            return result;
+        }
+        expression = null;
+        return false;
+    }
+
+    private async Task<Document> AddTryCatchToExpressionBodyAsync(Document document, ExpressionSyntax expression, ImmutableArray<Diagnostic> diagnostics, CancellationToken cancellationToken)
+    {
+        var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+        if (root is null) return document;
+
+        SyntaxNode newRoot = default!;
+
+        var tryCatchStatement = CreateTryCatch(expression, diagnostics);
+        var block = Block(SingletonList(tryCatchStatement));
+
+        if (expression.Parent is LambdaExpressionSyntax lambdaExpression)
+        {
+            var newLambdaExpression = lambdaExpression.WithBody(block);
+
+            newRoot = root.ReplaceNode(lambdaExpression, newLambdaExpression);
+        }
+        else if (expression.Parent is AnonymousFunctionExpressionSyntax localFunctionStatement)
+        {
+            var newLocalFunctionStatement = localFunctionStatement.WithBody(block);
+
+            newRoot = root.ReplaceNode(localFunctionStatement, newLocalFunctionStatement);
+        }
+        else if (expression.Parent is BaseMethodDeclarationSyntax methodDeclarationSyntax)
+        {
+            var newMethodDeclarationSyntax = methodDeclarationSyntax.WithBody(block);
+
+            newRoot = root.ReplaceNode(methodDeclarationSyntax, newMethodDeclarationSyntax);
+        }
+        else if (expression.Parent is AccessorDeclarationSyntax accessorDeclarationSyntax)
+        {
+            var newAccessorDeclarationSyntax = accessorDeclarationSyntax.WithBody(block);
+
+            newRoot = root.ReplaceNode(accessorDeclarationSyntax, newAccessorDeclarationSyntax);
+        }
+        else
+        {
+            return document;
+        }
+
+        return document.WithSyntaxRoot(newRoot);
+    }
+
+    private static TryStatementSyntax CreateTryCatch(ExpressionSyntax expression, ImmutableArray<Diagnostic> diagnostics)
+    {
+        var exceptionTypeNames = diagnostics
+       .Select(d => d.Properties.TryGetValue("ExceptionType", out var type) ? type! : string.Empty);
+
+        var expressionStatement = ExpressionStatement(expression);
+
+        var tryBlock = Block(SingletonList(expressionStatement)).WithAdditionalAnnotations(Formatter.Annotation);
+
+        int count = exceptionTypeNames.Count();
+
+        var catchClauses = CreateCatchClauses(exceptionTypeNames, count);
+
+        return TryStatement()
+            .WithBlock(tryBlock)
+            .WithCatches(List(catchClauses))
+            .WithAdditionalAnnotations(Formatter.Annotation);
+    }
+
+    private async Task<Document> AddTryCatchAroundStatementAsync(Document document, StatementSyntax statement, IEnumerable<Diagnostic> diagnostics, CancellationToken cancellationToken)
     {
         var exceptionTypeNames = diagnostics
             .Select(d => d.Properties.TryGetValue("ExceptionType", out var type) ? type! : string.Empty);
