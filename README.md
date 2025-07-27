@@ -8,6 +8,16 @@
 
 ---
 
+## Demo
+
+_Click the image to watch the [video](https://www.youtube.com/watch?v=ldJjMrqB8X4) om YouTube._
+
+[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/ldJjMrqB8X4/0.jpg)](https://www.youtube.com/watch?v=ldJjMrqB8X4)
+
+There are other videos in [this playlist](https://www.youtube.com/playlist?list=PLLBU--06ftFpmZWhQExVDXcefWol1i0zq).
+
+---
+
 ## 🚀 What It Does
 
 CheckedExceptions is a Roslyn analyzer that makes exception handling **explicit** and reveals how exceptions propagate through your code.
