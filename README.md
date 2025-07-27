@@ -20,6 +20,7 @@ If a method might throw an exception, the caller must either:
 ✅ Inspired by Java’s checked exceptions<br />
 ⚙️ Fully opt-in<br />
 💡 Analyzer warnings by default — can be elevated to errors<br />
+📄 Supports .NET and third-party libraries via XML documentation<br />
 🛠 Includes code fixes to help you quickly handle or declare exceptions<br />
 
 ---
@@ -210,7 +211,6 @@ When analyzing external APIs (e.g., referenced .NET assemblies), we **do** recog
 
 - We treat documented exceptions from public APIs as "declared" when `[Throws]` is not available.
 - This helps maintain compatibility without requiring upstream changes.
-- However, this behavior **does not apply** to code within your own solution.
 
 > ⚠️ Summary:  
 > `<exception>` tags are respected for **interop**, but they are **not a replacement** for `[Throws]` in code you control.
@@ -224,6 +224,14 @@ The analyzer offers **limited support** for projects targeting .NET Standard 2.0
 This is due to a **technical limitation**: the XML documentation files for .NET Standard assemblies are often incomplete or malformed, making it impossible to extract reliable exception information.
 
 ✅ **Recommendation:** Target a modern .NET SDK (e.g., .NET 6 or later) to get full analyzer support, including framework exception annotations.
+
+### ❓ What about LINQ support?
+
+**Answer:**
+
+There’s no special support for LINQ at the moment. Since LINQ queries are typically deferred and represented as expression trees or objects, it’s difficult to determine where and when exceptions will actually be thrown.
+
+We may explore better support in the future, but for now, these cases are considered out of scope.
 
 ---
 
