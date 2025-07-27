@@ -12,7 +12,7 @@
 
 _Click the image to watch the [video](https://www.youtube.com/watch?v=ldJjMrqB8X4) om YouTube._
 
-[![IMAGE ALT TEXT HERE](https://img.youtube.com/vi/ldJjMrqB8X4/0.jpg)](https://www.youtube.com/watch?v=ldJjMrqB8X4)
+<a href="https://www.youtube.com/watch?v=ldJjMrqB8X4"><img src="screenshots/Screenshot3.png" alt="Video" width="500" /></a>
 
 There are other videos in [this playlist](https://www.youtube.com/playlist?list=PLLBU--06ftFpmZWhQExVDXcefWol1i0zq).
 
