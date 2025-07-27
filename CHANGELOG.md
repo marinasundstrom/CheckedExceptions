@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - PR [#121](https://github.com/marinasundstrom/CheckedExceptions/pull/#121) Remove leading trivia before adding ThrowsAttribute
+- PR [#122](https://github.com/marinasundstrom/CheckedExceptions/pull/#122) Prevent catch clause fix from appearing inside try-wrapped lambdas
 
 ## [1.5.2] - 2025-07-26
 
