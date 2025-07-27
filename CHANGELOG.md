@@ -8,17 +8,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## Fixed
+
+- PR [#131](https://github.com/marinasundstrom/CheckedExceptions/pull/131) Redo: Prevent catch clause fix in try-wrapped lambda
+
 ## [1.6.0] - 2025-07-27
 
 ### Added
 
-- PR [#117](https://github.com/marinasundstrom/CheckedExceptions/pull/#117) Handle redundant typed catch
-- PR [#124](https://github.com/marinasundstrom/CheckedExceptions/pull/#124) Code fix turns simple lambda into parameterized
+- PR [#117](https://github.com/marinasundstrom/CheckedExceptions/pull/117) Handle redundant typed catch
+- PR [#124](https://github.com/marinasundstrom/CheckedExceptions/pull/124) Code fix turns simple lambda into parameterized
 
 ### Fixed
 
-- PR [#121](https://github.com/marinasundstrom/CheckedExceptions/pull//121) Remove leading trivia before adding ThrowsAttribute
-- PR [#122](https://github.com/marinasundstrom/CheckedExceptions/pull//122) Prevent catch clause fix from appearing inside try-wrapped lambdas
+- PR [#121](https://github.com/marinasundstrom/CheckedExceptions/pull/121) Remove leading trivia before adding ThrowsAttribute
+- PR [#122](https://github.com/marinasundstrom/CheckedExceptions/pull/122) Prevent catch clause fix from appearing inside try-wrapped lambdas
 
 ## [1.5.2] - 2025-07-26
 
