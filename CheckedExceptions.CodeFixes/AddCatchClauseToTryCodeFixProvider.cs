@@ -41,6 +41,10 @@ public class AddCatchClauseToTryCodeFixProvider : CodeFixProvider
         if (tryStatement?.Block is null || !tryStatement.Block.DescendantNodes().Contains(statement))
             return;
 
+        // Ensure statement is not *within* a lambda or local function declared inside the try
+        if (IsInsideLambdaOrLocalFunctionDeclaration(statement, tryStatement))
+            return;
+
         var diagnosticsCount = diagnostics.Length;
 
         context.RegisterCodeFix(
@@ -49,6 +53,19 @@ public class AddCatchClauseToTryCodeFixProvider : CodeFixProvider
                 createChangedDocument: c => AddTryCatchAsync(context.Document, statement, diagnostics, c),
                 equivalenceKey: TitleAddTryCatch),
             diagnostics);
+    }
+
+    private static bool IsInsideLambdaOrLocalFunctionDeclaration(SyntaxNode node, TryStatementSyntax tryStatement)
+    {
+        var lambda = node.FirstAncestorOrSelf<LambdaExpressionSyntax>();
+        if (lambda != null && tryStatement.Block.Statements.Contains(lambda.Parent))
+            return true;
+
+        var localFunc = node.FirstAncestorOrSelf<LocalFunctionStatementSyntax>();
+        if (localFunc != null && tryStatement.Block.Statements.Contains(localFunc))
+            return true;
+
+        return false;
     }
 
     private async Task<Document> AddTryCatchAsync(Document document, StatementSyntax statement, IEnumerable<Diagnostic> diagnostics, CancellationToken cancellationToken)
