@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- PR [#147](https://github.com/marinasundstrom/CheckedExceptions/pull/147) Disallow prop decl with Throws and Get accessor
+
 ## [1.6.3] - 2025-07-28
 
 ### Added
