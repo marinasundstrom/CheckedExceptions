@@ -58,12 +58,18 @@ public class AddCatchClauseToTryCodeFixProvider : CodeFixProvider
             return; // ❌ not inside runtime flow of a try
         }
 
+        // We need the closest statement
+        if (throwSite is ExpressionSyntax)
+        {
+            throwSite = throwSite.FirstAncestorOrSelf<StatementSyntax>();
+        }
+
         var diagnosticsCount = diagnostics.Length;
 
         context.RegisterCodeFix(
             CodeAction.Create(
                 title: diagnosticsCount > 1 ? TitleAddTryCatch.Replace("clause", "clauses") : TitleAddTryCatch,
-                createChangedDocument: c => AddTryCatchAsync(context.Document, (StatementSyntax)throwSite, diagnostics, c),
+                createChangedDocument: c => AddTryCatchAsync(context.Document, (StatementSyntax)throwSite!, diagnostics, c),
                 equivalenceKey: TitleAddTryCatch),
             diagnostics);
     }
@@ -126,6 +132,11 @@ public class AddCatchClauseToTryCodeFixProvider : CodeFixProvider
 
             var newTry = existingTryStatement.WithCatches(existingTryStatement.Catches.AddRange(catchClausesToAdd))
                 .WithAdditionalAnnotations(Formatter.Annotation);
+
+            if (newTry.Finally?.IsMissing ?? false)
+            {
+                newTry = newTry.WithFinally(null);
+            }
 
             var newRoot = root.ReplaceNode(existingTryStatement, newTry);
 
