@@ -29,7 +29,7 @@ public static class CSharpCodeFixVerifier<TAnalyzer, TCodeFix, TVerifier>
         return VerifyCodeFixAsync(source, new[] { expected }, fixedSource, expectedIncrementalIterations, executable);
     }
 
-    public static Task VerifyCodeFixAsync([StringSyntax("c#-test")] string source, IEnumerable<DiagnosticResult> expected, [StringSyntax("c#-test")] string? fixedSource = null, int? expectedIncrementalIterations = 1, bool executable = false)
+    public static Task VerifyCodeFixAsync([StringSyntax("c#-test")] string source, IEnumerable<DiagnosticResult> expected, [StringSyntax("c#-test")] string? fixedSource = null, int? expectedIncrementalIterations = 1, bool executable = false, Action<CodeFixTest>? setup = null)
     {
         var test = new CodeFixTest
         {
@@ -63,10 +63,12 @@ public static class CSharpCodeFixVerifier<TAnalyzer, TCodeFix, TVerifier>
             test.ExpectedDiagnostics.AddRange(expected);
         }
 
+        setup?.Invoke(test);
+
         return test.RunAsync();
     }
 
-    private class CodeFixTest : CSharpCodeFixTest<TAnalyzer, TCodeFix, TVerifier>
+    public class CodeFixTest : CSharpCodeFixTest<TAnalyzer, TCodeFix, TVerifier>
     {
 
     }
