@@ -27,22 +27,19 @@ partial class CheckedExceptionsAnalyzer
 
             foreach (var arg in attrSyntax.ArgumentList?.Arguments ?? default)
             {
-                if (arg.Expression is TypeOfExpressionSyntax typeOfExpr)
+                if (arg.Expression is not TypeOfExpressionSyntax typeOfExpr)
+                    continue;
+
+                var typeInfo = semanticModel.GetTypeInfo(typeOfExpr.Type, context.CancellationToken);
+                if (typeInfo.Type is not INamedTypeSymbol exceptionType)
+                    continue;
+
+                if (!reportedTypes.Add(exceptionType))
                 {
-                    var typeInfo = semanticModel.GetTypeInfo(typeOfExpr.Type, context.CancellationToken);
-                    var exceptionType = typeInfo.Type as INamedTypeSymbol;
-                    if (exceptionType is null)
-                        continue;
-
-                    if (reportedTypes.Contains(exceptionType))
-                    {
-                        context.ReportDiagnostic(Diagnostic.Create(
-                            RuleDuplicateDeclarations,
-                            typeOfExpr.GetLocation(), // ✅ precise location
-                            exceptionType.Name));
-                    }
-
-                    reportedTypes.Add(exceptionType);
+                    context.ReportDiagnostic(Diagnostic.Create(
+                        RuleDuplicateDeclarations,
+                        typeOfExpr.GetLocation(), // ✅ precise location
+                        exceptionType.Name));
                 }
             }
         }
@@ -65,19 +62,19 @@ partial class CheckedExceptionsAnalyzer
 
         HashSet<INamedTypeSymbol>? seen = null;
 
-        foreach (AttributeSyntax throwsAttribute in throwsAttributes)
+        foreach (var throwsAttribute in throwsAttributes)
         {
             Debug.Assert(throwsAttribute is not null);
 
             seen ??= new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
-            
-            foreach (var arg in throwsAttribute.ArgumentList?.Arguments ?? [])
+
+            foreach (var arg in throwsAttribute!.ArgumentList?.Arguments ?? [])
             {
                 if (arg.Expression is not TypeOfExpressionSyntax typeOfExpr)
                     continue;
 
                 var typeInfo = semanticModel.GetTypeInfo(typeOfExpr.Type, context.CancellationToken);
-                if (typeInfo is not INamedTypeSymbol exceptionType)
+                if (typeInfo.Type is not INamedTypeSymbol exceptionType)
                     continue;
 
                 if (!seen.Add(exceptionType))

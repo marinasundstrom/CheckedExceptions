@@ -29,8 +29,7 @@ partial class CheckedExceptionsAnalyzer
                 if (arg.Expression is TypeOfExpressionSyntax typeOfExpr)
                 {
                     var typeInfo = semanticModel.GetTypeInfo(typeOfExpr.Type, context.CancellationToken);
-                    var typeSymbol = typeInfo.Type as INamedTypeSymbol;
-                    if (typeSymbol == null)
+                    if (typeInfo.Type is not INamedTypeSymbol typeSymbol)
                         continue;
 
                     declaredTypes.Add(typeSymbol);
