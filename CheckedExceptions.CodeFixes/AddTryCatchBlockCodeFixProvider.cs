@@ -60,12 +60,16 @@ public class AddTryCatchBlockCodeFixProvider : CodeFixProvider
     {
         if (node is ExpressionSyntax expr)
         {
-            var result = (node.Parent is AnonymousFunctionExpressionSyntax le && le.ExpressionBody == node) ||
-                (node.Parent is BaseMethodDeclarationSyntax bm && bm.ExpressionBody == node) ||
-                (node.Parent is AccessorDeclarationSyntax ac && ac.ExpressionBody == node);
+            switch (node.Parent)
+            {
+                case AnonymousFunctionExpressionSyntax le when le.ExpressionBody == node:
+                    expression = expr;
+                    return true;
 
-            expression = result ? expr : null;
-            return result;
+                case ArrowExpressionClauseSyntax ace when ace.Parent is BaseMethodDeclarationSyntax || ace.Parent is BasePropertyDeclarationSyntax || ace.Parent is AccessorDeclarationSyntax:
+                    expression = expr;
+                    return true;
+            }
         }
         expression = null;
         return false;
@@ -83,27 +87,79 @@ public class AddTryCatchBlockCodeFixProvider : CodeFixProvider
 
         if (expression.Parent is LambdaExpressionSyntax lambdaExpression)
         {
-            var newLambdaExpression = lambdaExpression.WithBody(block);
+            var newLambdaExpression = lambdaExpression
+                .WithBody(block)
+                .WithAdditionalAnnotations(Formatter.Annotation);
 
             newRoot = root.ReplaceNode(lambdaExpression, newLambdaExpression);
         }
-        else if (expression.Parent is AnonymousFunctionExpressionSyntax localFunctionStatement)
+        else if (expression.Parent is ArrowExpressionClauseSyntax arrowExpressionClause)
         {
-            var newLocalFunctionStatement = localFunctionStatement.WithBody(block);
+            if (arrowExpressionClause.Parent is AnonymousFunctionExpressionSyntax localFunctionStatement)
+            {
+                var newLocalFunctionStatement = localFunctionStatement
+                    .WithBody(block)
+                    .WithAdditionalAnnotations(Formatter.Annotation);
 
-            newRoot = root.ReplaceNode(localFunctionStatement, newLocalFunctionStatement);
-        }
-        else if (expression.Parent is BaseMethodDeclarationSyntax methodDeclarationSyntax)
-        {
-            var newMethodDeclarationSyntax = methodDeclarationSyntax.WithBody(block);
+                newRoot = root.ReplaceNode(localFunctionStatement, newLocalFunctionStatement);
+            }
+            else if (arrowExpressionClause.Parent is BaseMethodDeclarationSyntax methodDeclarationSyntax)
+            {
+                var newMethodDeclarationSyntax = methodDeclarationSyntax
+                    .WithExpressionBody(null)
+                    .WithSemicolonToken(Token(SyntaxKind.None))
+                    .WithBody(block)
+                    .WithTrailingTrivia(methodDeclarationSyntax.SemicolonToken.TrailingTrivia)
+                    .WithAdditionalAnnotations(Formatter.Annotation);
 
-            newRoot = root.ReplaceNode(methodDeclarationSyntax, newMethodDeclarationSyntax);
-        }
-        else if (expression.Parent is AccessorDeclarationSyntax accessorDeclarationSyntax)
-        {
-            var newAccessorDeclarationSyntax = accessorDeclarationSyntax.WithBody(block);
+                newRoot = root.ReplaceNode(methodDeclarationSyntax, newMethodDeclarationSyntax);
+            }
+            else if (arrowExpressionClause.Parent is PropertyDeclarationSyntax propertyDeclarationSyntax)
+            {
+                var getAccessor = AccessorDeclaration(SyntaxKind.GetAccessorDeclaration)
+                    .WithBody(block);
 
-            newRoot = root.ReplaceNode(accessorDeclarationSyntax, newAccessorDeclarationSyntax);
+                var accessorList = AccessorList(SingletonList(getAccessor));
+
+                var newPropertyDeclarationSyntax = propertyDeclarationSyntax
+                    .WithExpressionBody(null)
+                    .WithSemicolonToken(Token(SyntaxKind.None))
+                    .WithAccessorList(accessorList)
+                    .WithTrailingTrivia(propertyDeclarationSyntax.SemicolonToken.TrailingTrivia)
+                    .WithAdditionalAnnotations(Formatter.Annotation);
+
+                newRoot = root.ReplaceNode(propertyDeclarationSyntax, newPropertyDeclarationSyntax);
+            }
+            else if (arrowExpressionClause.Parent is AccessorDeclarationSyntax accessorDeclarationSyntax)
+            {
+                var accessorList = accessorDeclarationSyntax.Parent as AccessorListSyntax;
+
+                if (accessorList is null)
+                    return document;
+
+                var propertyDeclaration = accessorList.Parent as BasePropertyDeclarationSyntax;
+
+                if (propertyDeclaration is null)
+                    return document;
+
+                AccessorDeclarationSyntax newAccessorDeclarationSyntax = accessorDeclarationSyntax
+                    .WithExpressionBody(null)
+                    .WithSemicolonToken(Token(SyntaxKind.None))
+                    .WithBody(block)
+                    .WithTrailingTrivia(accessorDeclarationSyntax.SemicolonToken.TrailingTrivia)
+                    .WithAdditionalAnnotations(Formatter.Annotation);
+
+                var newAccessorList = accessorList.ReplaceNode(accessorDeclarationSyntax, newAccessorDeclarationSyntax);
+                var newPropertyDeclaration = propertyDeclaration.ReplaceNode(accessorList, newAccessorList);
+
+                var str = newPropertyDeclaration.ToFullString();
+
+                newRoot = root.ReplaceNode(propertyDeclaration, newPropertyDeclaration);
+            }
+            else
+            {
+                return document;
+            }
         }
         else
         {
@@ -118,7 +174,7 @@ public class AddTryCatchBlockCodeFixProvider : CodeFixProvider
         var exceptionTypeNames = diagnostics
        .Select(d => d.Properties.TryGetValue("ExceptionType", out var type) ? type! : string.Empty);
 
-        var expressionStatement = ExpressionStatement(expression);
+        var expressionStatement = ReturnStatement(expression);
 
         var tryBlock = Block(SingletonList(expressionStatement)).WithAdditionalAnnotations(Formatter.Annotation);
 

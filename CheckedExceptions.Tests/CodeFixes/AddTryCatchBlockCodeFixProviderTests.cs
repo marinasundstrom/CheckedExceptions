@@ -2,6 +2,8 @@ namespace Sundstrom.CheckedExceptions.Tests.CodeFixes;
 
 using System.Threading.Tasks;
 
+using Microsoft.CodeAnalysis.Testing;
+
 using Xunit;
 using Xunit.Abstractions;
 
@@ -365,5 +367,255 @@ namespace TestNamespace
             .WithSpan(12, 26, 12, 32);
 
         await Verifier.VerifyCodeFixAsync(testCode, expectedDiagnostic, fixedCode);
+    }
+
+    // ... ///
+
+    [Fact]
+    public async Task ExpressionBody_InLambda_PromoteToBlockBody()
+    {
+        var testCode = /* lang=c#-test */  """
+using System;
+using System.Linq;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        public void TestMethod()
+        {
+            try
+            {
+                For(x => Test(x));
+            }
+            catch {}
+        }
+
+        [Throws(typeof(InvalidOperationException))]
+        public bool Test(int x) 
+        {
+            return true;
+        }
+
+        public void For(Func<int, bool> f)
+        {
+            
+        }
+    }
+}
+""";
+
+        var fixedCode = /* lang=c#-test */  """
+using System;
+using System.Linq;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        public void TestMethod()
+        {
+            try
+            {
+                For(x => { try { return Test(x); } catch (InvalidOperationException invalidOperationException) { } });
+            }
+            catch {}
+        }
+
+        [Throws(typeof(InvalidOperationException))]
+        public bool Test(int x) 
+        {
+            return true;
+        }
+
+        public void For(Func<int, bool> f)
+        {
+            
+        }
+    }
+}
+""";
+
+        var expectedDiagnostic = Verifier.UnhandledException("InvalidOperationException")
+             .WithSpan(12, 26, 12, 33);
+
+        await Verifier.VerifyCodeFixAsync(testCode, [expectedDiagnostic], fixedCode, setup: t => t.CompilerDiagnostics = CompilerDiagnostics.None);
+    }
+
+    [Fact]
+    public async Task ExpressionBody_InMethod_PromoteToBlockBody()
+    {
+        var testCode = /* lang=c#-test */  """
+using System;
+using System.Linq;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        public void TestMethod() => Test(42);
+
+        [Throws(typeof(InvalidOperationException))]
+        public bool Test(int x) 
+        {
+            return true;
+        }
+    }
+}
+""";
+
+        var fixedCode = /* lang=c#-test */  """
+using System;
+using System.Linq;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        public void TestMethod()
+        {
+            try
+            {
+                return Test(42);
+            }
+            catch (InvalidOperationException invalidOperationException)
+            {
+            }
+        }
+
+        [Throws(typeof(InvalidOperationException))]
+        public bool Test(int x) 
+        {
+            return true;
+        }
+    }
+}
+""";
+
+        var expectedDiagnostic = Verifier.UnhandledException("InvalidOperationException")
+             .WithSpan(8, 37, 8, 45);
+
+        await Verifier.VerifyCodeFixAsync(testCode, [expectedDiagnostic], fixedCode, setup: t => t.CompilerDiagnostics = CompilerDiagnostics.None);
+    }
+
+    [Fact]
+    public async Task ExpressionBody_InPropertyDecl_PromoteToBlockBody()
+    {
+        var testCode = /* lang=c#-test */  """
+using System;
+using System.Linq;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        public int TestProp => Test(42);
+
+        [Throws(typeof(InvalidOperationException))]
+        public int Test(int x) 
+        {
+            return 0;
+        }
+    }
+}
+""";
+
+        var fixedCode = /* lang=c#-test */  """
+using System;
+using System.Linq;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        public int TestProp
+        {
+            get
+            {
+                try
+                {
+                    return Test(42);
+                }
+                catch (InvalidOperationException invalidOperationException)
+                {
+                }
+            }
+        }
+
+        [Throws(typeof(InvalidOperationException))]
+        public int Test(int x) 
+        {
+            return 0;
+        }
+    }
+}
+""";
+
+        var expectedDiagnostic = Verifier.UnhandledException("InvalidOperationException")
+             .WithSpan(8, 32, 8, 40);
+
+        await Verifier.VerifyCodeFixAsync(testCode, [expectedDiagnostic], fixedCode, setup: t => t.CompilerDiagnostics = CompilerDiagnostics.None);
+    }
+
+    [Fact]
+    public async Task ExpressionBody_InAccessorDecl_PromoteToBlockBody()
+    {
+        var testCode = /* lang=c#-test */  """
+using System;
+using System.Linq;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        public int TestProp
+        {
+            get => Test(42);
+        }
+
+        [Throws(typeof(InvalidOperationException))]
+        public int Test(int x) 
+        {
+            return 0;
+        }
+    }
+}
+""";
+
+        var fixedCode = /* lang=c#-test */  """
+using System;
+using System.Linq;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        public int TestProp
+        {
+            get
+            {
+                try
+                {
+                    return Test(42);
+                }
+                catch (InvalidOperationException invalidOperationException)
+                {
+                }
+            }
+        }
+
+        [Throws(typeof(InvalidOperationException))]
+        public int Test(int x) 
+        {
+            return 0;
+        }
+    }
+}
+""";
+
+        var expectedDiagnostic = Verifier.UnhandledException("InvalidOperationException")
+             .WithSpan(10, 20, 10, 28);
+
+        await Verifier.VerifyCodeFixAsync(testCode, [expectedDiagnostic], fixedCode, setup: t => t.CompilerDiagnostics = CompilerDiagnostics.None);
     }
 }
