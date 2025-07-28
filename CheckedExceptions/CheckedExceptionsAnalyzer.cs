@@ -116,12 +116,12 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
     private static readonly DiagnosticDescriptor RuleThrowsDeclarationNotValidOnFullProperty = new(
         DiagnosticIdThrowsDeclarationNotValidOnFullProperty,
-        title: "Throws attribute is not valid on property",
-        messageFormat: "Throws attribute is not valid on full property declarations",
+        title: "Throws attribute is not valid on full property declarations",
+        messageFormat: "Throws attribute is not valid on full property declarations. Place it on accessors instead.",
         category: "Usage",
         DiagnosticSeverity.Error,
         isEnabledByDefault: true,
-        description: "The [Throws] attribute can only be applied to methods, local functions, and expression-bodied properties. It is not valid on properties with both get and set accessors.");
+        description: "The [Throws] attribute cannot be applied to full property declarations. Instead, place the attribute on individual accessors (get or set) to indicate which operations may throw exceptions.");
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
         [RuleUnhandledException, RuleIgnoredException, RuleGeneralThrows, RuleGeneralThrow, RuleDuplicateDeclarations, RuleMissingThrowsOnBaseMember, RuleMissingThrowsFromBaseMember, RuleDuplicateThrowsByHierarchy, RuleRedundantTypedCatchClause, RuleThrowsDeclarationNotValidOnFullProperty];
