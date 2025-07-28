@@ -6,10 +6,10 @@ using Xunit;
 
 using Verifier = CSharpCodeFixVerifier<CheckedExceptionsAnalyzer, AddThrowsAttributeCodeFixProvider, Microsoft.CodeAnalysis.Testing.DefaultVerifier>;
 
-public class BugFix139
+public class BugFix139_HandleBaseMember_WithPropDeclsWithThrowAndExpressionBody
 {
     [Fact]
-    public async Task FixShouldNotBeOffered_WhenThrowInsideLambdaBody_DeclaredInTryBlock()
+    public async Task ShouldAddThrows()
     {
         var testCode = /*lang=c#-test*/ """
 using System;
