@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [1.6.2] - 2025-07-28
+
 ### Added
 
 - PR [#137](https://github.com/marinasundstrom/CheckedExceptions/pull/137) Promote from expression body to block
