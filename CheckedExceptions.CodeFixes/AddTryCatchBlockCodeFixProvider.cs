@@ -66,7 +66,7 @@ public class AddTryCatchBlockCodeFixProvider : CodeFixProvider
                     expression = expr;
                     return true;
 
-                case ArrowExpressionClauseSyntax ace when ace.Parent is BaseMethodDeclarationSyntax || ace.Parent is BasePropertyDeclarationSyntax || ace.Parent is AccessorDeclarationSyntax:
+                case ArrowExpressionClauseSyntax ace when ace.Parent is BaseMethodDeclarationSyntax || ace.Parent is BasePropertyDeclarationSyntax || ace.Parent is AccessorDeclarationSyntax || ace.Parent is LocalFunctionStatementSyntax:
                     expression = expr;
                     return true;
             }
@@ -85,20 +85,24 @@ public class AddTryCatchBlockCodeFixProvider : CodeFixProvider
         var tryCatchStatement = CreateTryCatch(expression, diagnostics);
         var block = Block(SingletonList(tryCatchStatement));
 
-        if (expression.Parent is LambdaExpressionSyntax lambdaExpression)
+        if (expression.Parent is AnonymousFunctionExpressionSyntax lambdaExpression)
         {
             var newLambdaExpression = lambdaExpression
-                .WithBody(block)
+                .WithExpressionBody(null)
+                .WithBody(block.WithAdditionalAnnotations(Formatter.Annotation))
                 .WithAdditionalAnnotations(Formatter.Annotation);
 
             newRoot = root.ReplaceNode(lambdaExpression, newLambdaExpression);
         }
         else if (expression.Parent is ArrowExpressionClauseSyntax arrowExpressionClause)
         {
-            if (arrowExpressionClause.Parent is AnonymousFunctionExpressionSyntax localFunctionStatement)
+            if (arrowExpressionClause.Parent is LocalFunctionStatementSyntax localFunctionStatement)
             {
                 var newLocalFunctionStatement = localFunctionStatement
-                    .WithBody(block)
+                    .WithExpressionBody(null)
+                    .WithSemicolonToken(Token(SyntaxKind.None))
+                    .WithBody(block.WithAdditionalAnnotations(Formatter.Annotation))
+                    .WithTrailingTrivia(localFunctionStatement.SemicolonToken.TrailingTrivia)
                     .WithAdditionalAnnotations(Formatter.Annotation);
 
                 newRoot = root.ReplaceNode(localFunctionStatement, newLocalFunctionStatement);

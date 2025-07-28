@@ -499,6 +499,59 @@ namespace TestNamespace
     }
 
     [Fact]
+    public async Task ExpressionBody_InLocalFunction_PromoteToBlockBody()
+    {
+        var testCode = /* lang=c#-test */  """
+using System;
+using System.Linq;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        public void Foo() 
+        {
+            void TestMethod() => Test(42);
+        }
+
+        [Throws(typeof(InvalidOperationException))]
+        public bool Test(int x) 
+        {
+            return true;
+        }
+    }
+}
+""";
+
+        var fixedCode = /* lang=c#-test */  """
+using System;
+using System.Linq;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        public void Foo() 
+        {
+            void TestMethod() { try { return Test(42); } catch (InvalidOperationException invalidOperationException) { } }
+        }
+
+        [Throws(typeof(InvalidOperationException))]
+        public bool Test(int x) 
+        {
+            return true;
+        }
+    }
+}
+""";
+
+        var expectedDiagnostic = Verifier.UnhandledException("InvalidOperationException")
+             .WithSpan(10, 34, 10, 42);
+
+        await Verifier.VerifyCodeFixAsync(testCode, [expectedDiagnostic], fixedCode, setup: t => t.CompilerDiagnostics = CompilerDiagnostics.None);
+    }
+
+    [Fact]
     public async Task ExpressionBody_InPropertyDecl_PromoteToBlockBody()
     {
         var testCode = /* lang=c#-test */  """
