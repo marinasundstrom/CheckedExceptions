@@ -1,7 +1,7 @@
 // Define ThrowsAttribute within System namespace for testing purposes
 namespace System;
 
-[AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Delegate, AllowMultiple = true)]
+[AttributeUsage(AttributeTargets.Method | AttributeTargets.Property | AttributeTargets.Constructor | AttributeTargets.Delegate, AllowMultiple = true)]
 public class ThrowsAttribute : Attribute
 {
     public List<Type> ExceptionTypes { get; } = new List<Type>();
