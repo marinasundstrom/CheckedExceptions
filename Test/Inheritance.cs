@@ -58,8 +58,8 @@ public class Impl : IOperation2
 
 public class TestBase
 {
-    //[Throws(typeof(InvalidDataException))]
-    //public virtual bool Foo => throw new InvalidDataException();
+    [Throws(typeof(InvalidDataException))]
+    public virtual bool Foo => throw new InvalidDataException();
 
     [Throws(typeof(InvalidOperationException))]
     public virtual bool Foo2 => throw new InvalidOperationException();
@@ -67,12 +67,12 @@ public class TestBase
 
 public class TestDerive : TestBase
 {
-    //[Throws(typeof(InvalidDataException))]
-    //public override bool Foo { get; }
+    [Throws(typeof(InvalidDataException))]
+    public override bool Foo => false;
 
     public override bool Foo2
     {
-        [Throws(typeof(ArgumentException))]
+        [Throws(typeof(InvalidOperationException))]
         get => true;
     }
 }
