@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## Fixed
+
+- PR [#144](https://github.com/marinasundstrom/CheckedExceptions/pull/144) Allow throws decl on expression-bodied props
+
 ## [1.6.2] - 2025-07-28
 
 ### Added

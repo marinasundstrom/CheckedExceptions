@@ -96,7 +96,7 @@ dotnet add package Sundstrom.CheckedExceptions
 And define `ThrowsAttribute` in your project:
 
 ```csharp
-[AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Delegate, AllowMultiple = true)]
+[AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Delegate | AttributeTargets.Property, AllowMultiple = true)]
 public class ThrowsAttribute : Attribute
 {
     public List<Type> ExceptionTypes { get; } = new();
@@ -161,6 +161,7 @@ Register in `.csproj`:
 | `THROW007` | 🧬 Declared on base, missing from override                                 |
 | `THROW008` | 📦 Exception already handled by declaration of super type in `[Throws]`    |
 | `THROW009` | 🧹 Redundant catch clause                                                  |
+| `THROW010` | ⚠️ Throws attribute is not valid on full property declarations             |
 
 ## 🛠 Code Fixes
 
