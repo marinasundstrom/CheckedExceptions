@@ -7,7 +7,7 @@ using Verifier = CSharpAnalyzerVerifier<CheckedExceptionsAnalyzer, DefaultVerifi
 public partial class ExpressionBodiedPropertyTests
 {
     [Fact]
-    public async Task ExceptionUnhandled()
+    public async Task ExceptionIsUnhandled_WithDiagnostic()
     {
         var test = /* lang=c#-test */ """
             using System;
@@ -31,7 +31,7 @@ public partial class ExpressionBodiedPropertyTests
     }
 
     [Fact]
-    public async Task ExceptionHandled()
+    public async Task ExceptionIsHandled_NoDiagnostic()
     {
         var test = /* lang=c#-test */ """
             using System;
@@ -53,7 +53,7 @@ public partial class ExpressionBodiedPropertyTests
     }
 
     [Fact]
-    public async Task Invalid()
+    public async Task InvalidThrowsDeclOnPropDeclWithAccessors()
     {
         var test = /* lang=c#-test */ """
             using System;
@@ -85,7 +85,7 @@ public partial class ExpressionBodiedPropertyTests
     }
 
     [Fact]
-    public async Task Invalid2()
+    public async Task InvalidThrowsDeclOnPropDeclThatLacksExpressionBody()
     {
         var test = /* lang=c#-test */ """
             using System;
