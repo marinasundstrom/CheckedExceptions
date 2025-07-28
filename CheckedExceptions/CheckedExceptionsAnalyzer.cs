@@ -1383,7 +1383,8 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
                     // Don't continue with the analysis if it's a full property with accessors
                     // In that case, the accessors are analyzed separately
-                    if (propertySymbol?.GetMethod is not null && propertySymbol?.SetMethod is not null)
+                    if ((propertySymbol?.GetMethod is not null && propertySymbol?.SetMethod is not null)
+                        || (propertySymbol?.GetMethod is null && propertySymbol?.SetMethod is not null))
                     {
                         return false;
                     }
