@@ -28,7 +28,7 @@ The `ThrowsAttribute` allows methods to declare the exceptions they might throw.
 using System;
 using System.Collections.Generic;
 
-[AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Delegate, AllowMultiple = true)]
+[AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Delegate | AttributeTargets.Property, AllowMultiple = true)]
 public class ThrowsAttribute : Attribute
 {
     public List<Type> ExceptionTypes { get; } = new List<Type>();

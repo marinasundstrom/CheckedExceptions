@@ -165,7 +165,7 @@ The analyzer only requires the `ThrowsAttribute` to define a constructor with on
 This implementations provides some extra validation logic for the arguments:
 
 ```csharp
-[AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Delegate, AllowMultiple = true)]
+[AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Delegate | AttributeTargets.Property, AllowMultiple = true)]
 public class ThrowsAttribute : Attribute
 {
     public List<Type> ExceptionTypes { get; } = new List<Type>();
