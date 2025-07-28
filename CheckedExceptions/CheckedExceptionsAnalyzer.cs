@@ -174,12 +174,6 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         if (propertyDeclaration.ExpressionBody is not null)
             return;
 
-        if (propertyDeclaration.AccessorList is not null
-            && propertyDeclaration.AccessorList.Accessors.Count == 1)
-        {
-            return;
-        }
-
         var throwsAttributes = propertyDeclaration.AttributeLists.SelectMany(x => x.Attributes)
                .Where(x => x.Name.ToString() is "Throws" or "ThrowsAttribute");
 
