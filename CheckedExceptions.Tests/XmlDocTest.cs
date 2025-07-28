@@ -34,7 +34,7 @@ public partial class XmlDocTest
             }
             """;
 
-        var expected = Verifier.MightBeThrown("InvalidOperationException")
+        var expected = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(16, 9, 16, 21);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
@@ -56,13 +56,13 @@ public partial class XmlDocTest
             }
             """;
 
-        var expected1 = Verifier.MightBeThrown("ArgumentNullException")
+        var expected1 = Verifier.UnhandledException("ArgumentNullException")
             .WithSpan(7, 13, 7, 24);
 
-        var expected2 = Verifier.MightBeThrown("FormatException")
+        var expected2 = Verifier.UnhandledException("FormatException")
             .WithSpan(7, 13, 7, 24);
 
-        var expected3 = Verifier.MightBeThrown("OverflowException")
+        var expected3 = Verifier.UnhandledException("OverflowException")
             .WithSpan(7, 13, 7, 24);
 
         await Verifier.VerifyAnalyzerAsync(test, expected1, expected2, expected3);
@@ -86,10 +86,10 @@ public partial class XmlDocTest
             }
             """;
 
-        var expected2 = Verifier.MightBeThrown("FormatException")
+        var expected2 = Verifier.UnhandledException("FormatException")
             .WithSpan(8, 13, 8, 24);
 
-        var expected3 = Verifier.MightBeThrown("OverflowException")
+        var expected3 = Verifier.UnhandledException("OverflowException")
             .WithSpan(8, 13, 8, 24);
 
         await Verifier.VerifyAnalyzerAsync(test, [expected2, expected3]);
@@ -138,7 +138,7 @@ public partial class XmlDocTest
             }
             """;
 
-        var expected = Verifier.MightBeThrown("ArgumentOutOfRangeException")
+        var expected = Verifier.UnhandledException("ArgumentOutOfRangeException")
             .WithSpan(11, 23, 11, 29);
 
         await Verifier.VerifyAnalyzerAsync(test, [expected]);
@@ -173,7 +173,7 @@ public partial class XmlDocTest
             }
             """;
 
-        var expected = Verifier.MightBeThrown("ArgumentNullException")
+        var expected = Verifier.UnhandledException("ArgumentNullException")
             .WithSpan(20, 9, 20, 14);
 
         await Verifier.VerifyAnalyzerAsync(test, [expected]);

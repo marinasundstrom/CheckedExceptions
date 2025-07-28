@@ -3,6 +3,9 @@
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Linq;
+using System.Linq.Expressions;
+using System.Net.Sockets;
+using System.Reflection;
 using System.Text.Json;
 
 using Microsoft.CodeAnalysis;
@@ -23,13 +26,16 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     public const string DiagnosticIdDuplicateDeclarations = "THROW005";
     public const string DiagnosticIdMissingThrowsOnBaseMember = "THROW006";
     public const string DiagnosticIdMissingThrowsFromBaseMember = "THROW007";
+    public const string DiagnosticIdDuplicateThrowsByHierarchy = "THROW008";
+    public const string DiagnosticIdRedundantTypedCatchClause = "THROW009";
+    public const string DiagnosticIdThrowsDeclarationNotValidOnFullProperty = "THROW010";
 
     public static readonly IEnumerable<string> AllDiagnosticsIds = [DiagnosticIdUnhandled, DiagnosticIdGeneralThrows, DiagnosticIdGeneralThrow, DiagnosticIdDuplicateDeclarations];
 
     private static readonly DiagnosticDescriptor RuleUnhandledException = new(
         DiagnosticIdUnhandled,
         "Unhandled exception",
-        "Exception '{0}' {1} thrown but not handled",
+        "Unhandled exception type '{0}'",
         "Usage",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
@@ -47,7 +53,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor RuleGeneralThrow = new(
         DiagnosticIdGeneralThrow,
         "Avoid throwing 'Exception'",
-        "Throwing 'Exception' is too general; use a more specific exception type instead",
+        "Avoid throwing 'System.Exception'; use a more specific exception type",
         "Usage",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
@@ -55,8 +61,8 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
     private static readonly DiagnosticDescriptor RuleGeneralThrows = new DiagnosticDescriptor(
         DiagnosticIdGeneralThrows,
-        "Avoid declaring exception type 'Exception'",
-        "Declaring 'Exception' is too general; use a more specific exception type instead",
+        "Avoid declaring exception type 'System.Exception'",
+        "Avoid declaring exception type 'System.Exception'; use a more specific exception type",
         "Usage",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
@@ -65,16 +71,16 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor RuleDuplicateDeclarations = new DiagnosticDescriptor(
         DiagnosticIdDuplicateDeclarations,
         "Avoid duplicate declarations of the same exception type",
-        "Duplicate declarations of the exception type '{0}' found. Remove them to avoid redundancy.",
+        "Duplicate declaration of the exception type '{0}' found. Remove it to avoid redundancy.",
         "Usage",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "Detects multiple [Throws] declarations for the same exception type on a single member, which is redundant.");
+        description: "Detects multiple exception declarations for the same exception type on a single member, which is redundant.");
 
     private static readonly DiagnosticDescriptor RuleMissingThrowsOnBaseMember = new DiagnosticDescriptor(
         DiagnosticIdMissingThrowsOnBaseMember,
         "Missing Throws declaration",
-        "Exception '{1}' is not declared on base member '{0}'",
+        "Exception '{1}' is not declared in '{0}'",
         "Usage",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
@@ -83,14 +89,41 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor RuleMissingThrowsFromBaseMember = new(
         DiagnosticIdMissingThrowsFromBaseMember,
         "Missing Throws declaration for exception declared on base member",
-        "Base member '{0}' declares exception '{1}' which is not declared here",
+        "Exception '{1}' is not compatible with throws declaration(s) in '{0}'",
         "Usage",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
         description: "Ensures that overridden or implemented members declare exceptions required by their base or interface definitions.");
 
+    private static readonly DiagnosticDescriptor RuleDuplicateThrowsByHierarchy = new(
+        DiagnosticIdDuplicateThrowsByHierarchy,
+        title: "Redundant exception declaration",
+        messageFormat: "Exception already handled by declaration of super type ('{0}')",
+        category: "Usage",
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "Detects redundant [Throws] declarations where a more general exception type already covers the specific exception.");
+
+    private static readonly DiagnosticDescriptor RuleRedundantTypedCatchClause = new(
+        DiagnosticIdRedundantTypedCatchClause,
+        title: "Redundant catch clause",
+        messageFormat: "Exception type '{0}' is not thrown within the try block",
+        category: "Usage",
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "Detects catch clauses for exception types that are never thrown inside the associated try block, making the catch clause redundant.");
+
+    private static readonly DiagnosticDescriptor RuleThrowsDeclarationNotValidOnFullProperty = new(
+        DiagnosticIdThrowsDeclarationNotValidOnFullProperty,
+        title: "Throws attribute is not valid on full property declarations",
+        messageFormat: "Throws attribute is not valid on full property declarations. Place it on accessors instead.",
+        category: "Usage",
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true,
+        description: "The [Throws] attribute cannot be applied to full property declarations. Instead, place the attribute on individual accessors (get or set) to indicate which operations may throw exceptions.");
+
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
-        [RuleUnhandledException, RuleIgnoredException, RuleGeneralThrows, RuleGeneralThrow, RuleDuplicateDeclarations, RuleMissingThrowsOnBaseMember, RuleMissingThrowsFromBaseMember];
+        [RuleUnhandledException, RuleIgnoredException, RuleGeneralThrows, RuleGeneralThrow, RuleDuplicateDeclarations, RuleMissingThrowsOnBaseMember, RuleMissingThrowsFromBaseMember, RuleDuplicateThrowsByHierarchy, RuleRedundantTypedCatchClause, RuleThrowsDeclarationNotValidOnFullProperty];
 
     private const string SettingsFileName = "CheckedExceptions.settings.json";
     private static readonly JsonSerializerOptions _settingsFileJsonOptions = new()
@@ -125,6 +158,81 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         context.RegisterSyntaxNodeAction(AnalyzeElementAccess, SyntaxKind.ElementAccessExpression);
         context.RegisterSyntaxNodeAction(AnalyzeEventAssignment, SyntaxKind.AddAssignmentExpression);
         context.RegisterSyntaxNodeAction(AnalyzeEventAssignment, SyntaxKind.SubtractAssignmentExpression);
+        context.RegisterSyntaxNodeAction(AnalyzeTryStatement, SyntaxKind.TryStatement);
+        context.RegisterSyntaxNodeAction(AnalyzePropertyDeclaration, SyntaxKind.PropertyDeclaration);
+    }
+
+    private void AnalyzePropertyDeclaration(SyntaxNodeAnalysisContext context)
+    {
+        var propertyDeclaration = context.Node as PropertyDeclarationSyntax;
+
+        var semanticModel = context.SemanticModel;
+
+        if (propertyDeclaration is null)
+            return;
+
+        if (propertyDeclaration.ExpressionBody is not null)
+            return;
+
+        if (propertyDeclaration.AccessorList is not null
+            && propertyDeclaration.AccessorList.Accessors.Count == 1)
+        {
+            return;
+        }
+
+        var throwsAttributes = propertyDeclaration.AttributeLists.SelectMany(x => x.Attributes)
+               .Where(x => x.Name.ToString() is "Throws" or "ThrowsAttribute");
+
+        foreach (var throwsAttribute in throwsAttributes)
+        {
+            // Report invalid throws declaration
+            var diagnostic = Diagnostic.Create(
+                        RuleThrowsDeclarationNotValidOnFullProperty,
+                        throwsAttribute.GetLocation());
+
+            context.ReportDiagnostic(diagnostic);
+        }
+    }
+
+    private void AnalyzeTryStatement(SyntaxNodeAnalysisContext context)
+    {
+        var tryStatement = context.Node as TryStatementSyntax;
+
+        if (tryStatement is null)
+            return;
+
+        var settings = GetAnalyzerSettings(context.Options);
+
+        var semanticModel = context.SemanticModel;
+
+        // Check for redundant typed catch clauses
+        foreach (var catchClause in tryStatement.Catches)
+        {
+            if (catchClause.Declaration is null)
+                continue; // Skip general catch
+
+            var catchType = semanticModel.GetTypeInfo(catchClause.Declaration.Type).Type as INamedTypeSymbol;
+            if (catchType is null)
+                continue;
+
+            var thrownExceptions = CollectUnhandledExceptions(context, tryStatement.Block, settings);
+
+            // Check if any thrown exception matches or derives from this catch type
+            bool isRelevant = thrownExceptions.OfType<INamedTypeSymbol>().Any(thrown =>
+                thrown.Equals(catchType, SymbolEqualityComparer.Default) ||
+                thrown.InheritsFrom(catchType));
+
+            if (!isRelevant)
+            {
+                // Report redundant catch clause
+                var diagnostic = Diagnostic.Create(
+                    RuleRedundantTypedCatchClause,
+                    catchClause.Declaration.Type.GetLocation(),
+                    catchType.ToDisplayString());
+
+                context.ReportDiagnostic(diagnostic);
+            }
+        }
     }
 
     private AnalyzerSettings GetAnalyzerSettings(AnalyzerOptions analyzerOptions)
@@ -164,8 +272,12 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             .Where(attr => IsThrowsAttribute(attr, semanticModel))
             .ToList();
 
+        if (throwsAttributes.Count is 0)
+            return;
+
         CheckForGeneralExceptionThrows(throwsAttributes, context);
-        CheckForDuplicateThrowsAttributes(throwsAttributes, context);
+        CheckForDuplicateThrowsDeclarations(throwsAttributes, context);
+        CheckForRedundantThrowsHandledByDeclaredSuperClass(throwsAttributes, context);
     }
 
     /// <summary>
@@ -194,6 +306,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
         CheckForGeneralExceptionThrows(throwsAttributes, context);
         CheckForDuplicateThrowsAttributes(context, throwsAttributes);
+        CheckForRedundantThrowsHandledByDeclaredSuperClass(context, throwsAttributes);
     }
 
     private static IEnumerable<AttributeData> FilterThrowsAttributesByException(ImmutableArray<AttributeData> exceptionAttributes, string exceptionTypeName)
@@ -347,7 +460,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
                 exceptionType.Equals(handledException, SymbolEqualityComparer.Default) ||
                 exceptionType.InheritsFrom(handledException));
 
-            bool isDeclared = IsExceptionDeclaredInMethod(context, tryStatement, exceptionType);
+            bool isDeclared = IsExceptionDeclaredInMember(context, tryStatement, exceptionType);
 
             if (!isHandled && !isDeclared)
             {
@@ -355,8 +468,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
                 var diagnostic = Diagnostic.Create(
                     RuleUnhandledException,
                     GetSignificantLocation(throwStatement),
-                    exceptionType.Name,
-                    THROW001Verbs.MightBe);
+                    exceptionType.Name);
 
                 context.ReportDiagnostic(diagnostic);
             }
@@ -1007,10 +1119,10 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         return exceptions;
     }
 
-    private static IEnumerable<INamedTypeSymbol> GetExceptionTypes(IMethodSymbol methodSymbol)
+    private static IEnumerable<INamedTypeSymbol> GetExceptionTypes(ISymbol symbol)
     {
         // Get exceptions from Throws attributes
-        var exceptionAttributes = GetThrowsAttributes(methodSymbol);
+        var exceptionAttributes = GetThrowsAttributes(symbol);
 
         return GetDistinctExceptionTypes(exceptionAttributes);
     }
@@ -1126,7 +1238,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         }
 
         // Check if the exception is declared via [Throws]
-        var isDeclared = IsExceptionDeclaredInMethod(context, node, exceptionType);
+        var isDeclared = IsExceptionDeclaredInMember(context, node, exceptionType);
 
         // Determine if the exception is handled by any enclosing try-catch
         var isHandled = IsExceptionHandled(node, exceptionType, context.SemanticModel);
@@ -1137,11 +1249,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             var properties = ImmutableDictionary.Create<string, string?>()
                 .Add("ExceptionType", exceptionType.Name);
 
-            var isThrowingConstruct = node is ThrowStatementSyntax or ThrowExpressionSyntax;
-
-            var verb = isThrowingConstruct ? THROW001Verbs.Is : THROW001Verbs.MightBe;
-
-            var diagnostic = Diagnostic.Create(RuleUnhandledException, GetSignificantLocation(node), properties, exceptionType.Name, verb);
+            var diagnostic = Diagnostic.Create(RuleUnhandledException, GetSignificantLocation(node), properties, exceptionType.Name);
             context.ReportDiagnostic(diagnostic);
         }
     }
@@ -1163,24 +1271,47 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         return false;
     }
 
-    private bool IsExceptionDeclaredInMethod(SyntaxNodeAnalysisContext context, SyntaxNode node, INamedTypeSymbol exceptionType)
+    private bool IsExceptionDeclaredInMember(SyntaxNodeAnalysisContext context, SyntaxNode node, INamedTypeSymbol exceptionType)
     {
         foreach (var ancestor in node.Ancestors())
         {
-            IMethodSymbol? methodSymbol = ancestor switch
+            ISymbol? symbol;
+            if (ancestor is PropertyDeclarationSyntax propertyDeclaration)
             {
-                MethodDeclarationSyntax methodDeclaration => context.SemanticModel.GetDeclaredSymbol(methodDeclaration),
-                ConstructorDeclarationSyntax constructorDeclaration => context.SemanticModel.GetDeclaredSymbol(constructorDeclaration),
+                var propertySymbol = context.SemanticModel.GetDeclaredSymbol(propertyDeclaration);
+
+                // Don't continue with the analysis if it's a full property with accessors
+                // In that case, the accessors are analyzed separately
+                if ((propertySymbol?.GetMethod is not null && propertySymbol?.SetMethod is not null)
+                    || (propertySymbol?.GetMethod is null && propertySymbol?.SetMethod is not null))
+                {
+                    return false;
+                }
+
+                var propertySyntaxRef = propertySymbol?.DeclaringSyntaxReferences.FirstOrDefault();
+                if (propertySyntaxRef is not null && propertySyntaxRef.GetSyntax() is PropertyDeclarationSyntax basePropertyDeclaration)
+                {
+                    if (basePropertyDeclaration.ExpressionBody is null)
+                    {
+                        return false;
+                    }
+                }
+                
+                symbol = propertySymbol;
+            }
+            else symbol = ancestor switch
+            {
+                BaseMethodDeclarationSyntax methodDeclaration => context.SemanticModel.GetDeclaredSymbol(methodDeclaration),
                 AccessorDeclarationSyntax accessorDeclaration => context.SemanticModel.GetDeclaredSymbol(accessorDeclaration),
                 LocalFunctionStatementSyntax localFunction => context.SemanticModel.GetDeclaredSymbol(localFunction),
                 AnonymousFunctionExpressionSyntax anonymousFunction => context.SemanticModel.GetSymbolInfo(anonymousFunction).Symbol as IMethodSymbol,
                 _ => null,
             };
 
-            if (methodSymbol is null)
+            if (symbol is null)
                 continue; // Continue up to next node
 
-            if (IsExceptionDeclaredInSymbol(methodSymbol, exceptionType))
+            if (IsExceptionDeclaredInSymbol(symbol, exceptionType))
                 return true;
 
             if (ancestor is AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax)
@@ -1194,12 +1325,12 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         return false;
     }
 
-    private bool IsExceptionDeclaredInSymbol(IMethodSymbol? methodSymbol, INamedTypeSymbol exceptionType)
+    private bool IsExceptionDeclaredInSymbol(ISymbol? symbol, INamedTypeSymbol exceptionType)
     {
-        if (methodSymbol is null)
+        if (symbol is null)
             return false;
 
-        var declaredExceptionTypes = GetExceptionTypes(methodSymbol);
+        var declaredExceptionTypes = GetExceptionTypes(symbol);
 
         foreach (var declaredExceptionType in declaredExceptionTypes)
         {

@@ -127,7 +127,7 @@ public partial class TryCatchTest
         }
         """;
 
-        var expected = Verifier.IsThrown("InvalidOperationException")
+        var expected = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(12, 17, 12, 55); ;
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
@@ -163,7 +163,7 @@ public partial class TryCatchTest
         }
         """;
 
-        var expected = Verifier.IsThrown("InvalidOperationException")
+        var expected = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(12, 17, 12, 55);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
@@ -199,7 +199,7 @@ public partial class TryCatchTest
         }
         """;
 
-        var expected = Verifier.IsThrown("IOException")
+        var expected = Verifier.UnhandledException("IOException")
             .WithSpan(16, 17, 16, 41);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
@@ -240,10 +240,10 @@ public partial class TryCatchTest
         }
         """;
 
-        var expected1 = Verifier.IsThrown("IOException")
+        var expected1 = Verifier.UnhandledException("IOException")
             .WithSpan(16, 17, 16, 41);
 
-        var expected2 = Verifier.IsThrown("FormatException")
+        var expected2 = Verifier.UnhandledException("FormatException")
             .WithSpan(20, 17, 20, 45);
 
         await Verifier.VerifyAnalyzerAsync(test, expected1, expected2);
@@ -287,7 +287,7 @@ public partial class TryCatchTest
         }
         """;
 
-        var expected = Verifier.IsThrown("IOException")
+        var expected = Verifier.UnhandledException("IOException")
             .WithSpan(16, 17, 16, 41);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);

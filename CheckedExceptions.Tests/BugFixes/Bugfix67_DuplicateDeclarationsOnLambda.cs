@@ -44,7 +44,7 @@ public partial class Bugfix67_DuplicateDeclarationsOnLambda
         """;
 
         var expected = Verifier.DuplicateExceptionDeclared("ArgumentNullException")
-           .WithSpan(9, 17, 9, 85);
+           .WithSpan(9, 55, 9, 84);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }

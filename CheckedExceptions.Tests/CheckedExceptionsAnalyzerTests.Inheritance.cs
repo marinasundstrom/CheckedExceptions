@@ -60,10 +60,10 @@ partial class CheckedExceptionsAnalyzerTests
         }
         """;
 
-        var expected = Verifier.MissingThrowsOnBaseMember("IOException", "BaseService.DoWork")
+        var expected = Verifier.MissingThrowsOnBaseMember("IOException", "BaseService.DoWork()")
             .WithSpan(14, 26, 14, 32);
 
-        var expected2 = Verifier.MissingThrowsFromBaseMember("InvalidOperationException", "BaseService.DoWork")
+        var expected2 = Verifier.MissingThrowsFromBaseMember("InvalidOperationException", "BaseService.DoWork()")
             .WithSpan(14, 26, 14, 32);
 
         await Verifier.VerifyAnalyzerAsync(test, expected, expected2);
@@ -94,10 +94,10 @@ partial class CheckedExceptionsAnalyzerTests
         }
         """;
 
-        var expected = Verifier.MissingThrowsOnBaseMember("SocketException", "IOperation.Execute")
+        var expected = Verifier.MissingThrowsOnBaseMember("SocketException", "IOperation.Execute()")
             .WithSpan(15, 17, 15, 24);
 
-        var expected2 = Verifier.MissingThrowsFromBaseMember("IOException", "IOperation.Execute")
+        var expected2 = Verifier.MissingThrowsFromBaseMember("IOException", "IOperation.Execute()")
             .WithSpan(15, 17, 15, 24);
 
         await Verifier.VerifyAnalyzerAsync(test, expected, expected2);
@@ -130,10 +130,10 @@ partial class CheckedExceptionsAnalyzerTests
         }
         """;
 
-        var expected = Verifier.MissingThrowsOnBaseMember("IOException", "Base.get_Value")
+        var expected = Verifier.MissingThrowsOnBaseMember("IOException", "Base.get_Value()")
             .WithSpan(19, 9, 19, 12);
 
-        var expected2 = Verifier.MissingThrowsFromBaseMember("InvalidOperationException", "Base.get_Value")
+        var expected2 = Verifier.MissingThrowsFromBaseMember("InvalidOperationException", "Base.get_Value()")
             .WithSpan(19, 9, 19, 12);
 
         await Verifier.VerifyAnalyzerAsync(test, expected, expected2);
@@ -167,10 +167,10 @@ partial class CheckedExceptionsAnalyzerTests
         }
         """;
 
-        var expected = Verifier.MissingThrowsOnBaseMember("UnauthorizedAccessException", "Base.add_Something")
+        var expected = Verifier.MissingThrowsOnBaseMember("UnauthorizedAccessException", "Base.add_Something(EventHandler)")
             .WithSpan(19, 9, 19, 12);
 
-        var expected2 = Verifier.MissingThrowsFromBaseMember("NotSupportedException", "Base.add_Something")
+        var expected2 = Verifier.MissingThrowsFromBaseMember("NotSupportedException", "Base.add_Something(EventHandler)")
             .WithSpan(19, 9, 19, 12);
 
         await Verifier.VerifyAnalyzerAsync(test, expected, expected2);

@@ -16,13 +16,9 @@ public static class CSharpAnalyzerVerifier<TAnalyzer, TVerifier>
     public static DiagnosticResult Diagnostic(string diagnosticId)
         => AnalyzerVerifier<TAnalyzer, AnalyzerTest, TVerifier>.Diagnostic(diagnosticId);
 
-    public static DiagnosticResult IsThrown(string exceptionType)
+    public static DiagnosticResult UnhandledException(string exceptionType)
         => AnalyzerVerifier<TAnalyzer, AnalyzerTest, TVerifier>.Diagnostic("THROW001")
-        .WithArguments(exceptionType, THROW001Verbs.Is);
-
-    public static DiagnosticResult MightBeThrown(string exceptionType)
-        => AnalyzerVerifier<TAnalyzer, AnalyzerTest, TVerifier>.Diagnostic("THROW001")
-        .WithArguments(exceptionType, THROW001Verbs.MightBe);
+        .WithArguments(exceptionType);
 
     public static DiagnosticResult Informational(string exceptionType)
         => AnalyzerVerifier<TAnalyzer, AnalyzerTest, TVerifier>.Diagnostic("THROW002")
@@ -47,6 +43,13 @@ public static class CSharpAnalyzerVerifier<TAnalyzer, TVerifier>
         => AnalyzerVerifier<TAnalyzer, AnalyzerTest, TVerifier>.Diagnostic("THROW007")
         .WithArguments(memberName, exceptionType);
 
+    public static DiagnosticResult RedundantExceptionDeclarationBySuperType(string exceptionType)
+            => AnalyzerVerifier<TAnalyzer, AnalyzerTest, TVerifier>.Diagnostic("THROW008")
+            .WithArguments(exceptionType);
+
+    public static DiagnosticResult RedundantTypedCatchClause(string exceptionType)
+        => AnalyzerVerifier<TAnalyzer, AnalyzerTest, TVerifier>.Diagnostic("THROW009")
+        .WithArguments(exceptionType);
 
     public static async Task VerifyAnalyzerAsync([StringSyntax("c#-test")] string source, params DiagnosticResult[] expected)
     {
@@ -55,6 +58,8 @@ public static class CSharpAnalyzerVerifier<TAnalyzer, TVerifier>
             if (expected.Any())
             {
                 var allDiagnostics = CheckedExceptionsAnalyzer.AllDiagnosticsIds;
+
+                test.DisabledDiagnostics.Add("THROW009");
 
                 test.DisabledDiagnostics.AddRange(allDiagnostics.Except(expected.Select(x => x.Id)));
             }
@@ -91,7 +96,7 @@ public static class CSharpAnalyzerVerifier<TAnalyzer, TVerifier>
         });
     }
 
-    public static Task VerifyAnalyzerAsync([StringSyntax("c#-test")] string source, Action<AnalyzerTest>? setup = null)
+    public static Task VerifyAnalyzerAsync([StringSyntax("c#-test")] string source, Action<AnalyzerTest>? setup = null, bool executable = false)
     {
         var test = new AnalyzerTest
         {
@@ -100,6 +105,13 @@ public static class CSharpAnalyzerVerifier<TAnalyzer, TVerifier>
 
         test.TestState.AdditionalReferences.Add(MetadataReference.CreateFromFile(typeof(ThrowsAttribute).Assembly.Location));
         test.TestState.ReferenceAssemblies = Net.Net90;
+
+        test.DisabledDiagnostics.Add("THROW009");
+
+        if (executable)
+        {
+            test.TestState.OutputKind = OutputKind.ConsoleApplication;
+        }
 
         setup?.Invoke(test);
 

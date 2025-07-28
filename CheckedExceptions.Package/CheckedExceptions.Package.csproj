@@ -5,6 +5,7 @@
     <IncludeBuildOutput>false</IncludeBuildOutput>
     <SuppressDependenciesWhenPacking>true</SuppressDependenciesWhenPacking>
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <RootNamespace>Sundstrom.CheckedExceptions.Package</RootNamespace>
   </PropertyGroup>
 
   <PropertyGroup>

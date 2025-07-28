@@ -23,7 +23,7 @@ public partial class CheckedExceptionsAnalyzerTests
             }
             """;
 
-        var expected = Verifier.IsThrown("InvalidOperationException")
+        var expected = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(7, 9, 7, 47);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
@@ -45,7 +45,7 @@ public partial class CheckedExceptionsAnalyzerTests
             }
             """;
 
-        var expected1 = Verifier.IsThrown("Exception")
+        var expected1 = Verifier.UnhandledException("Exception")
             .WithSpan(7, 9, 7, 31);
 
         var expected2 = Verifier.AvoidThrowingTypeException()
@@ -72,7 +72,7 @@ public partial class CheckedExceptionsAnalyzerTests
             """;
 
         var expected = Verifier.AvoidDeclaringTypeException()
-            .WithSpan(5, 6, 5, 31);
+            .WithSpan(5, 13, 5, 30);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }
@@ -96,7 +96,7 @@ public partial class CheckedExceptionsAnalyzerTests
             """;
 
         var expected = Verifier.DuplicateExceptionDeclared("InvalidOperationException")
-            .WithSpan(6, 6, 6, 47);
+            .WithSpan(6, 13, 6, 46);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }
@@ -179,7 +179,7 @@ public partial class CheckedExceptionsAnalyzerTests
     }
 
     // Test 9: Multiple exceptions declared via [Throws] attribute
-    [Fact(Skip = "To be implemented")]
+    [Fact]
     public async Task MultipleExceptionsDeclaredViaThrowsAttribute_ShouldNotReportDiagnostic()
     {
         var test = /* lang=c#-test */ """
@@ -223,10 +223,10 @@ public partial class CheckedExceptionsAnalyzerTests
             }
             """;
 
-        var expected1 = Verifier.IsThrown("InvalidOperationException")
+        var expected1 = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(9, 13, 9, 51);
 
-        var expected2 = Verifier.IsThrown("ArgumentNullException")
+        var expected2 = Verifier.UnhandledException("ArgumentNullException")
             .WithSpan(16, 9, 16, 43);
 
         await Verifier.VerifyAnalyzerAsync(test, expected1, expected2);
@@ -261,7 +261,7 @@ public partial class CheckedExceptionsAnalyzerTests
             }
             """;
 
-        var expected = Verifier.IsThrown("InvalidOperationException")
+        var expected = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(11, 17, 11, 55);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
@@ -284,7 +284,7 @@ public partial class CheckedExceptionsAnalyzerTests
             }
             """;
 
-        var expected = Verifier.IsThrown("CustomException")
+        var expected = Verifier.UnhandledException("CustomException")
             .WithSpan(9, 9, 9, 37);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);

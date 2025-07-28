@@ -20,21 +20,16 @@ public static class CSharpCodeFixVerifier<TAnalyzer, TCodeFix, TVerifier>
     public static DiagnosticResult Diagnostic(string diagnosticId)
         => CodeFixVerifier<TAnalyzer, TCodeFix, CodeFixTest, TVerifier>.Diagnostic(diagnosticId);
 
-    public static DiagnosticResult IsThrown(string exceptionType)
+    public static DiagnosticResult UnhandledException(string exceptionType)
         => CodeFixVerifier<TAnalyzer, TCodeFix, CodeFixTest, TVerifier>.Diagnostic("THROW001")
-        .WithArguments(exceptionType, THROW001Verbs.Is);
+        .WithArguments(exceptionType);
 
-    public static DiagnosticResult MightBeThrown(string exceptionType)
-        => CodeFixVerifier<TAnalyzer, TCodeFix, CodeFixTest, TVerifier>.Diagnostic("THROW001")
-        .WithArguments(exceptionType, THROW001Verbs.MightBe);
-
-
-    public static Task VerifyCodeFixAsync([StringSyntax("c#-test")] string source, DiagnosticResult expected, [StringSyntax("c#-test")] string? fixedSource = null, int? expectedIncrementalIterations = 1)
+    public static Task VerifyCodeFixAsync([StringSyntax("c#-test")] string source, DiagnosticResult expected, [StringSyntax("c#-test")] string? fixedSource = null, int? expectedIncrementalIterations = 1, bool executable = false)
     {
-        return VerifyCodeFixAsync(source, new[] { expected }, fixedSource, expectedIncrementalIterations);
+        return VerifyCodeFixAsync(source, new[] { expected }, fixedSource, expectedIncrementalIterations, executable);
     }
 
-    public static Task VerifyCodeFixAsync([StringSyntax("c#-test")] string source, IEnumerable<DiagnosticResult> expected, [StringSyntax("c#-test")] string? fixedSource = null, int? expectedIncrementalIterations = 1)
+    public static Task VerifyCodeFixAsync([StringSyntax("c#-test")] string source, IEnumerable<DiagnosticResult> expected, [StringSyntax("c#-test")] string? fixedSource = null, int? expectedIncrementalIterations = 1, bool executable = false, Action<CodeFixTest>? setup = null)
     {
         var test = new CodeFixTest
         {
@@ -58,15 +53,22 @@ public static class CSharpCodeFixVerifier<TAnalyzer, TCodeFix, TVerifier>
         test.TestState.AdditionalReferences.Add(MetadataReference.CreateFromFile(typeof(ThrowsAttribute).Assembly.Location));
         test.TestState.ReferenceAssemblies = Net.Net90;
 
+        if (executable)
+        {
+            test.TestState.OutputKind = OutputKind.ConsoleApplication;
+        }
+
         if (expected is not null)
         {
             test.ExpectedDiagnostics.AddRange(expected);
         }
 
+        setup?.Invoke(test);
+
         return test.RunAsync();
     }
 
-    private class CodeFixTest : CSharpCodeFixTest<TAnalyzer, TCodeFix, TVerifier>
+    public class CodeFixTest : CSharpCodeFixTest<TAnalyzer, TCodeFix, TVerifier>
     {
 
     }

@@ -29,7 +29,7 @@ public partial class NullableContextTest
             """;
 
 
-        var expected = Verifier.MightBeThrown("ArgumentNullException")
+        var expected = Verifier.UnhandledException("ArgumentNullException")
             .WithSpan(8, 9, 8, 28);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);

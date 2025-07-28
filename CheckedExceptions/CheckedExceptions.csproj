@@ -10,6 +10,7 @@
 
     <!-- Avoid ID conflicts with the package project. -->
     <PackageId>*$(MSBuildProjectFile)*</PackageId>
+    <RootNamespace>Sundstrom.CheckedExceptions</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

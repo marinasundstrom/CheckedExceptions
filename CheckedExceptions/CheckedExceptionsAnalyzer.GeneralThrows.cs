@@ -10,19 +10,37 @@ partial class CheckedExceptionsAnalyzer
 {
     #region  Methods
 
-    private static void CheckForGeneralExceptionThrows(ImmutableArray<AttributeData> throwsAttributes, SymbolAnalysisContext context)
+    private static void CheckForGeneralExceptionThrows(
+        ImmutableArray<AttributeData> throwsAttributes,
+        SymbolAnalysisContext context)
     {
-        string exceptionName = "Exception";
+        const string exceptionName = "Exception";
 
-        IEnumerable<AttributeData> generalExceptionAttributes = FilterThrowsAttributesByException(throwsAttributes, exceptionName);
-
-        foreach (var attribute in generalExceptionAttributes)
+        foreach (var attribute in throwsAttributes)
         {
-            // Report diagnostic for [Throws(typeof(Exception))]
-            var attributeSyntax = attribute.ApplicationSyntaxReference?.GetSyntax(context.CancellationToken);
-            if (attributeSyntax is not null)
+            var syntaxRef = attribute.ApplicationSyntaxReference;
+            if (syntaxRef?.GetSyntax(context.CancellationToken) is not AttributeSyntax attrSyntax)
+                continue;
+
+            var semanticModel = context.Compilation.GetSemanticModel(attrSyntax.SyntaxTree);
+
+            foreach (var arg in attrSyntax.ArgumentList?.Arguments ?? [])
             {
-                context.ReportDiagnostic(Diagnostic.Create(RuleGeneralThrows, attributeSyntax.GetLocation()));
+                if (arg.Expression is TypeOfExpressionSyntax typeOfExpr)
+                {
+                    var typeInfo = semanticModel.GetTypeInfo(typeOfExpr.Type, context.CancellationToken);
+                    var type = typeInfo.Type as INamedTypeSymbol;
+                    if (type is null)
+                        continue;
+
+                    if (type.Name == exceptionName && type.ContainingNamespace?.ToDisplayString() == "System")
+                    {
+                        context.ReportDiagnostic(Diagnostic.Create(
+                            RuleGeneralThrows,
+                            typeOfExpr.GetLocation(), // ✅ precise location
+                            type.Name));
+                    }
+                }
             }
         }
     }
@@ -31,18 +49,31 @@ partial class CheckedExceptionsAnalyzer
 
     #region Lambda expression and Local functions
 
-    private void CheckForGeneralExceptionThrows(IEnumerable<AttributeSyntax> throwsAttributes, SyntaxNodeAnalysisContext context)
+    private void CheckForGeneralExceptionThrows(
+        IEnumerable<AttributeSyntax> throwsAttributes,
+        SyntaxNodeAnalysisContext context)
     {
-        // Check for general Throws(typeof(Exception)) attributes
+        var semanticModel = context.SemanticModel;
+
         foreach (var attribute in throwsAttributes)
         {
-            var exceptionTypeName = GetExceptionTypeName(attribute, context.SemanticModel);
-            if (nameof(Exception).Equals(exceptionTypeName, StringComparison.Ordinal))
+            foreach (var arg in attribute.ArgumentList?.Arguments ?? [])
             {
-                context.ReportDiagnostic(Diagnostic.Create(
-                    RuleGeneralThrows,
-                    attribute.GetLocation(),
-                    nameof(Exception)));
+                if (arg.Expression is not TypeOfExpressionSyntax typeOfExpr)
+                    continue;
+
+                var typeInfo = semanticModel.GetTypeInfo(typeOfExpr.Type, context.CancellationToken);
+                if (typeInfo.Type is not INamedTypeSymbol type)
+                    continue;
+
+                if (nameof(Exception).Equals(type.Name, StringComparison.Ordinal) &&
+                    nameof(System).Equals(type.ContainingNamespace?.ToDisplayString(), StringComparison.Ordinal))
+                {
+                    context.ReportDiagnostic(Diagnostic.Create(
+                        RuleGeneralThrows,
+                        typeOfExpr.GetLocation(), // ✅ report precisely on typeof(Exception)
+                        type.Name));
+                }
             }
         }
     }

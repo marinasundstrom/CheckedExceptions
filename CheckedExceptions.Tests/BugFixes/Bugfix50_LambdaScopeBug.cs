@@ -26,7 +26,7 @@ public partial class Bugfix50_LambdaScopeBug
         }
         """;
 
-        var expected = Verifier.IsThrown("UnauthorizedAccessException")
+        var expected = Verifier.UnhandledException("UnauthorizedAccessException")
             .WithSpan(9, 13, 9, 94);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
@@ -75,7 +75,7 @@ public partial class Bugfix50_LambdaScopeBug
         }
         """;
 
-        var expected = Verifier.IsThrown("UnauthorizedAccessException")
+        var expected = Verifier.UnhandledException("UnauthorizedAccessException")
             .WithSpan(10, 13, 10, 94);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);

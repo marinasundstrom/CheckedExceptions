@@ -96,7 +96,7 @@ partial class CheckedExceptionsAnalyzerTests
             }
             """;
 
-        var expected = Verifier.MightBeThrown("Exception")
+        var expected = Verifier.UnhandledException("Exception")
             .WithSpan(8, 9, 8, 17);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
@@ -123,7 +123,7 @@ partial class CheckedExceptionsAnalyzerTests
             }
             """;
 
-        var expected = Verifier.MightBeThrown("Exception")
+        var expected = Verifier.UnhandledException("Exception")
             .WithSpan(13, 9, 13, 24);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);

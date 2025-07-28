@@ -28,7 +28,7 @@ public class Sample
 {
     public void Execute()
     {
-        // ⚠️ THROW001: Unhandled exception
+        // ⚠️ THROW001: Unhandled exception type 'InvalidOperationException'
         Perform();
     }
 
@@ -81,7 +81,7 @@ dotnet add package Sundstrom.CheckedExceptions
 And define `ThrowsAttribute` in your project:
 
 ```csharp
-[AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Delegate, AllowMultiple = true)]
+[AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Delegate | AttributeTargets.Property, AllowMultiple = true)]
 public class ThrowsAttribute : Attribute
 {
     public List<Type> ExceptionTypes { get; } = new();

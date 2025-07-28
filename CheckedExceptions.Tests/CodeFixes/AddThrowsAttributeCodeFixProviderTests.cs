@@ -45,7 +45,7 @@ namespace TestNamespace
 }
 """;
 
-        var expectedDiagnostic = Verifier.IsThrown("Exception")
+        var expectedDiagnostic = Verifier.UnhandledException("Exception")
             .WithSpan(10, 13, 10, 35);
 
         await Verifier.VerifyCodeFixAsync(testCode, expectedDiagnostic, fixedCode);
@@ -87,7 +87,7 @@ namespace TestNamespace
 }
 """;
 
-        var expectedDiagnostic = Verifier.IsThrown("InvalidOperationException")
+        var expectedDiagnostic = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(10, 13, 10, 51);
 
         await Verifier.VerifyCodeFixAsync(testCode, expectedDiagnostic, fixedCode);
@@ -135,6 +135,7 @@ namespace TestNamespace
                 // Should trigger THROW001
                 throw new ArgumentNullException();
             };
+            
             action();
         }
     }
@@ -152,19 +153,73 @@ namespace TestNamespace
         [Throws(typeof(ArgumentNullException))]
         public void TestMethod()
         {
-            Action action = [Throws(typeof(ArgumentNullException))]
-            () =>
+            Action action = [Throws(typeof(ArgumentNullException))] () =>
             {
                 // Should trigger THROW001
                 throw new ArgumentNullException();
             };
+
             action();
         }
     }
 }
 """;
 
-        var expectedDiagnostic = Verifier.IsThrown("ArgumentNullException")
+        var expectedDiagnostic = Verifier.UnhandledException("ArgumentNullException")
+            .WithSpan(13, 17, 13, 51);
+
+        await Verifier.VerifyCodeFixAsync(testCode, expectedDiagnostic, fixedCode, expectedIncrementalIterations: 2);
+    }
+
+    [Fact]
+    public async Task AddsThrowsAttribute_ToSimpleLambda_TurnIntoParameterizedLambda()
+    {
+        var testCode = /* lang=c#-test */  """
+using System;
+using System.Linq;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        public void TestMethod()
+        {
+            Action<int> action = x => 
+            {
+                // Should trigger THROW001
+                throw new ArgumentNullException();
+            };
+            
+            action(42);
+        }
+    }
+}
+""";
+
+        var fixedCode = /* lang=c#-test */  """
+using System;
+using System.Linq;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        [Throws(typeof(ArgumentNullException))]
+        public void TestMethod()
+        {
+            Action<int> action = [Throws(typeof(ArgumentNullException))] (x) =>
+            {
+                // Should trigger THROW001
+                throw new ArgumentNullException();
+            };
+
+            action(42);
+        }
+    }
+}
+""";
+
+        var expectedDiagnostic = Verifier.UnhandledException("ArgumentNullException")
             .WithSpan(13, 17, 13, 51);
 
         await Verifier.VerifyCodeFixAsync(testCode, expectedDiagnostic, fixedCode, expectedIncrementalIterations: 2);
@@ -187,6 +242,7 @@ namespace TestNamespace
                 // Should trigger THROW001
                 throw new InvalidOperationException();
             }
+
             LocalFunction();
         }
     }
@@ -216,7 +272,7 @@ namespace TestNamespace
 }
 """;
 
-        var expectedDiagnostic = Verifier.IsThrown("InvalidOperationException")
+        var expectedDiagnostic = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(12, 17, 12, 55);
 
         await Verifier.VerifyCodeFixAsync(testCode, expectedDiagnostic, fixedCode, expectedIncrementalIterations: 2);
@@ -241,6 +297,7 @@ namespace TestNamespace
                 // Should trigger THROW001
                 throw new Exception();
             }
+
             set
             {
                 _field = value;
@@ -267,6 +324,7 @@ namespace TestNamespace
                 // Should trigger THROW001
                 throw new Exception();
             }
+
             set
             {
                 _field = value;
@@ -276,7 +334,7 @@ namespace TestNamespace
 }
 """;
 
-        var expectedDiagnostic = Verifier.IsThrown("Exception")
+        var expectedDiagnostic = Verifier.UnhandledException("Exception")
             .WithSpan(14, 17, 14, 39);
 
         await Verifier.VerifyCodeFixAsync(testCode, expectedDiagnostic, fixedCode);
@@ -304,6 +362,7 @@ namespace TestNamespace
                 // Should trigger THROW001
                 throw new ArgumentNullException();
             }
+
             set
             {
                 _field = value;
@@ -324,15 +383,16 @@ namespace TestNamespace
 
         public string Property
         {
-            [Throws(typeof(InvalidOperationException))]
-            [Throws(typeof(ArgumentNullException))]
+            [Throws(typeof(InvalidOperationException), typeof(ArgumentNullException))]
             get
             {
                 // Should trigger THROW001
                 throw new InvalidOperationException();
+
                 // Should trigger THROW001
                 throw new ArgumentNullException();
             }
+
             set
             {
                 _field = value;
@@ -342,10 +402,10 @@ namespace TestNamespace
 }
 """;
 
-        var expectedDiagnostic1 = Verifier.IsThrown("InvalidOperationException")
+        var expectedDiagnostic1 = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(14, 17, 14, 55);
 
-        var expectedDiagnostic2 = Verifier.IsThrown("ArgumentNullException")
+        var expectedDiagnostic2 = Verifier.UnhandledException("ArgumentNullException")
             .WithSpan(17, 17, 17, 51);
 
         await Verifier.VerifyCodeFixAsync(testCode, [expectedDiagnostic1, expectedDiagnostic2], fixedCode, 2);

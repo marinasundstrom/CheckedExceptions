@@ -11,58 +11,81 @@ partial class CheckedExceptionsAnalyzer
 {
     #region  Method
 
-    private void CheckForDuplicateThrowsAttributes(SymbolAnalysisContext context, ImmutableArray<AttributeData> throwsAttributes)
+    private void CheckForDuplicateThrowsAttributes(
+        SymbolAnalysisContext context,
+        ImmutableArray<AttributeData> throwsAttributes)
     {
-        HashSet<INamedTypeSymbol> exceptionTypesList = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
+        var reportedTypes = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
 
-        foreach (var throwsAttribute in throwsAttributes)
+        foreach (var attrData in throwsAttributes)
         {
-            var exceptionTypes = GetExceptionTypes(throwsAttribute);
-            foreach (var exceptionType in exceptionTypes)
-            {
-                if (exceptionTypesList.FirstOrDefault(x => x.Equals(exceptionType, SymbolEqualityComparer.Default)) is not null)
-                {
-                    var duplicateAttributeSyntax = throwsAttribute.ApplicationSyntaxReference?.GetSyntax(context.CancellationToken);
-                    if (duplicateAttributeSyntax is not null)
-                    {
-                        context.ReportDiagnostic(Diagnostic.Create(RuleDuplicateDeclarations, duplicateAttributeSyntax.GetLocation(), exceptionType.Name));
-                    }
-                }
+            var syntaxRef = attrData.ApplicationSyntaxReference;
+            if (syntaxRef?.GetSyntax(context.CancellationToken) is not AttributeSyntax attrSyntax)
+                continue;
 
-                exceptionTypesList.Add(exceptionType);
+            var semanticModel = context.Compilation.GetSemanticModel(attrSyntax.SyntaxTree);
+
+            foreach (var arg in attrSyntax.ArgumentList?.Arguments ?? default)
+            {
+                if (arg.Expression is TypeOfExpressionSyntax typeOfExpr)
+                {
+                    var typeInfo = semanticModel.GetTypeInfo(typeOfExpr.Type, context.CancellationToken);
+                    var exceptionType = typeInfo.Type as INamedTypeSymbol;
+                    if (exceptionType is null)
+                        continue;
+
+                    if (reportedTypes.Contains(exceptionType))
+                    {
+                        context.ReportDiagnostic(Diagnostic.Create(
+                            RuleDuplicateDeclarations,
+                            typeOfExpr.GetLocation(), // ✅ precise location
+                            exceptionType.Name));
+                    }
+
+                    reportedTypes.Add(exceptionType);
+                }
             }
         }
     }
 
     #endregion
 
-    #region Lambda expression
+    #region Lambda expression & Local function
 
     /// <summary>
-    /// Checks for duplicate ThrowsAttributes declaring the same exception type and reports diagnostics.
+    /// Checks for duplicate [Throws] declarations of the same exception type and reports diagnostics at precise locations.
     /// </summary>
-    /// <param name="throwsAttributes">The collection of ThrowsAttribute instances.</param>
+    /// <param name="throwsAttributes">The collection of ThrowsAttribute syntax nodes.</param>
     /// <param name="context">The analysis context.</param>
-    private void CheckForDuplicateThrowsAttributes(IEnumerable<AttributeSyntax> throwsAttributes, SyntaxNodeAnalysisContext context)
+    private void CheckForDuplicateThrowsDeclarations(
+        IEnumerable<AttributeSyntax> throwsAttributes,
+        SyntaxNodeAnalysisContext context)
     {
         var semanticModel = context.SemanticModel;
 
-        HashSet<INamedTypeSymbol>? exceptionTypesSet = null;
+        HashSet<INamedTypeSymbol>? seen = null;
 
         foreach (AttributeSyntax throwsAttribute in throwsAttributes)
         {
             Debug.Assert(throwsAttribute is not null);
 
-            IEnumerable<INamedTypeSymbol> exceptionTypes = GetExceptionTypes(throwsAttribute!, semanticModel);
+            seen ??= new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
             
-            exceptionTypesSet ??= new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
-
-            foreach (var exceptionType in exceptionTypes)
+            foreach (var arg in throwsAttribute.ArgumentList?.Arguments ?? [])
             {
-                if (!exceptionTypesSet.Add(exceptionType))
+                if (arg.Expression is not TypeOfExpressionSyntax typeOfExpr)
+                    continue;
+
+                var typeInfo = semanticModel.GetTypeInfo(typeOfExpr.Type, context.CancellationToken);
+                if (typeInfo is not INamedTypeSymbol exceptionType)
+                    continue;
+
+                if (!seen.Add(exceptionType))
                 {
-                    AttributeSyntax duplicateAttributeSyntax = throwsAttribute!;
-                    context.ReportDiagnostic(Diagnostic.Create(RuleDuplicateDeclarations, duplicateAttributeSyntax.GetLocation(), exceptionType.Name));
+                    context.ReportDiagnostic(Diagnostic.Create(
+                        RuleDuplicateDeclarations,
+                        typeOfExpr.GetLocation(), // ✅ precise location
+                        exceptionType.Name));
                 }
             }
         }

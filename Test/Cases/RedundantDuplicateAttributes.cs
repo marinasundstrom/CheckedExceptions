@@ -30,6 +30,7 @@ public class RedundantDuplicateAttributes
         static void Foo()
         {
             throw new NullReferenceException();
-        };
+        }
+        ;
     }
 }
