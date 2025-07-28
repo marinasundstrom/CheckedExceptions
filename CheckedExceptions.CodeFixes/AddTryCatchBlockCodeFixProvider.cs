@@ -82,6 +82,15 @@ public class AddTryCatchBlockCodeFixProvider : CodeFixProvider
 
         SyntaxNode newRoot = default!;
 
+        // Find the root expression node.
+        // Some members have ArrowExpressionClauseSyntax
+        // but for lambda expressions you need to stop by it.
+        while (expression.Parent is ExpressionSyntax expr
+            and not AnonymousFunctionExpressionSyntax)
+        {
+            expression = expr;
+        }
+
         var tryCatchStatement = CreateTryCatch(expression, diagnostics);
         var block = Block(SingletonList(tryCatchStatement));
 
