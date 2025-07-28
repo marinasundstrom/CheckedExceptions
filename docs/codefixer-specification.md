@@ -162,3 +162,9 @@ public void Foo() { /* ... */ }
 [Throws(typeof(ArgumentException))]
 public void Bar(int arg) { /* ... */ }
 ```
+
+---
+
+## 🧹 `Remove redundant catch clause`
+
+Removes redundant `catch` clause for exception type that is not thrown within the current `try` block.
