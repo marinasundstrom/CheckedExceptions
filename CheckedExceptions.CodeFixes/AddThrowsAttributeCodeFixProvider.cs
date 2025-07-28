@@ -74,12 +74,12 @@ public class AddThrowsAttributeCodeFixProvider : CodeFixProvider
 
         foreach (var exceptionTypeName in exceptionTypeNames.Distinct())
         {
-            var exceptionType = ParseTypeName(exceptionTypeName);
+            TypeSyntax exceptionType = ParseTypeName(exceptionTypeName);
 
             if (exceptionType is null)
                 return document;
 
-            if (CheckHasExceptionType(exceptionType, currentThrowsAttributes))
+            if (CheckHasExceptionType(semanticModel, exceptionType, currentThrowsAttributes))
                 continue;
 
             if (throwsAttributeSyntax is null)
@@ -108,7 +108,7 @@ public class AddThrowsAttributeCodeFixProvider : CodeFixProvider
 
         SyntaxNode newAncestor = null;
 
-        if (ancestor is MethodDeclarationSyntax methodDeclaration)
+        if (ancestor is BaseMethodDeclarationSyntax methodDeclaration)
         {
             methodDeclaration = existingAttributeList is not null
                 ? methodDeclaration.ReplaceNode(existingAttributeList!, attributeList)
@@ -120,15 +120,15 @@ public class AddThrowsAttributeCodeFixProvider : CodeFixProvider
                     .WithLeadingTrivia(ancestor.GetLeadingTrivia())
                     .WithTrailingTrivia(ancestor.GetTrailingTrivia());
         }
-        else if (ancestor is ConstructorDeclarationSyntax constructorDeclaration)
+        else if (ancestor is BasePropertyDeclarationSyntax propertyDeclaration)
         {
-            constructorDeclaration = existingAttributeList is not null
-                ? constructorDeclaration.ReplaceNode(existingAttributeList!, attributeList)
-                : constructorDeclaration
+            propertyDeclaration = existingAttributeList is not null
+                ? propertyDeclaration.ReplaceNode(existingAttributeList!, attributeList)
+                : propertyDeclaration
                     .WithoutLeadingTrivia()
                     .AddAttributeLists(attributeList);
 
-            newAncestor = constructorDeclaration
+            newAncestor = propertyDeclaration
                     .WithLeadingTrivia(ancestor.GetLeadingTrivia())
                     .WithTrailingTrivia(ancestor.GetTrailingTrivia());
         }
@@ -191,6 +191,7 @@ public class AddThrowsAttributeCodeFixProvider : CodeFixProvider
         return ancestor switch
         {
             BaseMethodDeclarationSyntax m => GetThrowsAttributes(m),
+            BasePropertyDeclarationSyntax m => GetThrowsAttributes(m),
             LambdaExpressionSyntax l => GetThrowsAttributes(l),
             LocalFunctionStatementSyntax lf => GetThrowsAttributes(lf),
             AccessorDeclarationSyntax a => GetThrowsAttributes(a),
@@ -201,6 +202,12 @@ public class AddThrowsAttributeCodeFixProvider : CodeFixProvider
     private IEnumerable<AttributeSyntax> GetThrowsAttributes(BaseMethodDeclarationSyntax methodDeclaration)
     {
         return methodDeclaration.AttributeLists.SelectMany(x => x.Attributes)
+            .Where(x => x.Name.ToString() is "Throws" or "ThrowsAttribute");
+    }
+
+    private IEnumerable<AttributeSyntax> GetThrowsAttributes(BasePropertyDeclarationSyntax propertyDeclaration)
+    {
+        return propertyDeclaration.AttributeLists.SelectMany(x => x.Attributes)
             .Where(x => x.Name.ToString() is "Throws" or "ThrowsAttribute");
     }
 
@@ -222,20 +229,44 @@ public class AddThrowsAttributeCodeFixProvider : CodeFixProvider
             .Where(x => x.Name.ToString() is "Throws" or "ThrowsAttribute");
     }
 
-    private static bool CheckHasExceptionType(TypeSyntax exceptionType, IEnumerable<AttributeSyntax>? attributes)
+    private static bool CheckHasExceptionType(
+        SemanticModel semanticModel,
+        TypeSyntax expectedExceptionType,
+        IEnumerable<AttributeSyntax>? attributes)
     {
-        return attributes
-            .Where(x => x.Name.ToString() is "Throws" or "ThrowsAttribute")
-            .Any(x => x.ArgumentList
-                .Arguments.Any(x => x.Expression is TypeOfExpressionSyntax z && z.Type == exceptionType));
+        if (attributes is null)
+            return false;
+
+        foreach (var attribute in attributes)
+        {
+            if (attribute.Name.ToString() is not ("Throws" or "ThrowsAttribute"))
+                continue;
+
+            if (attribute.ArgumentList is null)
+                continue;
+
+            foreach (var argument in attribute.ArgumentList.Arguments)
+            {
+                if (argument.Expression is TypeOfExpressionSyntax typeOfExpr)
+                {
+                    var typeInfo = semanticModel.GetTypeInfo(typeOfExpr.Type);
+                    var actualType = typeInfo.Type;
+
+                    if (actualType.Name.Contains(expectedExceptionType.ToString()))
+                        return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private SyntaxNode GetContainingMethodOrConstruct(SyntaxNode node)
     {
         foreach (var ancestor in node.Ancestors())
         {
-            if (ancestor is MethodDeclarationSyntax ||
-                ancestor is ConstructorDeclarationSyntax ||
+            if (ancestor is BaseMethodDeclarationSyntax ||
+                ancestor is BasePropertyDeclarationSyntax ||
                 ancestor is AccessorDeclarationSyntax ||
                 ancestor is LocalFunctionStatementSyntax ||
                 ancestor is ParenthesizedLambdaExpressionSyntax ||
