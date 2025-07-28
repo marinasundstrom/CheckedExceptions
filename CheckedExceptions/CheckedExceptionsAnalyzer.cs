@@ -167,12 +167,6 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         if (propertyDeclaration.ExpressionBody is not null)
             return;
 
-        if (propertyDeclaration.AccessorList is not null
-            && propertyDeclaration.AccessorList.Accessors.Count == 1)
-        {
-            return;
-        }
-
         var throwsAttributes = propertyDeclaration.AttributeLists.SelectMany(x => x.Attributes)
                .Where(x => x.Name.ToString() is "Throws" or "ThrowsAttribute");
 
@@ -1387,6 +1381,15 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
                         || (propertySymbol?.GetMethod is null && propertySymbol?.SetMethod is not null))
                     {
                         return false;
+                    }
+
+                    var propertySyntaxRef = propertySymbol?.DeclaringSyntaxReferences.FirstOrDefault();
+                    if (propertySyntaxRef is not null && propertySyntaxRef.GetSyntax() is PropertyDeclarationSyntax basePropertyDeclaration)
+                    {
+                        if (basePropertyDeclaration.ExpressionBody is null)
+                        {
+                            return false;
+                        }
                     }
 
                     symbol = propertySymbol;
