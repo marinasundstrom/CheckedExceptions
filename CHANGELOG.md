@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [1.6.5] - 2025-07-28
+
 ### Fixed
 
 - PR [#150](https://github.com/marinasundstrom/CheckedExceptions/pull/150) Fix crash in "Add catch clause" 
