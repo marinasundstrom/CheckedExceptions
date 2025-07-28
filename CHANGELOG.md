@@ -8,11 +8,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-## Added
+## [1.6.3] - 2025-07-28
+
+### Added
 
 - PR [#144](https://github.com/marinasundstrom/CheckedExceptions/pull/144) Allow throws decl on expression-bodied props
 
-## Fixed
+### Fixed
 
 - PR [#141](https://github.com/marinasundstrom/CheckedExceptions/pull/141) Apply Throws attribute to property with expr body
 
