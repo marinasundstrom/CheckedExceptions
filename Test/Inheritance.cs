@@ -55,3 +55,24 @@ public class Impl : IOperation2
     [Throws(typeof(IOException))]
     public void Run() => throw new IOException();
 }
+
+public class TestBase
+{
+    [Throws(typeof(InvalidDataException))]
+    public virtual bool Foo => throw new InvalidDataException();
+
+    [Throws(typeof(InvalidOperationException))]
+    public virtual bool Foo2 => throw new InvalidOperationException();
+}
+
+public class TestDerive : TestBase
+{
+    [Throws(typeof(InvalidDataException))]
+    public override bool Foo { get; }
+
+    public override bool Foo2
+    {
+        [Throws(typeof(ArgumentException))]
+        get => true;
+    }
+}

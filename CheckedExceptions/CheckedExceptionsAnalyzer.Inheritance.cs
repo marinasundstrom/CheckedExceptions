@@ -23,10 +23,22 @@ partial class CheckedExceptionsAnalyzer
             MethodKind.EventRemove))
             return;
 
-        var declaredExceptions = GetDistictExceptionTypes(throwsAttributes).ToImmutableHashSet(SymbolEqualityComparer.Default);
+        ImmutableHashSet<ISymbol?> declaredExceptions;
 
-        if (declaredExceptions.Count == 0)
-            return;
+        if (IsExpressionBodiedProperty(method, out var property))
+        {
+            // Handle the case when the property decl has throws declaration and only a set accessor.
+            // Should be treated as if the Throws is on the get accessor
+
+            declaredExceptions = GetDistictExceptionTypes(property!.GetAttributes()).ToImmutableHashSet(SymbolEqualityComparer.Default);
+        }
+        else
+        {
+            declaredExceptions = GetDistictExceptionTypes(throwsAttributes).ToImmutableHashSet(SymbolEqualityComparer.Default);
+        }
+
+        //if (declaredExceptions.Count == 0)
+        //    return;
 
         var baseMethods = GetBaseOrInterfaceMethods(method)
             .Distinct(SymbolEqualityComparer.Default)
@@ -34,12 +46,44 @@ partial class CheckedExceptionsAnalyzer
 
         foreach (var baseMethod in baseMethods)
         {
-            var baseExceptions = GetExceptionTypes(baseMethod).ToImmutableHashSet(SymbolEqualityComparer.Default);
+            ImmutableHashSet<ISymbol?> baseExceptions;
+
+            if (IsExpressionBodiedProperty(baseMethod, out var baseProperty))
+            {
+                // Handle the case when base property decl has throws declaration and only a set accessor.
+                // Should be treated as if the Throws is on the get accessor
+
+                baseExceptions = GetExceptionTypes(baseProperty!).ToImmutableHashSet(SymbolEqualityComparer.Default);
+            }
+            else
+            {
+                baseExceptions = GetExceptionTypes(baseMethod).ToImmutableHashSet(SymbolEqualityComparer.Default);
+            }
 
             AnalyzeMissingThrowsOnBaseMember(context, method, declaredExceptions, baseMethod, baseExceptions);
 
             AnalyzeMissingThrowsFromBaseMember(context, method, declaredExceptions, baseMethod, baseExceptions);
         }
+    }
+
+    private bool IsExpressionBodiedProperty(IMethodSymbol method, out IPropertySymbol? propertySymbol)
+    {
+        if (method.MethodKind is MethodKind.PropertyGet
+                    && method.AssociatedSymbol is IPropertySymbol prop
+                    && prop.GetMethod is not null && prop.SetMethod is null
+                    && HasThrowsAttributes(prop))
+        {
+            propertySymbol = prop;
+            return true;
+        }
+
+        propertySymbol = null;
+        return false;
+    }
+
+    private bool HasThrowsAttributes(ISymbol symbol)
+    {
+        return GetThrowsAttributes(symbol).Any();
     }
 
     private void AnalyzeMissingThrowsFromBaseMember(SymbolAnalysisContext context, IMethodSymbol method, ImmutableHashSet<ISymbol?> declaredExceptions, IMethodSymbol baseMethod, ImmutableHashSet<ISymbol?> baseExceptions)
@@ -87,8 +131,15 @@ partial class CheckedExceptionsAnalyzer
 
             if (!isCompatible)
             {
+                // TODO: Would be lovely if we could get the location of "typeof(ExceptionType)"
+                //.      That is the exception in "declared".
+
                 var location = method.Locations.FirstOrDefault();
                 var memberName = FormatMethodSignature(baseMethod);
+
+                // Abort - since the diagnostic would be unhelpful when name is empty.
+                if (string.IsNullOrEmpty(declared!.Name))
+                    continue;
 
                 var diagnostic = Diagnostic.Create(
                     RuleMissingThrowsOnBaseMember,
