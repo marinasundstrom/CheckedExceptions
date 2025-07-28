@@ -14,8 +14,6 @@ partial class CheckedExceptionsAnalyzer
         ImmutableArray<AttributeData> throwsAttributes,
         SymbolAnalysisContext context)
     {
-        const string exceptionName = "Exception";
-
         foreach (var attribute in throwsAttributes)
         {
             var syntaxRef = attribute.ApplicationSyntaxReference;
@@ -26,20 +24,19 @@ partial class CheckedExceptionsAnalyzer
 
             foreach (var arg in attrSyntax.ArgumentList?.Arguments ?? [])
             {
-                if (arg.Expression is TypeOfExpressionSyntax typeOfExpr)
-                {
-                    var typeInfo = semanticModel.GetTypeInfo(typeOfExpr.Type, context.CancellationToken);
-                    var type = typeInfo.Type as INamedTypeSymbol;
-                    if (type is null)
-                        continue;
+                if (arg.Expression is not TypeOfExpressionSyntax typeOfExpr)
+                    continue;
 
-                    if (type.Name == exceptionName && type.ContainingNamespace?.ToDisplayString() == "System")
-                    {
-                        context.ReportDiagnostic(Diagnostic.Create(
-                            RuleGeneralThrows,
-                            typeOfExpr.GetLocation(), // ✅ precise location
-                            type.Name));
-                    }
+                var typeInfo = semanticModel.GetTypeInfo(typeOfExpr.Type, context.CancellationToken);
+                if (typeInfo.Type is not INamedTypeSymbol type)
+                    continue;
+
+                if (nameof(Exception).Equals(type.Name, StringComparison.Ordinal) && nameof(System).Equals(type.ContainingNamespace?.ToDisplayString(), StringComparison.Ordinal))
+                {
+                    context.ReportDiagnostic(Diagnostic.Create(
+                        RuleGeneralThrows,
+                        typeOfExpr.GetLocation(), // ✅ precise location
+                        type.Name));
                 }
             }
         }
@@ -50,34 +47,29 @@ partial class CheckedExceptionsAnalyzer
     #region Lambda expression and Local functions
 
     private void CheckForGeneralExceptionThrows(
-     SyntaxNodeAnalysisContext context,
-     List<AttributeSyntax> throwsAttributes)
+        IEnumerable<AttributeSyntax> throwsAttributes,
+        SyntaxNodeAnalysisContext context)
     {
-        const string generalExceptionName = "Exception";
-        const string generalExceptionNamespace = "System";
-
         var semanticModel = context.SemanticModel;
 
         foreach (var attribute in throwsAttributes)
         {
             foreach (var arg in attribute.ArgumentList?.Arguments ?? [])
             {
-                if (arg.Expression is TypeOfExpressionSyntax typeOfExpr)
+                if (arg.Expression is not TypeOfExpressionSyntax typeOfExpr)
+                    continue;
+
+                var typeInfo = semanticModel.GetTypeInfo(typeOfExpr.Type, context.CancellationToken);
+                if (typeInfo.Type is not INamedTypeSymbol type)
+                    continue;
+
+                if (nameof(Exception).Equals(type.Name, StringComparison.Ordinal) &&
+                    nameof(System).Equals(type.ContainingNamespace?.ToDisplayString(), StringComparison.Ordinal))
                 {
-                    var typeInfo = semanticModel.GetTypeInfo(typeOfExpr.Type, context.CancellationToken);
-                    var type = typeInfo.Type as INamedTypeSymbol;
-
-                    if (type is null)
-                        continue;
-
-                    if (type.Name == generalExceptionName &&
-                        type.ContainingNamespace?.ToDisplayString() == generalExceptionNamespace)
-                    {
-                        context.ReportDiagnostic(Diagnostic.Create(
-                            RuleGeneralThrows,
-                            typeOfExpr.GetLocation(), // ✅ report precisely on typeof(Exception)
-                            type.Name));
-                    }
+                    context.ReportDiagnostic(Diagnostic.Create(
+                        RuleGeneralThrows,
+                        typeOfExpr.GetLocation(), // ✅ report precisely on typeof(Exception)
+                        type.Name));
                 }
             }
         }

@@ -9,7 +9,7 @@ partial class CheckedExceptionsAnalyzer
     /// <summary>
     /// Retrieves the name of the exception type from a ThrowsAttribute's AttributeData.
     /// </summary>
-    private string GetExceptionTypeName(AttributeData attributeData)
+    private string GetExceptionTypeName(AttributeData? attributeData)
     {
         if (attributeData is null)
             return string.Empty;

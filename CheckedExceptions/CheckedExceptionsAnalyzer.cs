@@ -7,7 +7,6 @@ using System.Linq.Expressions;
 using System.Net.Sockets;
 using System.Reflection;
 using System.Text.Json;
-using System.Xml.Linq;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -31,7 +30,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     public const string DiagnosticIdRedundantTypedCatchClause = "THROW009";
     public const string DiagnosticIdThrowsDeclarationNotValidOnFullProperty = "THROW010";
 
-    public static IEnumerable<string> AllDiagnosticsIds = [DiagnosticIdUnhandled, DiagnosticIdGeneralThrows, DiagnosticIdGeneralThrow, DiagnosticIdDuplicateDeclarations];
+    public static readonly IEnumerable<string> AllDiagnosticsIds = [DiagnosticIdUnhandled, DiagnosticIdGeneralThrows, DiagnosticIdGeneralThrow, DiagnosticIdDuplicateDeclarations];
 
     private static readonly DiagnosticDescriptor RuleUnhandledException = new(
         DiagnosticIdUnhandled,
@@ -125,6 +124,14 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
         [RuleUnhandledException, RuleIgnoredException, RuleGeneralThrows, RuleGeneralThrow, RuleDuplicateDeclarations, RuleMissingThrowsOnBaseMember, RuleMissingThrowsFromBaseMember, RuleDuplicateThrowsByHierarchy, RuleRedundantTypedCatchClause, RuleThrowsDeclarationNotValidOnFullProperty];
+
+    private const string SettingsFileName = "CheckedExceptions.settings.json";
+    private static readonly JsonSerializerOptions _settingsFileJsonOptions = new()
+    {
+        PropertyNameCaseInsensitive = true,
+        ReadCommentHandling = JsonCommentHandling.Skip,
+        AllowTrailingCommas = true,
+    };
 
     public override void Initialize(AnalysisContext context)
     {
@@ -222,32 +229,23 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         }
     }
 
-    private const string SettingsFileName = "CheckedExceptions.settings.json";
-
     private AnalyzerSettings GetAnalyzerSettings(AnalyzerOptions analyzerOptions)
     {
-        if (!configs.TryGetValue(analyzerOptions, out var config))
+        return configs.GetOrAdd(analyzerOptions, _ =>
         {
-            foreach (var additionalFile in analyzerOptions.AdditionalFiles)
+            var configFileText = analyzerOptions.AdditionalFiles
+                .FirstOrDefault(f => SettingsFileName.Equals(Path.GetFileName(f.Path), StringComparison.OrdinalIgnoreCase))
+                ?.GetText()?.ToString();
+
+            AnalyzerSettings? val = null;
+
+            if (configFileText is not null)
             {
-                if (Path.GetFileName(additionalFile.Path).Equals(SettingsFileName, StringComparison.OrdinalIgnoreCase))
-                {
-                    var text = additionalFile.GetText();
-                    if (text is not null)
-                    {
-                        var json = text.ToString();
-                        config = JsonSerializer.Deserialize<AnalyzerSettings>(json);
-                        break;
-                    }
-                }
+                val = JsonSerializer.Deserialize<AnalyzerSettings>(configFileText, _settingsFileJsonOptions);
             }
 
-            config ??= new AnalyzerSettings(); // Return default options if config file is not found
-
-            configs.TryAdd(analyzerOptions, config);
-        }
-
-        return config ?? new AnalyzerSettings();
+            return val ?? AnalyzerSettings.CreateWithDefaults(); // Return default options if the config file is not found
+        });
     }
 
     private void AnalyzeLambdaExpression(SyntaxNodeAnalysisContext context)
@@ -271,13 +269,9 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         if (throwsAttributes.Count is 0)
             return;
 
-        CheckForGeneralExceptionThrows(context, throwsAttributes);
-
-        if (throwsAttributes.Any())
-        {
-            CheckForDuplicateThrowsDeclarations(throwsAttributes, context);
-            CheckForRedundantThrowsHandledByDeclaredSuperClass(throwsAttributes, context);
-        }
+        CheckForGeneralExceptionThrows(throwsAttributes, context);
+        CheckForDuplicateThrowsDeclarations(throwsAttributes, context);
+        CheckForRedundantThrowsHandledByDeclaredSuperClass(throwsAttributes, context);
     }
 
     /// <summary>
@@ -296,9 +290,6 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     private void AnalyzeMethodSymbol(SymbolAnalysisContext context)
     {
         var methodSymbol = (IMethodSymbol)context.Symbol;
-
-        if (methodSymbol is null)
-            return;
 
         var throwsAttributes = GetThrowsAttributes(methodSymbol).ToImmutableArray();
 
@@ -323,7 +314,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         if (!attribute.ConstructorArguments.Any())
             return false;
 
-        var exceptionTypes = GetDistictExceptionTypes(attribute);
+        var exceptionTypes = GetDistinctExceptionTypes(attribute);
         return exceptionTypes.Any(exceptionType => exceptionType?.Name == exceptionTypeName);
     }
 
@@ -351,11 +342,12 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         }
     }
 
-    public static IEnumerable<INamedTypeSymbol> GetDistictExceptionTypes(params IEnumerable<AttributeData> exceptionAttributes)
+    public static IEnumerable<INamedTypeSymbol> GetDistinctExceptionTypes(params IEnumerable<AttributeData> exceptionAttributes)
     {
         var exceptionTypes = GetExceptionTypes(exceptionAttributes);
 
-        return exceptionTypes.Distinct(SymbolEqualityComparer.Default)
+        return exceptionTypes
+            .Distinct(SymbolEqualityComparer.Default)
             .OfType<INamedTypeSymbol>();
     }
 
@@ -371,27 +363,25 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         // Handle rethrows (throw;)
         if (throwStatement.Expression is null)
         {
-            if (IsWithinCatchBlock(throwStatement, out var catchClause))
+            if (IsWithinCatchBlock(throwStatement, out var catchClause) && catchClause is not null)
             {
-                if (catchClause is not null)
+                if (catchClause.Declaration is null)
                 {
-                    if (catchClause.Declaration is null)
+                    // General catch block with 'throw;'
+                    // Analyze exceptions thrown in the try block
+                    var tryStatement = catchClause.Ancestors().OfType<TryStatementSyntax>().FirstOrDefault();
+                    if (tryStatement is not null)
                     {
-                        // General catch block with 'throw;'
-                        // Analyze exceptions thrown in the try block
-                        var tryStatement = catchClause.Ancestors().OfType<TryStatementSyntax>().FirstOrDefault();
-                        if (tryStatement is not null)
-                        {
-                            AnalyzeExceptionsInTryBlock(context, tryStatement, catchClause, throwStatement, settings);
-                        }
-                    }
-                    else
-                    {
-                        var exceptionType = context.SemanticModel.GetTypeInfo(catchClause.Declaration.Type).Type as INamedTypeSymbol;
-                        AnalyzeExceptionThrowingNode(context, throwStatement, exceptionType, settings);
+                        AnalyzeExceptionsInTryBlock(context, tryStatement, catchClause, throwStatement, settings);
                     }
                 }
+                else
+                {
+                    var exceptionType = context.SemanticModel.GetTypeInfo(catchClause.Declaration.Type).Type as INamedTypeSymbol;
+                    AnalyzeExceptionThrowingNode(context, throwStatement, exceptionType, settings);
+                }
             }
+
             return; // No further analysis for rethrows
         }
 
@@ -492,8 +482,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
                 // Remove exceptions that are caught by the inner catch clauses
                 var caughtExceptions = GetCaughtExceptions(tryStatement.Catches, context.SemanticModel);
-                innerUnhandledExceptions.RemoveWhere(exceptionType =>
-                    IsExceptionCaught(exceptionType, caughtExceptions));
+                innerUnhandledExceptions.RemoveWhere(exceptionType => IsExceptionCaught(exceptionType, caughtExceptions));
 
                 // Add any exceptions that are not handled in the inner try block
                 unhandledExceptions.UnionWith(innerUnhandledExceptions);
@@ -517,161 +506,93 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
         var exceptions = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
 
-        // Collect exceptions from throw statements
-        var throwStatements = statement.DescendantNodesAndSelf().OfType<ThrowStatementSyntax>();
-        foreach (var throwStatement in throwStatements)
+        foreach (var s in statement.DescendantNodesAndSelf())
         {
-            if (throwStatement.Expression is not null)
+            switch (s)
             {
-                var exceptionType = semanticModel.GetTypeInfo(throwStatement.Expression).Type as INamedTypeSymbol;
-                if (exceptionType is not null)
-                {
-                    if (ShouldIncludeException(exceptionType, throwStatement, settings))
-                    {
-                        exceptions.Add(exceptionType);
-                    }
-                }
-            }
-        }
+                // Collect exceptions from throw statements
+                case ThrowStatementSyntax throwStatement:
+                    CollectExpressionsFromThrows(throwStatement, throwStatement.Expression);
+                    break;
 
-        // Collect exceptions from throw expressions
-        var throwExpressions = statement.DescendantNodesAndSelf().OfType<ThrowExpressionSyntax>();
-        foreach (var throwExpression in throwExpressions)
-        {
-            if (throwExpression.Expression is not null)
-            {
-                var exceptionType = semanticModel.GetTypeInfo(throwExpression.Expression).Type as INamedTypeSymbol;
-                if (exceptionType is not null)
-                {
-                    if (ShouldIncludeException(exceptionType, throwExpression, settings))
-                    {
-                        exceptions.Add(exceptionType);
-                    }
-                }
-            }
-        }
+                // Collect exceptions from throw expressions
+                case ThrowExpressionSyntax throwExpression:
+                    CollectExpressionsFromThrows(throwExpression, throwExpression.Expression);
+                    break;
 
-        // Collect exceptions from method calls and other expressions
-        var invocationExpressions = statement.DescendantNodesAndSelf().OfType<InvocationExpressionSyntax>();
-        foreach (var invocation in invocationExpressions)
-        {
-            var methodSymbol = semanticModel.GetSymbolInfo(invocation).Symbol as IMethodSymbol;
-            if (methodSymbol is not null)
-            {
-                var exceptionTypes = GetExceptionTypes(methodSymbol);
+                // Collect exceptions from method calls and object creations
+                case InvocationExpressionSyntax:
+                case ObjectCreationExpressionSyntax:
+                    CollectExpressionsForMethodSymbols((ExpressionSyntax)s);
+                    break;
 
-                // Get exceptions from XML documentation
-                var xmlExceptionTypes = GetExceptionTypesFromDocumentationCommentXml(semanticModel.Compilation, methodSymbol);
-
-                xmlExceptionTypes = ProcessNullable(context, invocation, methodSymbol, xmlExceptionTypes);
-
-                if (xmlExceptionTypes.Any())
-                {
-                    exceptionTypes.AddRange(xmlExceptionTypes.Select(x => x.ExceptionType));
-                }
-
-                foreach (var exceptionType in exceptionTypes)
-                {
-                    if (ShouldIncludeException(exceptionType, invocation, settings))
-                    {
-                        exceptions.Add(exceptionType);
-                    }
-                }
-            }
-        }
-
-        var objectCreations = statement.DescendantNodesAndSelf().OfType<ObjectCreationExpressionSyntax>();
-        foreach (var objectCreation in objectCreations)
-        {
-            var methodSymbol = semanticModel.GetSymbolInfo(objectCreation).Symbol as IMethodSymbol;
-            if (methodSymbol is not null)
-            {
-                var exceptionTypes = GetExceptionTypes(methodSymbol);
-
-                // Get exceptions from XML documentation
-                var xmlExceptionTypes = GetExceptionTypesFromDocumentationCommentXml(semanticModel.Compilation, methodSymbol);
-
-                xmlExceptionTypes = ProcessNullable(context, objectCreation, methodSymbol, xmlExceptionTypes);
-
-                if (xmlExceptionTypes.Any())
-                {
-                    exceptionTypes.AddRange(xmlExceptionTypes.Select(x => x.ExceptionType));
-                }
-
-                foreach (var exceptionType in exceptionTypes)
-                {
-                    if (ShouldIncludeException(exceptionType, objectCreation, settings))
-                    {
-                        exceptions.Add(exceptionType);
-                    }
-                }
-            }
-        }
-
-        // Collect from MemberAccess and Identifier
-        var memberAccessExpressions = statement.DescendantNodesAndSelf().OfType<MemberAccessExpressionSyntax>();
-        foreach (var memberAccess in memberAccessExpressions)
-        {
-            var propertySymbol = semanticModel.GetSymbolInfo(memberAccess).Symbol as IPropertySymbol;
-            if (propertySymbol is not null)
-            {
-                HashSet<INamedTypeSymbol> exceptionTypes = GetPropertyExceptionTypes(context, memberAccess, propertySymbol);
-
-                foreach (var exceptionType in exceptionTypes)
-                {
-                    if (ShouldIncludeException(exceptionType, memberAccess, settings))
-                    {
-                        exceptions.Add(exceptionType);
-                    }
-                }
-            }
-        }
-
-        var elementAccessExpressions = statement.DescendantNodesAndSelf().OfType<ElementAccessExpressionSyntax>();
-        foreach (var elementAccess in elementAccessExpressions)
-        {
-            var propertySymbol = semanticModel.GetSymbolInfo(elementAccess).Symbol as IPropertySymbol;
-            if (propertySymbol is not null)
-            {
-                HashSet<INamedTypeSymbol> exceptionTypes = GetPropertyExceptionTypes(context, elementAccess, propertySymbol);
-
-                foreach (var exceptionType in exceptionTypes)
-                {
-                    if (ShouldIncludeException(exceptionType, elementAccess, settings))
-                    {
-                        exceptions.Add(exceptionType);
-                    }
-                }
-            }
-        }
-
-        var identifierExpressions = statement.DescendantNodesAndSelf().OfType<IdentifierNameSyntax>();
-        foreach (var identifier in identifierExpressions)
-        {
-            var propertySymbol = semanticModel.GetSymbolInfo(identifier).Symbol as IPropertySymbol;
-            if (propertySymbol is not null)
-            {
-                HashSet<INamedTypeSymbol> exceptionTypes = GetPropertyExceptionTypes(context, identifier, propertySymbol);
-
-                foreach (var exceptionType in exceptionTypes)
-                {
-                    if (exceptionType is not null)
-                    {
-                        if (ShouldIncludeException(exceptionType, identifier, settings))
-                        {
-                            exceptions.Add(exceptionType);
-                        }
-                    }
-                }
+                // Collect exceptions from property accessors and identifiers
+                case MemberAccessExpressionSyntax:
+                case ElementAccessExpressionSyntax:
+                case IdentifierNameSyntax:
+                    CollectExpressionsForPropertySymbols((ExpressionSyntax)s);
+                    break;
             }
         }
 
         return exceptions;
+
+        void CollectExpressionsFromThrows(SyntaxNode throwExpression, ExpressionSyntax? subExpression)
+        {
+            if (subExpression is null) return;
+
+            if (semanticModel.GetTypeInfo(subExpression).Type is not INamedTypeSymbol exceptionType) return;
+
+            if (ShouldIncludeException(exceptionType, throwExpression, settings))
+            {
+                exceptions.Add(exceptionType);
+            }
+        }
+
+        void CollectExpressionsForMethodSymbols(ExpressionSyntax expression)
+        {
+            if (semanticModel.GetSymbolInfo(expression).Symbol is not IMethodSymbol methodSymbol) return;
+
+            var exceptionTypes = GetExceptionTypes(methodSymbol);
+
+            // Get exceptions from XML documentation
+            var xmlExceptionTypes = GetExceptionTypesFromDocumentationCommentXml(semanticModel.Compilation, methodSymbol);
+
+            xmlExceptionTypes = ProcessNullable(context, expression, methodSymbol, xmlExceptionTypes);
+
+            if (xmlExceptionTypes.Any())
+            {
+                exceptionTypes = exceptionTypes.Concat(xmlExceptionTypes.Select(x => x.ExceptionType));
+            }
+
+            foreach (var exceptionType in exceptionTypes)
+            {
+                if (ShouldIncludeException(exceptionType, expression, settings))
+                {
+                    exceptions.Add(exceptionType);
+                }
+            }
+        }
+
+        void CollectExpressionsForPropertySymbols(ExpressionSyntax expression)
+        {
+            if (semanticModel.GetSymbolInfo(expression).Symbol is not IPropertySymbol propertySymbol) return;
+
+            HashSet<INamedTypeSymbol> exceptionTypes = GetPropertyExceptionTypes(context, expression, propertySymbol);
+
+            foreach (var exceptionType in exceptionTypes)
+            {
+                if (ShouldIncludeException(exceptionType, expression, settings))
+                {
+                    exceptions.Add(exceptionType);
+                }
+            }
+        }
     }
 
     public bool ShouldIncludeException(INamedTypeSymbol exceptionType, SyntaxNode node, AnalyzerSettings settings)
     {
-        var exceptions = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
+        // var exceptions = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
 
         var exceptionName = exceptionType.ToDisplayString();
 
@@ -691,7 +612,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         return true;
     }
 
-    private HashSet<INamedTypeSymbol> GetCaughtExceptions(SyntaxList<CatchClauseSyntax> catchClauses, SemanticModel semanticModel)
+    private HashSet<INamedTypeSymbol>? GetCaughtExceptions(SyntaxList<CatchClauseSyntax> catchClauses, SemanticModel semanticModel)
     {
         var caughtExceptions = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
 
@@ -716,7 +637,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         return caughtExceptions;
     }
 
-    private bool IsExceptionCaught(INamedTypeSymbol exceptionType, HashSet<INamedTypeSymbol> caughtExceptions)
+    private bool IsExceptionCaught(INamedTypeSymbol exceptionType, HashSet<INamedTypeSymbol>? caughtExceptions)
     {
         if (caughtExceptions is null)
         {
@@ -774,7 +695,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     /// <summary>
     /// Determines if a node is within a catch block.
     /// </summary>
-    private bool IsWithinCatchBlock(SyntaxNode node, out CatchClauseSyntax catchClause)
+    private bool IsWithinCatchBlock(SyntaxNode node, out CatchClauseSyntax? catchClause)
     {
         catchClause = node.Ancestors().OfType<CatchClauseSyntax>().FirstOrDefault();
         return catchClause is not null;
@@ -839,7 +760,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     /// <summary>
     /// Resolves the target method symbol from a delegate, lambda, or method group.
     /// </summary>
-    private IMethodSymbol GetTargetMethodSymbol(SyntaxNodeAnalysisContext context, InvocationExpressionSyntax invocation)
+    private IMethodSymbol? GetTargetMethodSymbol(SyntaxNodeAnalysisContext context, InvocationExpressionSyntax invocation)
     {
         var expression = invocation.Expression;
 
@@ -963,14 +884,9 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
     private void AnalyzeIdentifierAndMemberAccess(SyntaxNodeAnalysisContext context, ExpressionSyntax expression, AnalyzerSettings settings)
     {
-        var s = context.SemanticModel.GetSymbolInfo(expression).Symbol;
-        var symbol = s as IPropertySymbol;
-        if (symbol is null)
-            return;
-
-        if (symbol is IPropertySymbol propertySymbol)
+        if (context.SemanticModel.GetSymbolInfo(expression).Symbol is IPropertySymbol propertySymbol)
         {
-            AnalyzePropertyExceptions(context, expression, symbol, settings);
+            AnalyzePropertyExceptions(context, expression, propertySymbol, settings);
         }
     }
 
@@ -983,13 +899,9 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
         var elementAccess = (ElementAccessExpressionSyntax)context.Node;
 
-        var symbol = context.SemanticModel.GetSymbolInfo(elementAccess).Symbol as IPropertySymbol;
-        if (symbol is null)
-            return;
-
-        if (symbol is IPropertySymbol propertySymbol)
+        if (context.SemanticModel.GetSymbolInfo(elementAccess).Symbol is IPropertySymbol propertySymbol)
         {
-            AnalyzePropertyExceptions(context, elementAccess, symbol, settings);
+            AnalyzePropertyExceptions(context, elementAccess, propertySymbol, settings);
         }
     }
 
@@ -1052,28 +964,17 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         var xmlDocumentedExceptions = GetExceptionTypesFromDocumentationCommentXml(context.Compilation, propertySymbol);
 
         // Filter exceptions documented specifically for the getter and setter
-        var getterExceptions = xmlDocumentedExceptions.Where(x =>
-            x.Description.Contains(" get ") ||
-            x.Description.Contains(" gets ") ||
-            x.Description.Contains(" getting ") ||
-            x.Description.Contains(" retrieved "));
-
-        var setterExceptions = xmlDocumentedExceptions.Where(x =>
-            x.Description.Contains(" set ") ||
-            x.Description.Contains(" sets ") ||
-            x.Description.Contains(" setting "));
+        var getterExceptions = xmlDocumentedExceptions.Where(IsGetterException);
+        var setterExceptions = xmlDocumentedExceptions.Where(IsSetterException);
 
         if (isSetter && propertySymbol.SetMethod is not null)
         {
-            // Will filter away 
+            // Will filter away
             setterExceptions = ProcessNullable(context, expression, propertySymbol.SetMethod, setterExceptions);
         }
 
         // Handle exceptions that don't explicitly belong to getters or setters
-        var allOtherExceptions = xmlDocumentedExceptions
-            .Except(getterExceptions);
-        allOtherExceptions = allOtherExceptions
-            .Except(setterExceptions);
+        var allOtherExceptions = xmlDocumentedExceptions.Where(x => !IsGetterException(x) && !IsSetterException(x));
 
         if (isSetter && propertySymbol.SetMethod is not null)
         {
@@ -1104,18 +1005,29 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         // Add other exceptions not specific to getters or setters
         exceptionTypes.AddRange(allOtherExceptions.Select(x => x.ExceptionType));
         return exceptionTypes;
+
+        static bool IsGetterException(ExceptionInfo ei) =>
+            ei.Description.Contains(" get ") ||
+            ei.Description.Contains(" gets ") ||
+            ei.Description.Contains(" getting ") ||
+            ei.Description.Contains(" retrieved ");
+
+        static bool IsSetterException(ExceptionInfo ei) =>
+            ei.Description.Contains(" set ") ||
+            ei.Description.Contains(" sets ") ||
+            ei.Description.Contains(" setting ");
     }
 
     /// <summary>
     /// Analyzes exceptions thrown by a method, constructor, or other member.
     /// </summary>
-    private void AnalyzeMemberExceptions(SyntaxNodeAnalysisContext context, SyntaxNode node, IMethodSymbol methodSymbol,
+    private void AnalyzeMemberExceptions(SyntaxNodeAnalysisContext context, SyntaxNode node, IMethodSymbol? methodSymbol,
         AnalyzerSettings settings)
     {
         if (methodSymbol is null)
             return;
 
-        List<INamedTypeSymbol> exceptionTypes = GetExceptionTypes(methodSymbol);
+        IEnumerable<INamedTypeSymbol> exceptionTypes = GetExceptionTypes(methodSymbol);
 
         // Get exceptions from XML documentation
         var xmlExceptionTypes = GetExceptionTypesFromDocumentationCommentXml(context.Compilation, methodSymbol);
@@ -1124,25 +1036,22 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
         if (xmlExceptionTypes.Any())
         {
-            exceptionTypes.AddRange(xmlExceptionTypes.Select(x => x.ExceptionType));
+            exceptionTypes = exceptionTypes.Concat(xmlExceptionTypes.Select(x => x.ExceptionType));
         }
 
-        exceptionTypes = ProcessNullable(context, node, methodSymbol, exceptionTypes).ToList();
+        exceptionTypes = ProcessNullable(context, node, methodSymbol, exceptionTypes)
+            .Distinct(SymbolEqualityComparer.Default)
+            .OfType<INamedTypeSymbol>();
 
-        foreach (var exceptionType in exceptionTypes.Distinct(SymbolEqualityComparer.Default).OfType<INamedTypeSymbol>())
+        foreach (var exceptionType in exceptionTypes)
         {
             AnalyzeExceptionThrowingNode(context, node, exceptionType, settings);
         }
     }
 
-    static INamedTypeSymbol? argumentNullExceptionTypeSymbol;
-
     private static IEnumerable<ExceptionInfo> ProcessNullable(SyntaxNodeAnalysisContext context, SyntaxNode node, IMethodSymbol methodSymbol, IEnumerable<ExceptionInfo> exceptionInfos)
     {
-        if (argumentNullExceptionTypeSymbol is null)
-        {
-            argumentNullExceptionTypeSymbol = context.Compilation.GetTypeByMetadataName("System.ArgumentNullException");
-        }
+        var argumentNullExceptionTypeSymbol = context.Compilation.GetTypeByMetadataName("System.ArgumentNullException");
 
         var isCompilationNullableEnabled = context.Compilation.Options.NullableContextOptions is NullableContextOptions.Enable;
 
@@ -1178,8 +1087,9 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
                             return false;
                         }
                     }
+
                     return true;
-                }).ToList();
+                });
             }
         }
 
@@ -1188,10 +1098,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
     private static IEnumerable<INamedTypeSymbol> ProcessNullable(SyntaxNodeAnalysisContext context, SyntaxNode node, IMethodSymbol methodSymbol, IEnumerable<INamedTypeSymbol> exceptions)
     {
-        if (argumentNullExceptionTypeSymbol is null)
-        {
-            argumentNullExceptionTypeSymbol = context.Compilation.GetTypeByMetadataName("System.ArgumentNullException");
-        }
+        var argumentNullExceptionTypeSymbol = context.Compilation.GetTypeByMetadataName("System.ArgumentNullException");
 
         var isCompilationNullableEnabled = context.Compilation.Options.NullableContextOptions is NullableContextOptions.Enable;
 
@@ -1206,24 +1113,22 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         return exceptions;
     }
 
-    private static List<INamedTypeSymbol> GetExceptionTypes(ISymbol symbol)
+    private static IEnumerable<INamedTypeSymbol> GetExceptionTypes(ISymbol symbol)
     {
         // Get exceptions from Throws attributes
         var exceptionAttributes = GetThrowsAttributes(symbol);
 
-        return GetDistictExceptionTypes(exceptionAttributes).ToList();
+        return GetDistinctExceptionTypes(exceptionAttributes);
     }
 
-    private static List<AttributeData> GetThrowsAttributes(ISymbol symbol)
+    private static IEnumerable<AttributeData> GetThrowsAttributes(ISymbol symbol)
     {
         return GetThrowsAttributes(symbol.GetAttributes());
     }
 
-    private static List<AttributeData> GetThrowsAttributes(IEnumerable<AttributeData> attributes)
+    private static IEnumerable<AttributeData> GetThrowsAttributes(IEnumerable<AttributeData> attributes)
     {
-        return attributes
-                    .Where(attr => attr.AttributeClass?.Name is "ThrowsAttribute")
-                    .ToList();
+        return attributes.Where(attr => attr.AttributeClass?.Name is "ThrowsAttribute");
     }
 
     /// <summary>
@@ -1248,7 +1153,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     /// </summary>
     private bool IsExceptionHandled(SyntaxNode node, INamedTypeSymbol exceptionType, SemanticModel semanticModel)
     {
-        SyntaxNode? prevNode = null;
+        // SyntaxNode? prevNode = null;
 
         var current = node.Parent;
         while (current is not null)
@@ -1264,7 +1169,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             if (current is TryStatementSyntax tryStatement)
             {
                 // Prevents analysis within the first try-catch,
-                // when coming from either a catch clause or a finally clause. 
+                // when coming from either a catch clause or a finally clause.
 
                 // Skip if the node is within a catch or finally block of the current try statement
                 bool isInCatchOrFinally = tryStatement.Catches.Any(c => c.Contains(node)) ||
@@ -1283,7 +1188,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
                 }
             }
 
-            prevNode = current;
+            // prevNode = current;
             current = current.Parent;
         }
 
@@ -1364,72 +1269,57 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     {
         foreach (var ancestor in node.Ancestors())
         {
-            ISymbol? symbol = null;
-
-            switch (ancestor)
+            ISymbol? symbol;
+            if (ancestor is PropertyDeclarationSyntax propertyDeclaration)
             {
-                case BaseMethodDeclarationSyntax methodDeclaration:
-                    symbol = context.SemanticModel.GetDeclaredSymbol(methodDeclaration);
-                    break;
+                var propertySymbol = context.SemanticModel.GetDeclaredSymbol(propertyDeclaration);
 
-                case PropertyDeclarationSyntax propertyDeclaration:
-                    var propertySymbol = context.SemanticModel.GetDeclaredSymbol(propertyDeclaration);
+                // Don't continue with the analysis if it's a full property with accessors
+                // In that case, the accessors are analyzed separately
+                if ((propertySymbol?.GetMethod is not null && propertySymbol?.SetMethod is not null)
+                    || (propertySymbol?.GetMethod is null && propertySymbol?.SetMethod is not null))
+                {
+                    return false;
+                }
 
-                    // Don't continue with the analysis if it's a full property with accessors
-                    // In that case, the accessors are analyzed separately
-                    if ((propertySymbol?.GetMethod is not null && propertySymbol?.SetMethod is not null)
-                        || (propertySymbol?.GetMethod is null && propertySymbol?.SetMethod is not null))
+                var propertySyntaxRef = propertySymbol?.DeclaringSyntaxReferences.FirstOrDefault();
+                if (propertySyntaxRef is not null && propertySyntaxRef.GetSyntax() is PropertyDeclarationSyntax basePropertyDeclaration)
+                {
+                    if (basePropertyDeclaration.ExpressionBody is null)
                     {
                         return false;
                     }
-
-                    var propertySyntaxRef = propertySymbol?.DeclaringSyntaxReferences.FirstOrDefault();
-                    if (propertySyntaxRef is not null && propertySyntaxRef.GetSyntax() is PropertyDeclarationSyntax basePropertyDeclaration)
-                    {
-                        if (basePropertyDeclaration.ExpressionBody is null)
-                        {
-                            return false;
-                        }
-                    }
-
-                    symbol = propertySymbol;
-                    break;
-
-                case AccessorDeclarationSyntax accessorDeclaration:
-                    symbol = context.SemanticModel.GetDeclaredSymbol(accessorDeclaration);
-                    break;
-
-                case LocalFunctionStatementSyntax localFunction:
-                    symbol = context.SemanticModel.GetDeclaredSymbol(localFunction);
-                    break;
-
-                case AnonymousFunctionExpressionSyntax anonymousFunction:
-                    symbol = context.SemanticModel.GetSymbolInfo(anonymousFunction).Symbol as IMethodSymbol;
-                    break;
-
-                default:
-                    // Continue up to next node
-                    continue;
-            }
-
-            if (symbol is not null)
-            {
-                if (IsExceptionDeclaredInSymbol(symbol, exceptionType))
-                    return true;
-
-                if (ancestor is AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax)
-                {
-                    // Break because you are analyzing a local function or anonymous function (lambda)
-                    // If you don't then it will got to the method, and it will affect analysis of this inline function.
-                    break;
                 }
+                
+                symbol = propertySymbol;
+            }
+            else symbol = ancestor switch
+            {
+                BaseMethodDeclarationSyntax methodDeclaration => context.SemanticModel.GetDeclaredSymbol(methodDeclaration),
+                AccessorDeclarationSyntax accessorDeclaration => context.SemanticModel.GetDeclaredSymbol(accessorDeclaration),
+                LocalFunctionStatementSyntax localFunction => context.SemanticModel.GetDeclaredSymbol(localFunction),
+                AnonymousFunctionExpressionSyntax anonymousFunction => context.SemanticModel.GetSymbolInfo(anonymousFunction).Symbol as IMethodSymbol,
+                _ => null,
+            };
+
+            if (symbol is null)
+                continue; // Continue up to next node
+
+            if (IsExceptionDeclaredInSymbol(symbol, exceptionType))
+                return true;
+
+            if (ancestor is AnonymousFunctionExpressionSyntax or LocalFunctionStatementSyntax)
+            {
+                // Break because you are analyzing a local function or anonymous function (lambda)
+                // If you don't then it will got to the method, and it will affect analysis of this inline function.
+                break;
             }
         }
 
         return false;
     }
 
-    private bool IsExceptionDeclaredInSymbol(ISymbol symbol, INamedTypeSymbol exceptionType)
+    private bool IsExceptionDeclaredInSymbol(ISymbol? symbol, INamedTypeSymbol exceptionType)
     {
         if (symbol is null)
             return false;

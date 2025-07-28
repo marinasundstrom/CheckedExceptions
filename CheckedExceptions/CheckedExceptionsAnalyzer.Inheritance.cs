@@ -1,16 +1,14 @@
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Net.NetworkInformation;
 
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace Sundstrom.CheckedExceptions;
 
 partial class CheckedExceptionsAnalyzer
 {
-    #region  Method
-
     private void CheckForCompatibilityWithBaseOrInterface(SymbolAnalysisContext context, ImmutableArray<AttributeData> throwsAttributes)
     {
         var method = (IMethodSymbol)context.Symbol;
@@ -23,7 +21,8 @@ partial class CheckedExceptionsAnalyzer
             MethodKind.EventRemove))
             return;
 
-        var declaredExceptions = GetDistictExceptionTypes(throwsAttributes).ToImmutableHashSet(SymbolEqualityComparer.Default);
+        ImmutableHashSet<ISymbol> declaredExceptions = GetDistinctExceptionTypes(throwsAttributes).Where(x => x is not null).ToImmutableHashSet(SymbolEqualityComparer.Default)!;
+        Debug.Assert(!declaredExceptions.Any(x => x is null));
 
         if (declaredExceptions.Count == 0)
             return;
@@ -42,7 +41,7 @@ partial class CheckedExceptionsAnalyzer
         }
     }
 
-    private void AnalyzeMissingThrowsFromBaseMember(SymbolAnalysisContext context, IMethodSymbol method, ImmutableHashSet<ISymbol?> declaredExceptions, IMethodSymbol baseMethod, ImmutableHashSet<ISymbol?> baseExceptions)
+    private void AnalyzeMissingThrowsFromBaseMember(SymbolAnalysisContext context, IMethodSymbol method, ImmutableHashSet<ISymbol> declaredExceptions, IMethodSymbol baseMethod, ImmutableHashSet<ISymbol?> baseExceptions)
     {
         foreach (var baseException in baseExceptions.OfType<ITypeSymbol>())
         {
@@ -77,13 +76,13 @@ partial class CheckedExceptionsAnalyzer
         }
     }
 
-    private static void AnalyzeMissingThrowsOnBaseMember(SymbolAnalysisContext context, IMethodSymbol method, ImmutableHashSet<ISymbol?> declaredExceptions, IMethodSymbol baseMethod, ImmutableHashSet<ISymbol?> baseExceptions)
+    private static void AnalyzeMissingThrowsOnBaseMember(SymbolAnalysisContext context, IMethodSymbol method, ImmutableHashSet<ISymbol> declaredExceptions, IMethodSymbol baseMethod, ImmutableHashSet<ISymbol?> baseExceptions)
     {
         foreach (var declared in declaredExceptions)
         {
-            var isCompatible = baseExceptions.Any(baseEx =>
-                declared.Equals(baseEx, SymbolEqualityComparer.Default) ||
-                ((INamedTypeSymbol)declared).InheritsFrom((INamedTypeSymbol)baseEx));
+            var isCompatible = baseExceptions.Any(baseEx => baseEx is not null &&
+                (declared.Equals(baseEx, SymbolEqualityComparer.Default)
+                || ((INamedTypeSymbol)declared).InheritsFrom((INamedTypeSymbol)baseEx)));
 
             if (!isCompatible)
             {
@@ -115,13 +114,11 @@ partial class CheckedExceptionsAnalyzer
 
     private bool IsTooGenericException(ITypeSymbol ex)
     {
-        var namedType = ex as INamedTypeSymbol;
-        if (namedType == null)
-            return false;
+        if (ex is not INamedTypeSymbol namedTypeSymbol) return false;
 
-        var fullName = namedType.ToDisplayString();
+        var fullName = namedTypeSymbol.ToDisplayString();
 
-        return fullName == "System.Exception" || fullName == "System.SystemException";
+        return fullName.Equals(typeof(Exception).FullName, StringComparison.Ordinal) || fullName.Equals(typeof(SystemException).FullName, StringComparison.Ordinal);
     }
 
     private IEnumerable<IMethodSymbol> GetBaseOrInterfaceMethods(IMethodSymbol method)
@@ -133,18 +130,18 @@ partial class CheckedExceptionsAnalyzer
 
         if (method.AssociatedSymbol is IPropertySymbol prop && prop.OverriddenProperty is not null)
         {
-            if (SymbolEqualityComparer.Default.Equals(method, prop.GetMethod))
-                results.Add(prop.OverriddenProperty.GetMethod);
-            else if (SymbolEqualityComparer.Default.Equals(method, prop.SetMethod))
-                results.Add(prop.OverriddenProperty.SetMethod);
+            if (SymbolEqualityComparer.Default.Equals(method, prop.GetMethod) && prop.OverriddenProperty.GetMethod is { } getMethodSymbol)
+                results.Add(getMethodSymbol);
+            else if (SymbolEqualityComparer.Default.Equals(method, prop.SetMethod) && prop.OverriddenProperty.SetMethod is { } setMethodSymbol)
+                results.Add(setMethodSymbol);
         }
 
         if (method.AssociatedSymbol is IEventSymbol ev && ev.OverriddenEvent is not null)
         {
-            if (SymbolEqualityComparer.Default.Equals(method, ev.AddMethod))
-                results.Add(ev.OverriddenEvent.AddMethod);
-            else if (SymbolEqualityComparer.Default.Equals(method, ev.RemoveMethod))
-                results.Add(ev.OverriddenEvent.RemoveMethod);
+            if (SymbolEqualityComparer.Default.Equals(method, ev.AddMethod) && ev.OverriddenEvent.AddMethod is { } addMethodSymbol)
+                results.Add(addMethodSymbol);
+            else if (SymbolEqualityComparer.Default.Equals(method, ev.RemoveMethod) && ev.OverriddenEvent.RemoveMethod is { } removeMethodSymbol)
+                results.Add(removeMethodSymbol);
         }
 
         var type = method.ContainingType;
@@ -162,6 +159,4 @@ partial class CheckedExceptionsAnalyzer
 
         return results;
     }
-
-    #endregion
 }

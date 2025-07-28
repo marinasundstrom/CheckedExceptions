@@ -2,13 +2,13 @@ namespace Sundstrom.CheckedExceptions;
 
 using System.Text.Json.Serialization;
 
-public partial class AnalyzerSettings
+public class AnalyzerSettings(IReadOnlyList<string> ignoredExceptions, IReadOnlyDictionary<string, ExceptionMode> informationalExceptions)
 {
-    [JsonPropertyName("ignoredExceptions")]
-    public IEnumerable<string> IgnoredExceptions { get; set; } = new List<string>();
+    public IReadOnlyList<string> IgnoredExceptions { get; } = ignoredExceptions;
 
-    [JsonPropertyName("informationalExceptions")]
-    public IDictionary<string, ExceptionMode> InformationalExceptions { get; set; } = new Dictionary<string, ExceptionMode>();
+    public IReadOnlyDictionary<string, ExceptionMode> InformationalExceptions { get; } = informationalExceptions;
+
+    public static AnalyzerSettings CreateWithDefaults() => new(new List<string>(), new Dictionary<string, ExceptionMode>());
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]

@@ -32,7 +32,8 @@ partial class CheckedExceptionsAnalyzer
             }
         }
 
-        if (string.IsNullOrEmpty(assemblyPath))
+        // explicitly check instead of using string.IsNullOrEmpty because netstandard2.0 does not support NotNullWhenAttribute
+        if (assemblyPath is null || assemblyPath.Length == 0)
             return null;
 
         // Check cache first
@@ -82,29 +83,73 @@ partial class CheckedExceptionsAnalyzer
 
     public record struct ExceptionInfo(INamedTypeSymbol ExceptionType, string Description, IEnumerable<ParamInfo> Parameters);
 
-    private static IEnumerable<ExceptionInfo> GetExceptionTypesFromDocumentationCommentXml(Compilation compilation, XElement? xml)
+    private static IEnumerable<ExceptionInfo> GetExceptionTypesFromDocumentationCommentXml(Compilation compilation, XElement xml)
     {
         try
         {
             return xml.Descendants("exception")
                 .Select(e =>
                 {
-                    var cref = e.Attribute("cref")?.Value;
-                    var crefValue = cref.StartsWith("T:") ? cref.Substring(2) : cref;
-                    var innerText = e.Value;
+                    string? cref = e.Attribute("cref")?.Value;
+                    if (string.IsNullOrWhiteSpace(cref))
+                    {
+                        return default;
+                    }
 
-                    var name = compilation.GetTypeByMetadataName(crefValue) ??
-                           compilation.GetTypeByMetadataName(crefValue.Split('.').Last());
+                    var exceptionTypeSymbol = GetExceptionTypeSymbolFromCref(cref!, compilation);
+                    if (exceptionTypeSymbol is null)
+                    {
+                        return default;
+                    }
 
-                    var parameters = e.Elements("paramref").Select(x => new ParamInfo(x.Attribute("name").Value));
+                    string innerText = e.Value;
 
-                    return new ExceptionInfo(name, innerText, parameters);
-                });
+                    IEnumerable<ParamInfo> parameters = e.Elements("paramref")
+                        .Select(x => new ParamInfo(x.Attribute("name")?.Value!))
+                        .Where(p => !string.IsNullOrWhiteSpace(p.Name));
+
+                    return new ExceptionInfo(exceptionTypeSymbol, innerText, parameters);
+                })
+                .Where(x => x != default)
+                .ToList(); // Materialize to catch parsing errors
         }
         catch
         {
             // Handle or log parsing errors
             return Enumerable.Empty<ExceptionInfo>();
+        }
+
+        static INamedTypeSymbol? GetExceptionTypeSymbolFromCref(string cref, Compilation compilation)
+        {
+            string exceptionTypeName = cref.StartsWith("T:", StringComparison.Ordinal) ? cref.Substring(2) : cref;
+            string cleanExceptionTypeName = RemoveGenericParameters(exceptionTypeName);
+
+            INamedTypeSymbol? typeSymbol = compilation.GetTypeByMetadataName(cleanExceptionTypeName);
+            if (typeSymbol is null && !cleanExceptionTypeName.Contains('.'))
+            {
+                typeSymbol = compilation.GetTypeByMetadataName($"System.{cleanExceptionTypeName}");
+            }
+
+            return typeSymbol;
+        }
+
+        static string RemoveGenericParameters(string typeName)
+        {
+            // Handle generic types like "System.Collections.Generic.List`1"
+            var backtickIndex = typeName.IndexOf('`');
+            if (backtickIndex >= 0)
+            {
+                return typeName.Substring(0, backtickIndex);
+            }
+
+            // Handle generic syntax like "List<T>"
+            var angleIndex = typeName.IndexOf('<');
+            if (angleIndex >= 0)
+            {
+                return typeName.Substring(0, angleIndex);
+            }
+
+            return typeName;
         }
     }
 
@@ -121,7 +166,7 @@ partial class CheckedExceptionsAnalyzer
         }
 
         // Attempt to get exceptions from XML documentation
-        return GetExceptionTypesFromDocumentationCommentXml(compilation, docCommentXml).ToList();
+        return GetExceptionTypesFromDocumentationCommentXml(compilation, docCommentXml);
     }
 
     readonly bool loadFromProject = true;
@@ -157,39 +202,37 @@ partial class CheckedExceptionsAnalyzer
     public XElement? GetXmlDocumentation(Compilation compilation, ISymbol symbol)
     {
         var path = GetXmlDocumentationPath(compilation, symbol.ContainingAssembly);
-        if (path is not null)
+        if (path is null)
         {
-            if (!XmlDocPathsAndMembers.TryGetValue(path, out var lookup))
-            {
-                try
-                {
-                    using var reader = XmlReader.Create(path, new XmlReaderSettings
-                    {
-                        DtdProcessing = DtdProcessing.Ignore,
-                        IgnoreComments = true,
-                        IgnoreWhitespace = true,
-                        CloseInput = true
-                    });
+            return null;
+        }
 
-                    var file = XmlDocumentationHelper.CreateMemberLookup(XDocument.Load(reader, LoadOptions.PreserveWhitespace));
-                    lookup = new ConcurrentDictionary<string, XElement>(file);
-                    XmlDocPathsAndMembers.TryAdd(path, lookup);
-                }
-                catch (Exception ex) when (ex is XmlException || ex is IOException || ex is UnauthorizedAccessException)
+        if (!XmlDocPathsAndMembers.TryGetValue(path, out var lookup) || lookup is null)
+        {
+            try
+            {
+                using var reader = XmlReader.Create(path, new XmlReaderSettings
                 {
-                    // Suppress AD0001-inducing exceptions in analyzers
-                    XmlDocPathsAndMembers.TryAdd(path, new ConcurrentDictionary<string, XElement>());
-                    return null;
-                }
+                    DtdProcessing = DtdProcessing.Ignore,
+                    IgnoreComments = true,
+                    IgnoreWhitespace = true,
+                    CloseInput = true
+                });
+
+                var file = XmlDocumentationHelper.CreateMemberLookup(XDocument.Load(reader, LoadOptions.PreserveWhitespace));
+                lookup = new ConcurrentDictionary<string, XElement>(file);
+                XmlDocPathsAndMembers[path] = lookup;
             }
-            var member = symbol.GetDocumentationCommentId();
-
-            if (lookup.TryGetValue(member, out var xml))
+            catch (Exception ex) when (ex is XmlException || ex is IOException || ex is UnauthorizedAccessException)
             {
-                return xml;
+                // Suppress AD0001-inducing exceptions in analyzers
+                XmlDocPathsAndMembers[path] = new ConcurrentDictionary<string, XElement>();
+                return null;
             }
         }
 
-        return null;
+        var member = symbol.GetDocumentationCommentId();
+
+        return member is not null && lookup.TryGetValue(member, out var xml) ? xml : null;
     }
 }
