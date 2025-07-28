@@ -1377,24 +1377,32 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
                 case BaseMethodDeclarationSyntax methodDeclaration:
                     symbol = context.SemanticModel.GetDeclaredSymbol(methodDeclaration);
                     break;
+
                 case PropertyDeclarationSyntax propertyDeclaration:
                     var propertySymbol = context.SemanticModel.GetDeclaredSymbol(propertyDeclaration);
-                    // Special case
+
+                    // Don't continue with the analysis if it's a full property with accessors
+                    // In that case, the accessors are analyzed separately
                     if (propertySymbol?.GetMethod is not null && propertySymbol?.SetMethod is not null)
                     {
                         return false;
                     }
+
                     symbol = propertySymbol;
                     break;
+
                 case AccessorDeclarationSyntax accessorDeclaration:
                     symbol = context.SemanticModel.GetDeclaredSymbol(accessorDeclaration);
                     break;
+
                 case LocalFunctionStatementSyntax localFunction:
                     symbol = context.SemanticModel.GetDeclaredSymbol(localFunction);
                     break;
+
                 case AnonymousFunctionExpressionSyntax anonymousFunction:
                     symbol = context.SemanticModel.GetSymbolInfo(anonymousFunction).Symbol as IMethodSymbol;
                     break;
+
                 default:
                     // Continue up to next node
                     continue;
