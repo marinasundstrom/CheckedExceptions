@@ -32,12 +32,12 @@ public class AddTryCatchBlockCodeFixProvider : CodeFixProvider
         var diagnostic = diagnostics.First();
         var node = root.FindNode(diagnostic.Location.SourceSpan);
 
-        if (IsExpressionBody(node, out var expression))
+        if (IsExpressionBody(node, out var rootExpression))
         {
             context.RegisterCodeFix(
                 CodeAction.Create(
                     title: TitleAddTryCatch,
-                    createChangedDocument: c => AddTryCatchToExpressionBodyAsync(context.Document, expression!, diagnostics, c),
+                    createChangedDocument: c => AddTryCatchToExpressionBodyAsync(context.Document, rootExpression!, diagnostics, c),
                     equivalenceKey: TitleAddTryCatch),
                 diagnostics);
 
@@ -56,22 +56,35 @@ public class AddTryCatchBlockCodeFixProvider : CodeFixProvider
             diagnostics);
     }
 
-    private static bool IsExpressionBody(SyntaxNode node, out ExpressionSyntax? expression)
+    private static bool IsExpressionBody(SyntaxNode node, out ExpressionSyntax? rootExpression)
     {
         if (node is ExpressionSyntax expr)
         {
-            switch (node.Parent)
+            // Find the root expression node.
+            // Some members have ArrowExpressionClauseSyntax
+            // but for lambda expressions you need to stop by it.
+            while (expr.Parent is ExpressionSyntax expr2
+                and not AnonymousFunctionExpressionSyntax)
             {
-                case AnonymousFunctionExpressionSyntax le when le.ExpressionBody == node:
-                    expression = expr;
+                expr = expr2;
+            }
+
+            switch (expr.Parent)
+            {
+                case AnonymousFunctionExpressionSyntax le when le.ExpressionBody == expr:
+                    rootExpression = expr;
                     return true;
 
-                case ArrowExpressionClauseSyntax ace when ace.Parent is BaseMethodDeclarationSyntax || ace.Parent is BasePropertyDeclarationSyntax || ace.Parent is AccessorDeclarationSyntax || ace.Parent is LocalFunctionStatementSyntax:
-                    expression = expr;
+                case ArrowExpressionClauseSyntax ace when ace.Parent
+                    is BaseMethodDeclarationSyntax
+                    || ace.Parent is BasePropertyDeclarationSyntax
+                    || ace.Parent is AccessorDeclarationSyntax
+                    || ace.Parent is LocalFunctionStatementSyntax:
+                    rootExpression = expr;
                     return true;
             }
         }
-        expression = null;
+        rootExpression = null;
         return false;
     }
 
