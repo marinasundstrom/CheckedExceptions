@@ -453,7 +453,7 @@ namespace TestNamespace
 {
     public class TestClass
     {
-        public void TestMethod() => Test(42);
+        public void TestMethod() => Test(42) + 1;
 
         [Throws(typeof(InvalidOperationException))]
         public bool Test(int x) 
@@ -476,7 +476,7 @@ namespace TestNamespace
         {
             try
             {
-                return Test(42);
+                return Test(42) + 1;
             }
             catch (InvalidOperationException invalidOperationException)
             {
@@ -562,7 +562,7 @@ namespace TestNamespace
 {
     public class TestClass
     {
-        public int TestProp => Test(42);
+        public int TestProp => Test(42) + 1;
 
         [Throws(typeof(InvalidOperationException))]
         public int Test(int x) 
@@ -587,7 +587,7 @@ namespace TestNamespace
             {
                 try
                 {
-                    return Test(42);
+                    return Test(42) + 1;
                 }
                 catch (InvalidOperationException invalidOperationException)
                 {
@@ -623,7 +623,7 @@ namespace TestNamespace
     {
         public int TestProp
         {
-            get => Test(42);
+            get => Test(42) + 1;
         }
 
         [Throws(typeof(InvalidOperationException))]
@@ -649,7 +649,7 @@ namespace TestNamespace
             {
                 try
                 {
-                    return Test(42);
+                    return Test(42) + 1;
                 }
                 catch (InvalidOperationException invalidOperationException)
                 {
