@@ -45,7 +45,16 @@ namespace TestNamespace
     {
         public void Foo() 
         {
-            int TestMethod() { try { return Test(41) + 1; } catch (InvalidOperationException invalidOperationException) { } }
+            int TestMethod()
+            {
+                try
+                {
+                    return Test(41) + 1;
+                }
+                catch (InvalidOperationException invalidOperationException)
+                {
+                }
+            }
         }
 
         [Throws(typeof(InvalidOperationException))]
@@ -97,7 +106,16 @@ namespace TestNamespace
     {
         public void Foo() 
         {
-            var f = int () => { try { return Test(41) + 1; } catch (InvalidOperationException invalidOperationException) { } };
+            var f = int () =>
+            {
+                try
+                {
+                    return Test(41) + 1;
+                }
+                catch (InvalidOperationException invalidOperationException)
+                {
+                }
+            };
         }
 
         [Throws(typeof(InvalidOperationException))]

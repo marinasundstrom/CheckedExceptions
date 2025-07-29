@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- PR [#159](https://github.com/marinasundstrom/CheckedExceptions/pull/159) Fix formatting of promoted expression bodies
+
 ## [1.6.6] - 2025-07-29
 
 ### Fixed
