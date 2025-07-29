@@ -199,9 +199,7 @@ public class SurroundWithTryCatchCodeFixProvider : CodeFixProvider
 
         var catchClauses = CreateCatchClauses(exceptionTypeNames, count);
 
-        return TryStatement()
-            .WithBlock(tryBlock)
-            .WithCatches(List(catchClauses))
+        return TryStatement(tryBlock.WithTrailingTrivia(EndOfLine("\n")), List(catchClauses), null)
             .WithAdditionalAnnotations(Formatter.Annotation);
     }
 

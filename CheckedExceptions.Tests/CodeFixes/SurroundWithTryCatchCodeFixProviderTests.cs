@@ -417,7 +417,16 @@ namespace TestNamespace
         {
             try
             {
-                For(x => { try { return Test(x); } catch (InvalidOperationException invalidOperationException) { } });
+                For(x =>
+                {
+                    try
+                    {
+                        return Test(x);
+                    }
+                    catch (InvalidOperationException invalidOperationException)
+                    {
+                    }
+                });
             }
             catch {}
         }
@@ -533,7 +542,16 @@ namespace TestNamespace
     {
         public void Foo() 
         {
-            void TestMethod() { try { return Test(42); } catch (InvalidOperationException invalidOperationException) { } }
+            void TestMethod()
+            {
+                try
+                {
+                    return Test(42);
+                }
+                catch (InvalidOperationException invalidOperationException)
+                {
+                }
+            }
         }
 
         [Throws(typeof(InvalidOperationException))]
