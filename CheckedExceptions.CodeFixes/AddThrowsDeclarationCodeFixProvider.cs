@@ -14,8 +14,8 @@ using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace Sundstrom.CheckedExceptions;
 
-[ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(AddThrowsAttributeCodeFixProvider)), Shared]
-public class AddThrowsAttributeCodeFixProvider : CodeFixProvider
+[ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(AddThrowsDeclarationCodeFixProvider)), Shared]
+public class AddThrowsDeclarationCodeFixProvider : CodeFixProvider
 {
     private const string TitleAddThrowsAttribute = "Add throws declaration";
 

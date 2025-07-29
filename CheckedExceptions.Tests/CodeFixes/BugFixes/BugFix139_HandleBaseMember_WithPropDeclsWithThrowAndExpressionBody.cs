@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 using Xunit;
 
-using Verifier = CSharpCodeFixVerifier<CheckedExceptionsAnalyzer, AddThrowsAttributeCodeFixProvider, Microsoft.CodeAnalysis.Testing.DefaultVerifier>;
+using Verifier = CSharpCodeFixVerifier<CheckedExceptionsAnalyzer, AddThrowsDeclarationCodeFixProvider, Microsoft.CodeAnalysis.Testing.DefaultVerifier>;
 
 public class BugFix139_HandleBaseMember_WithPropDeclsWithThrowAndExpressionBody
 {

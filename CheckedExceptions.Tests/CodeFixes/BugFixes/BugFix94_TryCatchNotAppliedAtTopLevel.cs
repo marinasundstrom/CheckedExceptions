@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 
 using Xunit;
 
-using Verifier = CSharpCodeFixVerifier<CheckedExceptionsAnalyzer, AddTryCatchBlockCodeFixProvider, Microsoft.CodeAnalysis.Testing.DefaultVerifier>;
+using Verifier = CSharpCodeFixVerifier<CheckedExceptionsAnalyzer, SurroundWithTryCatchCodeFixProvider, Microsoft.CodeAnalysis.Testing.DefaultVerifier>;
 
 public class BugFix94_TryCatchNotAppliedAtTopLevel
 {

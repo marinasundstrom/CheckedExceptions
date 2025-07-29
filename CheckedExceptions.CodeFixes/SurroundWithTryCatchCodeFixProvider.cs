@@ -13,8 +13,8 @@ using static CatchClauseUtils;
 
 namespace Sundstrom.CheckedExceptions;
 
-[ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(AddTryCatchBlockCodeFixProvider)), Shared]
-public class AddTryCatchBlockCodeFixProvider : CodeFixProvider
+[ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(SurroundWithTryCatchCodeFixProvider)), Shared]
+public class SurroundWithTryCatchCodeFixProvider : CodeFixProvider
 {
     private const string TitleAddTryCatch = "Surround with try/catch";
 

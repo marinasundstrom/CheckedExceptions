@@ -5,9 +5,9 @@ using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
 
-using Verifier = CSharpCodeFixVerifier<CheckedExceptionsAnalyzer, AddThrowsAttributeCodeFixProvider, Microsoft.CodeAnalysis.Testing.DefaultVerifier>;
+using Verifier = CSharpCodeFixVerifier<CheckedExceptionsAnalyzer, AddThrowsDeclarationCodeFixProvider, Microsoft.CodeAnalysis.Testing.DefaultVerifier>;
 
-public class AddThrowsAttributeCodeFixProviderTests
+public class AddThrowsDeclarationCodeFixProviderTests
 {
     [Fact]
     public async Task AddsThrowsAttribute_ToMethod_WhenUnhandledExceptionThrown()

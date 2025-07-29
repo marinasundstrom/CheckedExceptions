@@ -6,7 +6,7 @@ using Microsoft.CodeAnalysis.Testing;
 
 using Xunit;
 
-using Verifier = CSharpCodeFixVerifier<CheckedExceptionsAnalyzer, AddTryCatchBlockCodeFixProvider, Microsoft.CodeAnalysis.Testing.DefaultVerifier>;
+using Verifier = CSharpCodeFixVerifier<CheckedExceptionsAnalyzer, SurroundWithTryCatchCodeFixProvider, Microsoft.CodeAnalysis.Testing.DefaultVerifier>;
 
 public class BugFix152_Codefix_Not_Applied
 {
