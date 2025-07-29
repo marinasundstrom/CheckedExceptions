@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [1.6.6] - 2025-07-29
+
 ### Fixed
 
 - PR [#154](https://github.com/marinasundstrom/CheckedExceptions/pull/154) Fix promotion of expression bodies in codefix
