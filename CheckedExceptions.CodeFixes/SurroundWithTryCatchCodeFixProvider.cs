@@ -268,6 +268,9 @@ public class SurroundWithTryCatchCodeFixProvider : CodeFixProvider
                     }
                     return (start, end);
 
+                case WrapStrategy.MinimalTransitive:
+                    return FindTransitiveClosure(targetIndex, statements, semanticModel!);
+
                 case WrapStrategy.Remainder:
                     return (targetIndex, statements.Count - 1);
 
@@ -365,5 +368,55 @@ public class SurroundWithTryCatchCodeFixProvider : CodeFixProvider
         }
 
         return document.WithSyntaxRoot(newRoot);
+    }
+
+    private static (int start, int end) FindTransitiveClosure(
+        int throwIndex,
+        IReadOnlyList<StatementSyntax> statements,
+    SemanticModel semanticModel)
+    {
+        var start = throwIndex;
+        var end = throwIndex;
+
+        var included = new HashSet<int> { throwIndex };
+        var queue = new Queue<int>();
+        queue.Enqueue(throwIndex);
+
+        var readSymbols = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
+        var writtenSymbols = new HashSet<ISymbol>(SymbolEqualityComparer.Default);
+
+        var df = semanticModel.AnalyzeDataFlow(statements[throwIndex])!;
+        readSymbols.UnionWith(df.ReadInside);
+        writtenSymbols.UnionWith(df.WrittenInside);
+
+        while (queue.Count > 0)
+        {
+            var idx = queue.Dequeue();
+
+            for (int i = 0; i < statements.Count; i++)
+            {
+                if (included.Contains(i))
+                    continue;
+
+                var flow = semanticModel.AnalyzeDataFlow(statements[i])!;
+                bool depends =
+                    flow.WrittenInside.Any(readSymbols.Contains) ||
+                    flow.ReadInside.Any(writtenSymbols.Contains);
+
+                if (depends)
+                {
+                    included.Add(i);
+                    queue.Enqueue(i);
+
+                    start = Math.Min(start, i);
+                    end = Math.Max(end, i);
+
+                    readSymbols.UnionWith(flow.ReadInside);
+                    writtenSymbols.UnionWith(flow.WrittenInside);
+                }
+            }
+        }
+
+        return (start, end);
     }
 }
