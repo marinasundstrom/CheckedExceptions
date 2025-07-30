@@ -4,11 +4,10 @@ namespace Test;
 
 public class XmlDocWarnings
 {
-    /// <exception cref="System.InvalidCastException" />
+    /// <exception cref="InvalidCastException" />
     public void Method()
     {
-        IEnumerable<string>? items = null;
-        var x = items.First();
+
     }
 
     public void WithLocalFunction()
@@ -17,9 +16,14 @@ public class XmlDocWarnings
         /// <exception cref="System.InvalidCastException" />
         void Test()
         {
-            IEnumerable<string>? items = null;
 
-            var x = items.First();
         }
     }
+
+    /// <exception cref="T:.InvalidCastException" />
+    public void Method2()
+    {
+
+    }
+
 }
