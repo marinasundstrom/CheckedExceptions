@@ -38,19 +38,27 @@ public class AddThrowsDeclarationFromXmlDocCodeFixProvider : CodeFixProvider
 
         var node = root.FindNode(diagnostics.First().Location.SourceSpan);
 
-        SyntaxNode? method = null;
+        SyntaxNode? targetNode = null;
 
         if (node is GlobalStatementSyntax globalStatement)
         {
-            method = globalStatement.Statement as LocalFunctionStatementSyntax;
+            targetNode = globalStatement.Statement as LocalFunctionStatementSyntax;
+        }
+        else if (node is PropertyDeclarationSyntax propertyDeclaration)
+        {
+            targetNode = propertyDeclaration;
+        }
+        else if (node is AccessorDeclarationSyntax accessorDeclaration)
+        {
+            targetNode = accessorDeclaration;
         }
         else
         {
-            method = (SyntaxNode?)node.FirstAncestorOrSelf<MethodDeclarationSyntax>()
+            targetNode = (SyntaxNode?)node.FirstAncestorOrSelf<BaseMethodDeclarationSyntax>()
                 ?? node.FirstAncestorOrSelf<LocalFunctionStatementSyntax>();
         }
 
-        if (method is null)
+        if (targetNode is null)
             return;
 
         var diagnosticsCount = diagnostics.Length;
@@ -60,12 +68,12 @@ public class AddThrowsDeclarationFromXmlDocCodeFixProvider : CodeFixProvider
                 title: diagnosticsCount > 1
                     ? Title.Replace("declaration", "declarations")
                     : Title,
-                createChangedDocument: c => ApplyCodefix(context.Document, method, diagnostics, c),
+                createChangedDocument: c => ApplyCodefix(context.Document, targetNode, diagnostics, c),
                 equivalenceKey: Title),
             diagnostics);
     }
 
-    private static async Task<Document> ApplyCodefix(Document document, SyntaxNode method, IEnumerable<Diagnostic> diagnostics, CancellationToken cancellationToken)
+    private static async Task<Document> ApplyCodefix(Document document, SyntaxNode targetNode, IEnumerable<Diagnostic> diagnostics, CancellationToken cancellationToken)
     {
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
 
@@ -77,12 +85,12 @@ public class AddThrowsDeclarationFromXmlDocCodeFixProvider : CodeFixProvider
             .ToList();
 
         // Try to find an existing [Throws]
-        var firstThrowsAttribute = method.ChildNodes()
+        var firstThrowsAttribute = targetNode.ChildNodes()
             .OfType<AttributeListSyntax>()
             .SelectMany(l => l.Attributes)
             .FirstOrDefault(a => a.Name.ToString() is "Throws" or "ThrowsAttribute");
 
-        var newMethod = method;
+        var newNode = targetNode;
 
         if (firstThrowsAttribute != null)
         {
@@ -93,7 +101,7 @@ public class AddThrowsDeclarationFromXmlDocCodeFixProvider : CodeFixProvider
             var updatedThrows = firstThrowsAttribute.WithArgumentList(
                 firstThrowsAttribute.ArgumentList.WithArguments(newArgs));
 
-            newMethod = method.ReplaceNode(firstThrowsAttribute, updatedThrows);
+            newNode = targetNode.ReplaceNode(firstThrowsAttribute, updatedThrows);
         }
         else
         {
@@ -104,28 +112,42 @@ public class AddThrowsDeclarationFromXmlDocCodeFixProvider : CodeFixProvider
                 IdentifierName("Throws"),
                 AttributeArgumentList(args));
 
-            var leadingTrivia = method.GetLeadingTrivia();
+            var leadingTrivia = targetNode.GetLeadingTrivia();
 
-            if (method is MethodDeclarationSyntax methodDeclaration)
+            if (targetNode is BaseMethodDeclarationSyntax methodDeclaration)
             {
-                newMethod = methodDeclaration
+                newNode = methodDeclaration
                     .WithoutLeadingTrivia()
                     .AddAttributeLists(
                     AttributeList(SingletonSeparatedList(attribute)));
             }
-            else if (method is LocalFunctionStatementSyntax localFunctionStatement)
+            else if (targetNode is PropertyDeclarationSyntax propertyDeclaration)
             {
-                newMethod = localFunctionStatement
+                newNode = propertyDeclaration
+                    .WithoutLeadingTrivia()
+                    .AddAttributeLists(
+                    AttributeList(SingletonSeparatedList(attribute)));
+            }
+            else if (targetNode is AccessorDeclarationSyntax accessorDeclaration)
+            {
+                newNode = accessorDeclaration
+                    .WithoutLeadingTrivia()
+                    .AddAttributeLists(
+                    AttributeList(SingletonSeparatedList(attribute)));
+            }
+            else if (targetNode is LocalFunctionStatementSyntax localFunctionStatement)
+            {
+                newNode = localFunctionStatement
                     .WithoutLeadingTrivia()
                     .AddAttributeLists(
                     AttributeList(SingletonSeparatedList(attribute)));
             }
 
-            newMethod = newMethod.WithLeadingTrivia(leadingTrivia);
+            newNode = newNode.WithLeadingTrivia(leadingTrivia);
         }
 
         //newMethod = newMethod.WithAdditionalAnnotations(Formatter.Annotation);
-        var newRoot = root.ReplaceNode(method, newMethod);
+        var newRoot = root.ReplaceNode(targetNode, newNode);
 
         return document.WithSyntaxRoot(newRoot);
     }

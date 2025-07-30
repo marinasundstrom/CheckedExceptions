@@ -67,7 +67,7 @@ public partial class XmlDocTest2
 
         var expected = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdXmlDocButNoThrows)
             .WithArguments("InvalidOperationException")
-            .WithSpan(8, 23, 8, 24);
+            .WithSpan(8, 16, 8, 19);
 
         await Verifier.VerifyAnalyzerAsync(test, o =>
         {

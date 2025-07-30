@@ -76,4 +76,72 @@ void Foo()
 
         await Verifier.VerifyCodeFixAsync(testCode, [expectedDiagnostic, expectedDiagnostic2], fixedCode, expectedIncrementalIterations: 2, executable: true);
     }
+
+    [Fact]
+    public async Task AddsThrowsAttribute_ToProperty_FromXmlDoc()
+    {
+        var testCode = /* lang=c#-test */  """
+using System;
+
+public class Test 
+{
+    /// <exception cref="System.InvalidOperationException" />
+    public int Foo
+    {
+        get;
+    }
+}
+""";
+
+        var fixedCode = /* lang=c#-test */  """
+using System;
+
+public class Test 
+{
+    /// <exception cref="System.InvalidOperationException" />
+    public int Foo
+    {
+        [Throws(typeof(InvalidOperationException))]
+        get;
+    }
+}
+""";
+
+        var expectedDiagnostic = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdXmlDocButNoThrows)
+            .WithArguments("InvalidOperationException")
+            .WithSpan(8, 9, 8, 12);
+
+        await Verifier.VerifyCodeFixAsync(testCode, expectedDiagnostic, fixedCode);
+    }
+
+    [Fact]
+    public async Task AddsThrowsAttribute_ToProperty_FromXmlDoc2()
+    {
+        var testCode = /* lang=c#-test */  """
+using System;
+
+public class Test 
+{
+    /// <exception cref="InvalidOperationException" />
+    public int Foo => 0;
+}
+""";
+
+        var fixedCode = /* lang=c#-test */  """
+using System;
+
+public class Test 
+{
+    /// <exception cref="InvalidOperationException" />
+    [Throws(typeof(InvalidOperationException))]
+    public int Foo => 0;
+}
+""";
+
+        var expectedDiagnostic = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdXmlDocButNoThrows)
+            .WithArguments("InvalidOperationException")
+            .WithSpan(6, 16, 6, 19);
+
+        await Verifier.VerifyCodeFixAsync(testCode, expectedDiagnostic, fixedCode);
+    }
 }
