@@ -25,7 +25,7 @@ public class AddThrowsDeclarationFromXmlDocCodeFixProvider : CodeFixProvider
         [CheckedExceptionsAnalyzer.DiagnosticIdXmlDocButNoThrows];
 
     public sealed override FixAllProvider GetFixAllProvider() =>
-        WellKnownFixAllProviders.BatchFixer;
+        null!; //WellKnownFixAllProviders.BatchFixer;
 
     public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
     {
@@ -53,50 +53,51 @@ public class AddThrowsDeclarationFromXmlDocCodeFixProvider : CodeFixProvider
         if (method is null)
             return;
 
+        var diagnosticsCount = diagnostics.Length;
+
+        context.RegisterCodeFix(
+            CodeAction.Create(
+                title: diagnosticsCount > 1
+                    ? Title.Replace("declaration", "declarations")
+                    : Title,
+                createChangedDocument: c => ApplyCodefix(context.Document, method, diagnostics, c),
+                equivalenceKey: Title),
+            diagnostics);
+    }
+
+    private static async Task<Document> ApplyCodefix(Document document, SyntaxNode method, IEnumerable<Diagnostic> diagnostics, CancellationToken cancellationToken)
+    {
+        var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+
         // Collect exception type names from diagnostics
-        var toAdd = diagnostics
+        var exceptionsToAdd = diagnostics
             .Select(d => d.Properties.TryGetValue("ExceptionType", out var ex) ? ex : null)
             .Where(x => x is not null)
             .Distinct()
             .ToList();
 
-        if (toAdd.Count == 0)
-            return;
-
-        context.RegisterCodeFix(
-            CodeAction.Create(
-                title: diagnostics.Length > 1
-                    ? Title.Replace("declaration", "declarations")
-                    : Title,
-                createChangedDocument: async c => ApplyCodefix(context, root, method, toAdd),
-                equivalenceKey: Title),
-            diagnostics);
-    }
-
-    private static Document ApplyCodefix(CodeFixContext context, SyntaxNode root, SyntaxNode method, List<string?> toAdd)
-    {
-        var newMethod = method;
-
         // Try to find an existing [Throws]
-        var firstThrows = method.ChildNodes()
+        var firstThrowsAttribute = method.ChildNodes()
             .OfType<AttributeListSyntax>()
             .SelectMany(l => l.Attributes)
             .FirstOrDefault(a => a.Name.ToString() is "Throws" or "ThrowsAttribute");
 
-        if (firstThrows != null)
+        var newMethod = method;
+
+        if (firstThrowsAttribute != null)
         {
-            var newArgs = firstThrows.ArgumentList.Arguments.AddRange(
-                toAdd.Select(ex =>
+            var newArgs = firstThrowsAttribute.ArgumentList.Arguments.AddRange(
+                exceptionsToAdd.Select(ex =>
                     AttributeArgument(TypeOfExpression(ParseTypeName(ex!)))));
 
-            var updatedThrows = firstThrows.WithArgumentList(
-                firstThrows.ArgumentList.WithArguments(newArgs));
+            var updatedThrows = firstThrowsAttribute.WithArgumentList(
+                firstThrowsAttribute.ArgumentList.WithArguments(newArgs));
 
-            newMethod = method.ReplaceNode(firstThrows, updatedThrows);
+            newMethod = method.ReplaceNode(firstThrowsAttribute, updatedThrows);
         }
         else
         {
-            var args = SeparatedList(toAdd.Select(ex =>
+            var args = SeparatedList(exceptionsToAdd.Select(ex =>
                 AttributeArgument(TypeOfExpression(ParseTypeName(ex!)))));
 
             var attribute = Attribute(
@@ -126,6 +127,6 @@ public class AddThrowsDeclarationFromXmlDocCodeFixProvider : CodeFixProvider
         //newMethod = newMethod.WithAdditionalAnnotations(Formatter.Annotation);
         var newRoot = root.ReplaceNode(method, newMethod);
 
-        return context.Document.WithSyntaxRoot(newRoot);
+        return document.WithSyntaxRoot(newRoot);
     }
 }

@@ -21,6 +21,7 @@ public class AddThrowsDeclarationCodeFixProvider : CodeFixProvider
 
     public sealed override ImmutableArray<string> FixableDiagnosticIds =>
         [CheckedExceptionsAnalyzer.DiagnosticIdUnhandled];
+
     public sealed override FixAllProvider GetFixAllProvider() =>
         null!; //WellKnownFixAllProviders.BatchFixer;
 
