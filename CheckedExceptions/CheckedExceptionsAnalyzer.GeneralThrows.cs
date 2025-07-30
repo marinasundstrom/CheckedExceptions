@@ -37,7 +37,7 @@ partial class CheckedExceptionsAnalyzer
                     {
                         context.ReportDiagnostic(Diagnostic.Create(
                             RuleGeneralThrows,
-                            typeOfExpr.GetLocation(), // ✅ precise location
+                            typeOfExpr.Type.GetLocation(), // ✅ precise location
                             type.Name));
                     }
                 }
@@ -75,7 +75,7 @@ partial class CheckedExceptionsAnalyzer
                     {
                         context.ReportDiagnostic(Diagnostic.Create(
                             RuleGeneralThrows,
-                            typeOfExpr.GetLocation(), // ✅ report precisely on typeof(Exception)
+                            typeOfExpr.Type.GetLocation(), // ✅ report precisely on typeof(Exception)
                             type.Name));
                     }
                 }

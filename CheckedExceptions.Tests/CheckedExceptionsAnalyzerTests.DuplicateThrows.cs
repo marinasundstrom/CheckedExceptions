@@ -35,11 +35,11 @@ partial class CheckedExceptionsAnalyzerTests
             """;
 
         var expectedGetter = Verifier.Diagnostic("THROW005")
-            .WithSpan(8, 17, 8, 34)
+            .WithSpan(8, 24, 8, 33)
             .WithArguments("Exception");
 
         var expectedSetter = Verifier.Diagnostic("THROW005")
-            .WithSpan(15, 17, 15, 34)
+            .WithSpan(15, 24, 15, 33)
             .WithArguments("Exception");
 
         await Verifier.VerifyAnalyzerAsync(test, expectedGetter, expectedSetter);
@@ -73,11 +73,11 @@ partial class CheckedExceptionsAnalyzerTests
             """;
 
         var expectedAdd = Verifier.Diagnostic("THROW005")
-            .WithSpan(8, 17, 8, 34)
+            .WithSpan(8, 24, 8, 33)
             .WithArguments("Exception");
 
         var expectedRemove = Verifier.Diagnostic("THROW005")
-            .WithSpan(15, 17, 15, 34)
+            .WithSpan(15, 24, 15, 33)
             .WithArguments("Exception");
 
         await Verifier.VerifyAnalyzerAsync(test, expectedAdd, expectedRemove);
@@ -100,7 +100,7 @@ partial class CheckedExceptionsAnalyzerTests
             """;
 
         var expected = Verifier.Diagnostic("THROW005")
-            .WithSpan(7, 60, 7, 77)
+            .WithSpan(7, 67, 7, 76)
             .WithArguments("Exception");
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
@@ -129,7 +129,7 @@ partial class CheckedExceptionsAnalyzerTests
             """;
 
         var expected = Verifier.Diagnostic("THROW005")
-            .WithSpan(8, 17, 8, 34)
+            .WithSpan(8, 24, 8, 33)
             .WithArguments("Exception");
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
