@@ -51,7 +51,7 @@ public class SurroundWithTryCatchCodeFixProvider : CodeFixProvider
         context.RegisterCodeFix(
             CodeAction.Create(
                 title: TitleAddTryCatch,
-                createChangedDocument: c => AddTryCatchAroundStatementAsync(context.Document, statement, diagnostics, c),
+                createChangedDocument: c => AddTryCatchAroundStatementAsync(context.Document, statement, diagnostics, WrapStrategy.Minimal, c),
                 equivalenceKey: TitleAddTryCatch),
             diagnostics);
     }
@@ -203,7 +203,20 @@ public class SurroundWithTryCatchCodeFixProvider : CodeFixProvider
             .WithAdditionalAnnotations(Formatter.Annotation);
     }
 
-    private async Task<Document> AddTryCatchAroundStatementAsync(Document document, StatementSyntax statement, IEnumerable<Diagnostic> diagnostics, CancellationToken cancellationToken)
+    private enum WrapStrategy
+    {
+        Minimal,    // Wraps the throw site and the immediate dependencies in a try.
+        MinimalTransitive, // Wraps the throw site and the transitive dependencies in at try
+        Remainder,  // Wraps the remainder of the statements (from the throw site to the end of the block) in a try.
+        FullBlock   // Wraps all the statements in the current block in a try.
+    }
+
+    private async Task<Document> AddTryCatchAroundStatementAsync(
+        Document document,
+        StatementSyntax statement,
+        IEnumerable<Diagnostic> diagnostics,
+        WrapStrategy strategy,
+        CancellationToken cancellationToken)
     {
         var exceptionTypeNames = diagnostics
             .Select(d => d.Properties.TryGetValue("ExceptionType", out var type) ? type! : string.Empty);
@@ -214,44 +227,65 @@ public class SurroundWithTryCatchCodeFixProvider : CodeFixProvider
         var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
         SyntaxNode newRoot;
 
+        // local function: extract start/end indices depending on strategy
+        (int start, int end) GetRange(IReadOnlyList<StatementSyntax> statements, int targetIndex)
+        {
+            switch (strategy)
+            {
+                case WrapStrategy.Minimal:
+                    int start = targetIndex;
+                    var dataFlow = semanticModel.AnalyzeDataFlow(statements[targetIndex])!;
+                    var readSymbols = new HashSet<ISymbol>(dataFlow.ReadInside, SymbolEqualityComparer.Default);
+
+                    // backtrack dependencies
+                    for (int i = 0; i < targetIndex; i++)
+                    {
+                        var flow = semanticModel.AnalyzeDataFlow(statements[i])!;
+                        if (flow.WrittenInside.Any(readSymbols.Contains))
+                        {
+                            start = i;
+                            break;
+                        }
+                    }
+
+                    int end = targetIndex;
+                    var writtenSymbols = new HashSet<ISymbol>(
+                        semanticModel.AnalyzeDataFlow(statements[targetIndex])!.WrittenInside,
+                        SymbolEqualityComparer.Default);
+
+                    for (int i = targetIndex + 1; i < statements.Count; i++)
+                    {
+                        var currentFlow = semanticModel.AnalyzeDataFlow(statements[i])!;
+                        if (currentFlow.ReadInside.Any(writtenSymbols.Contains))
+                        {
+                            end = i;
+                            writtenSymbols.UnionWith(currentFlow.WrittenInside);
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                    return (start, end);
+
+                case WrapStrategy.Remainder:
+                    return (targetIndex, statements.Count - 1);
+
+                case WrapStrategy.FullBlock:
+                    return (0, statements.Count - 1);
+
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(strategy), strategy, null);
+            }
+        }
+
         if (statement.Parent is BlockSyntax parentBlock)
         {
             var statements = parentBlock.Statements;
             var targetIndex = statements.IndexOf(statement);
             if (targetIndex == -1) return document;
 
-            var dataFlow = semanticModel.AnalyzeDataFlow(statement)!;
-            var readSymbols = new HashSet<ISymbol>(dataFlow.ReadInside, SymbolEqualityComparer.Default);
-
-            int start = targetIndex;
-            for (int i = 0; i < targetIndex; i++)
-            {
-                var flow = semanticModel.AnalyzeDataFlow(statements[i])!;
-                if (flow.WrittenInside.Any(readSymbols.Contains))
-                {
-                    start = i;
-                    break;
-                }
-            }
-
-            int end = targetIndex;
-            var writtenSymbols = new HashSet<ISymbol>(semanticModel.AnalyzeDataFlow(statements[targetIndex])!.WrittenInside, SymbolEqualityComparer.Default);
-
-            for (int i = targetIndex + 1; i < statements.Count; i++)
-            {
-                var current = statements[i];
-                var currentFlow = semanticModel.AnalyzeDataFlow(current)!;
-
-                if (currentFlow.ReadInside.Any(writtenSymbols.Contains))
-                {
-                    end = i;
-                    writtenSymbols.UnionWith(currentFlow.WrittenInside);
-                }
-                else
-                {
-                    break;
-                }
-            }
+            var (start, end) = GetRange(statements, targetIndex);
 
             var statementsToWrap = statements
                 .Skip(start).Take(end - start + 1)
@@ -286,38 +320,7 @@ public class SurroundWithTryCatchCodeFixProvider : CodeFixProvider
             var targetIndex = innerStatements.IndexOf(statement);
             if (targetIndex == -1) return document;
 
-            var dataFlow = semanticModel.AnalyzeDataFlow(statement)!;
-            var readSymbols = new HashSet<ISymbol>(dataFlow.ReadInside, SymbolEqualityComparer.Default);
-
-            int start = targetIndex;
-            for (int i = 0; i < targetIndex; i++)
-            {
-                var flow = semanticModel.AnalyzeDataFlow(innerStatements[i])!;
-                if (flow.WrittenInside.Any(readSymbols.Contains))
-                {
-                    start = i;
-                    break;
-                }
-            }
-
-            int end = targetIndex;
-            var writtenSymbols = new HashSet<ISymbol>(semanticModel.AnalyzeDataFlow(innerStatements[targetIndex])!.WrittenInside, SymbolEqualityComparer.Default);
-
-            for (int i = targetIndex + 1; i < innerStatements.Count; i++)
-            {
-                var current = innerStatements[i];
-                var currentFlow = semanticModel.AnalyzeDataFlow(current)!;
-
-                if (currentFlow.ReadInside.Any(writtenSymbols.Contains))
-                {
-                    end = i;
-                    writtenSymbols.UnionWith(currentFlow.WrittenInside);
-                }
-                else
-                {
-                    break;
-                }
-            }
+            var (start, end) = GetRange(innerStatements, targetIndex);
 
             var statementsToWrap = innerStatements
                 .Skip(start).Take(end - start + 1)
