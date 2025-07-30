@@ -31,7 +31,8 @@ partial class CheckedExceptionsAnalyzer
         // declared - actual = redundant
         foreach (var declaredType in declared)
         {
-            if (!actual.Contains(declaredType, SymbolEqualityComparer.Default))
+            if (!actual.Any(exceptionType =>
+               exceptionType.IsAssignableTo((ITypeSymbol)declaredType!, context.Compilation)))
             {
                 // Try to locate the corresponding attribute syntax for precise squiggle
                 var location = GetThrowsAttributeLocation(methodSymbol, (INamedTypeSymbol)declaredType!, context.Compilation)
@@ -84,7 +85,8 @@ partial class CheckedExceptionsAnalyzer
         // declared - actual = redundant
         foreach (var declaredType in declared)
         {
-            if (!actual.Contains(declaredType, SymbolEqualityComparer.Default))
+            if (!actual.Any(exceptionType =>
+                exceptionType.IsAssignableTo((ITypeSymbol)declaredType!, context.Compilation)))
             {
                 // Try to locate the corresponding attribute syntax for precise squiggle
                 var location = GetThrowsAttributeLocation(methodSymbol, (INamedTypeSymbol?)declaredType!, context.Compilation)
