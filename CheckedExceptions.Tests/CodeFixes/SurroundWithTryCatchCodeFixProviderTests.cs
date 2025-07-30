@@ -9,7 +9,7 @@ using Xunit.Abstractions;
 
 using Verifier = CSharpCodeFixVerifier<CheckedExceptionsAnalyzer, SurroundWithTryCatchCodeFixProvider, Microsoft.CodeAnalysis.Testing.DefaultVerifier>;
 
-public class SurroundWithTryCatchCodeFixProviderTests
+public partial class SurroundWithTryCatchCodeFixProviderTests
 {
     [Fact]
     public async Task AddTryCatch_ToMethod_WhenUnhandledExceptionThrown()
