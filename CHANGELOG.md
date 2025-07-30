@@ -20,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - PR [#166](https://github.com/marinasundstrom/CheckedExceptions/pull/166) Report diagnostics on name of declared type
 
+- PR [#167](https://github.com/marinasundstrom/CheckedExceptions/pull/167) Show simple exception name in diagnostic
+
 ## [1.6.7] - 2025-07-29
 
 ### Added

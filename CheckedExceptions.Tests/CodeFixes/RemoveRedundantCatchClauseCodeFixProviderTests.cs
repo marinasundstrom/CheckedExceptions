@@ -48,7 +48,7 @@ catch (OverflowException overflowException)
 """;
 
         var expectedDiagnostic = Verifier.Diagnostic("THROW009")
-                .WithArguments("System.ArgumentException")
+                .WithArguments("ArgumentException")
                 .WithSpan(14, 8, 14, 25);
 
 
