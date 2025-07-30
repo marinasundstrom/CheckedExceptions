@@ -82,29 +82,72 @@ partial class CheckedExceptionsAnalyzer
 
     public record struct ExceptionInfo(INamedTypeSymbol ExceptionType, string Description, IEnumerable<ParamInfo> Parameters);
 
-    private static IEnumerable<ExceptionInfo> GetExceptionTypesFromDocumentationCommentXml(Compilation compilation, XElement? xml)
+    private static IEnumerable<ExceptionInfo> GetExceptionTypesFromDocumentationCommentXml(
+        Compilation compilation, XElement? xml)
     {
-        try
+        if (xml is null)
+            yield break;
+
+        foreach (var e in xml.Descendants("exception"))
         {
-            return xml.Descendants("exception")
-                .Select(e =>
-                {
-                    var cref = e.Attribute("cref")?.Value;
-                    var crefValue = cref.StartsWith("T:") ? cref.Substring(2) : cref;
-                    var innerText = e.Value;
+            var cref = e.Attribute("cref")?.Value;
+            if (string.IsNullOrWhiteSpace(cref))
+                continue;
 
-                    var name = compilation.GetTypeByMetadataName(crefValue) ??
-                           compilation.GetTypeByMetadataName(crefValue.Split('.').Last());
+            var innerText = e.Value;
 
-                    var parameters = e.Elements("paramref").Select(x => new ParamInfo(x.Attribute("name").Value));
+            INamedTypeSymbol? symbol = null;
 
-                    return new ExceptionInfo(name, innerText, parameters);
-                });
+            // 1. Normalize cref to include "T:" prefix
+            var crefId = cref.StartsWith("T:") ? cref : "T:" + cref;
+            symbol = DocumentationCommentId.GetFirstSymbolForDeclarationId(crefId, compilation) as INamedTypeSymbol;
+
+            // 2. Fallback: try as fully qualified metadata name
+            if (symbol is null)
+            {
+                symbol = compilation.GetTypeByMetadataName(cref);
+            }
+
+            // 3. Fallback: try short name
+            if (symbol is null)
+            {
+                var shortName = cref.Replace("T:", "").Split('.').Last();
+                symbol = FindTypeByShortName(compilation.GlobalNamespace, shortName);
+            }
+
+            if (symbol is null)
+                continue;
+
+            var parameters = e.Elements("paramref")
+                              .Select(x => new ParamInfo(x.Attribute("name")?.Value ?? ""));
+
+            yield return new ExceptionInfo(symbol, innerText, parameters);
         }
-        catch
+    }
+
+    private static INamedTypeSymbol? FindTypeByShortName(INamespaceSymbol ns, string shortName)
+    {
+        var matches = new List<INamedTypeSymbol>();
+
+        CollectMatches(ns, shortName, matches);
+
+        if (matches.Count == 0)
+            return null;
+
+        // Prefer System.* matches if available
+        var systemMatch = matches.FirstOrDefault(m =>
+            m.ContainingNamespace.ToDisplayString().StartsWith("System", StringComparison.Ordinal));
+
+        return systemMatch ?? matches[0];
+    }
+
+    private static void CollectMatches(INamespaceSymbol ns, string shortName, List<INamedTypeSymbol> matches)
+    {
+        matches.AddRange(ns.GetTypeMembers(shortName));
+
+        foreach (var nestedNs in ns.GetNamespaceMembers())
         {
-            // Handle or log parsing errors
-            return Enumerable.Empty<ExceptionInfo>();
+            CollectMatches(nestedNs, shortName, matches);
         }
     }
 
