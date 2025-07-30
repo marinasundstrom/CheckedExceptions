@@ -36,8 +36,12 @@ public partial class XmlDocTest
 
         var expected = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(16, 9, 16, 21);
+        
+        var expected2 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdXmlDocButNoThrows)
+            .WithArguments("InvalidOperationException")
+            .WithSpan(9, 17, 9, 27);
 
-        await Verifier.VerifyAnalyzerAsync(test, expected);
+        await Verifier.VerifyAnalyzerAsync(test, [expected, expected2]);
     }
 
     // Test 2: Validates multiple exceptions declared in XML documentation for int.Parse
