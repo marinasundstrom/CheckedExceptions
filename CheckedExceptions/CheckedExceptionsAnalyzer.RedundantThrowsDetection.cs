@@ -47,6 +47,59 @@ partial class CheckedExceptionsAnalyzer
         }
     }
 
+    /// <summary>
+    /// For local functions and lambdas
+    /// </summary>
+    /// <summary>
+    /// For local functions and lambdas
+    /// </summary>
+    private void CheckForRedundantThrowsDeclarations(
+        IEnumerable<AttributeSyntax> throwsAttributes,
+        SyntaxNodeAnalysisContext context)
+    {
+        var semanticModel = context.SemanticModel;
+        var node = context.Node;
+
+        IMethodSymbol? methodSymbol = null;
+
+        if (node is LocalFunctionStatementSyntax)
+        {
+            methodSymbol = semanticModel.GetDeclaredSymbol(node) as IMethodSymbol;
+        }
+        else if (node is AnonymousFunctionExpressionSyntax)
+        {
+            methodSymbol = semanticModel.GetSymbolInfo(node).Symbol as IMethodSymbol;
+        }
+
+        if (methodSymbol is null)
+            return;
+
+        // Collect all declared exception types from [Throws]
+        var declared = throwsAttributes.SelectMany(x => GetExceptionTypes(x, semanticModel))
+            .ToImmutableHashSet(SymbolEqualityComparer.Default);
+
+        // Collect all actually escaping exceptions
+        var actual = CollectThrownExceptions(methodSymbol, semanticModel.Compilation, context.Options);
+
+        // declared - actual = redundant
+        foreach (var declaredType in declared)
+        {
+            if (!actual.Contains(declaredType, SymbolEqualityComparer.Default))
+            {
+                // Try to locate the corresponding attribute syntax for precise squiggle
+                var location = GetThrowsAttributeLocation(methodSymbol, (INamedTypeSymbol?)declaredType!, context.Compilation)
+                               ?? node.GetLocation();
+
+                var diagnostic = Diagnostic.Create(
+                    RuleRedundantExceptionDeclaration,
+                    location,
+                    declaredType.Name);
+
+                context.ReportDiagnostic(diagnostic);
+            }
+        }
+    }
+
     private ImmutableHashSet<INamedTypeSymbol> CollectThrownExceptions(
         IMethodSymbol method,
         Compilation compilation,
@@ -57,29 +110,63 @@ partial class CheckedExceptionsAnalyzer
             return ImmutableHashSet<INamedTypeSymbol>.Empty;
 
         var node = syntaxRef.GetSyntax();
-        if (node is not BaseMethodDeclarationSyntax methodDecl || methodDecl.Body == null)
-            return ImmutableHashSet<INamedTypeSymbol>.Empty;
+
+        BlockSyntax? body = null;
+        ExpressionSyntax? expressionBody = null;
+
+        switch (node)
+        {
+            case BaseMethodDeclarationSyntax methodDecl:
+                body = methodDecl.Body;
+                expressionBody = methodDecl.ExpressionBody?.Expression;
+                break;
+
+            case LocalFunctionStatementSyntax localFunction:
+                body = localFunction.Body;
+                expressionBody = localFunction.ExpressionBody?.Expression;
+                break;
+
+            case AnonymousFunctionExpressionSyntax anonymousFunction:
+                body = anonymousFunction.Block;
+                // Lambdas can be block‑bodied or expression‑bodied
+                if (body is null && anonymousFunction.ExpressionBody is ExpressionSyntax expr)
+                {
+                    expressionBody = expr;
+                }
+                break;
+        }
 
         var semanticModel = compilation.GetSemanticModel(node.SyntaxTree);
 
         var context = new SyntaxNodeAnalysisContext(
-            methodDecl,
+            node,
             semanticModel,
             options: analyzerOptions,
             reportDiagnostic: _ => { },
             isSupportedDiagnostic: _ => true,
             cancellationToken: default);
 
-        // Reuse existing unhandled exception collector
-        var unhandled = CollectAllEscapingExceptions(context, methodDecl.Body, GetAnalyzerSettings(context.Options));
+        var settings = GetAnalyzerSettings(context.Options);
 
-        return [.. unhandled.ToImmutableHashSet(SymbolEqualityComparer.Default).OfType<INamedTypeSymbol>()];
+        if (body is not null)
+        {
+            var unhandled = CollectAllEscapingExceptions(context, body, settings);
+            return [.. unhandled.OfType<INamedTypeSymbol>()];
+        }
+        else if (expressionBody is not null)
+        {
+            // Collect exceptions directly from the expression
+            var exceptions = CollectExceptionsFromExpression(context, expressionBody, settings, semanticModel);
+            return [.. exceptions.OfType<INamedTypeSymbol>()];
+        }
+
+        return [];
     }
 
     private HashSet<INamedTypeSymbol> CollectAllEscapingExceptions(
-    SyntaxNodeAnalysisContext context,
-    BlockSyntax block,
-    AnalyzerSettings settings)
+        SyntaxNodeAnalysisContext context,
+        BlockSyntax block,
+        AnalyzerSettings settings)
     {
         var unhandledExceptions = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
 

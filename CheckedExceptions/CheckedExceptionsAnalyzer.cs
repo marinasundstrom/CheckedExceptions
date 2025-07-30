@@ -299,6 +299,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         if (throwsAttributes.Any())
         {
             CheckForDuplicateThrowsDeclarations(throwsAttributes, context);
+            CheckForRedundantThrowsDeclarations(throwsAttributes, context);
             CheckForRedundantThrowsHandledByDeclaredSuperClass(throwsAttributes, context);
         }
     }
@@ -560,8 +561,22 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             }
         }
 
+        CollectExceptionsFromExpression(context, statement, settings, semanticModel, exceptions);
+
+        return exceptions;
+    }
+
+    private HashSet<INamedTypeSymbol> CollectExceptionsFromExpression(SyntaxNodeAnalysisContext context, SyntaxNode expression, AnalyzerSettings settings, SemanticModel semanticModel)
+    {
+        HashSet<INamedTypeSymbol> exceptions = [];
+        CollectExceptionsFromExpression(context, expression, settings, semanticModel, exceptions);
+        return exceptions;
+    }
+
+    private void CollectExceptionsFromExpression(SyntaxNodeAnalysisContext context, SyntaxNode expression, AnalyzerSettings settings, SemanticModel semanticModel, HashSet<INamedTypeSymbol> exceptions)
+    {
         // Collect exceptions from throw expressions
-        var throwExpressions = statement.DescendantNodesAndSelf().OfType<ThrowExpressionSyntax>();
+        var throwExpressions = expression.DescendantNodesAndSelf().OfType<ThrowExpressionSyntax>();
         foreach (var throwExpression in throwExpressions)
         {
             if (throwExpression.Expression is not null)
@@ -578,7 +593,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         }
 
         // Collect exceptions from method calls and other expressions
-        var invocationExpressions = statement.DescendantNodesAndSelf().OfType<InvocationExpressionSyntax>();
+        var invocationExpressions = expression.DescendantNodesAndSelf().OfType<InvocationExpressionSyntax>();
         foreach (var invocation in invocationExpressions)
         {
             var methodSymbol = semanticModel.GetSymbolInfo(invocation).Symbol as IMethodSymbol;
@@ -606,7 +621,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             }
         }
 
-        var objectCreations = statement.DescendantNodesAndSelf().OfType<ObjectCreationExpressionSyntax>();
+        var objectCreations = expression.DescendantNodesAndSelf().OfType<ObjectCreationExpressionSyntax>();
         foreach (var objectCreation in objectCreations)
         {
             var methodSymbol = semanticModel.GetSymbolInfo(objectCreation).Symbol as IMethodSymbol;
@@ -635,7 +650,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         }
 
         // Collect from MemberAccess and Identifier
-        var memberAccessExpressions = statement.DescendantNodesAndSelf().OfType<MemberAccessExpressionSyntax>();
+        var memberAccessExpressions = expression.DescendantNodesAndSelf().OfType<MemberAccessExpressionSyntax>();
         foreach (var memberAccess in memberAccessExpressions)
         {
             var propertySymbol = semanticModel.GetSymbolInfo(memberAccess).Symbol as IPropertySymbol;
@@ -653,7 +668,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             }
         }
 
-        var elementAccessExpressions = statement.DescendantNodesAndSelf().OfType<ElementAccessExpressionSyntax>();
+        var elementAccessExpressions = expression.DescendantNodesAndSelf().OfType<ElementAccessExpressionSyntax>();
         foreach (var elementAccess in elementAccessExpressions)
         {
             var propertySymbol = semanticModel.GetSymbolInfo(elementAccess).Symbol as IPropertySymbol;
@@ -671,7 +686,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             }
         }
 
-        var identifierExpressions = statement.DescendantNodesAndSelf().OfType<IdentifierNameSyntax>();
+        var identifierExpressions = expression.DescendantNodesAndSelf().OfType<IdentifierNameSyntax>();
         foreach (var identifier in identifierExpressions)
         {
             var propertySymbol = semanticModel.GetSymbolInfo(identifier).Symbol as IPropertySymbol;
@@ -691,8 +706,6 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
                 }
             }
         }
-
-        return exceptions;
     }
 
     public bool ShouldIncludeException(INamedTypeSymbol exceptionType, SyntaxNode node, AnalyzerSettings settings)
