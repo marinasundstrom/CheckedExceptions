@@ -1278,7 +1278,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     /// <summary>
     /// Determines if an exception is handled by any enclosing try-catch blocks.
     /// </summary>
-    private bool IsExceptionHandled(SyntaxNode node, INamedTypeSymbol exceptionType, SemanticModel semanticModel)
+    private bool IsExceptionHandledByEnclosingTryCatch(SyntaxNode node, INamedTypeSymbol exceptionType, SemanticModel semanticModel)
     {
         SyntaxNode? prevNode = null;
 
@@ -1364,7 +1364,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         var isDeclared = IsExceptionDeclaredInMember(semanticModel, node, exceptionType);
 
         // Determine if the exception is handled by any enclosing try-catch
-        var isHandled = IsExceptionHandled(node, exceptionType, semanticModel);
+        var isHandled = IsExceptionHandledByEnclosingTryCatch(node, exceptionType, semanticModel);
 
         // Report diagnostic if neither handled nor declared
         if (!isHandled && !isDeclared)
