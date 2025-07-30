@@ -1,11 +1,23 @@
-namespace Test;
+using System;
 
-public class ThrowTest
+public class ThrowingObject
 {
-    public void MethodThatThrows()
+    [Throws(typeof(InvalidOperationException))]
+    public ThrowingObject()
     {
-        IEnumerable<string>? items = null;
+        throw new InvalidOperationException();
+    }
+}
 
-        var x = items.First();
+public class TestClass
+{
+    public void ExplicitNew()
+    {
+        ThrowingObject obj = new ThrowingObject(); // ❗ Expect diagnostic
+    }
+
+    public void TargetTypedNew()
+    {
+        ThrowingObject obj = new(); // ❗ Expect diagnostic
     }
 }

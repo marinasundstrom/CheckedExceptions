@@ -52,6 +52,9 @@ catch (OverflowException overflowException)
                 .WithSpan(14, 8, 14, 25);
 
 
-        await Verifier.VerifyCodeFixAsync(testCode, expectedDiagnostic, fixedCode, executable: true);
+        await Verifier.VerifyCodeFixAsync(testCode, [expectedDiagnostic], fixedCode, executable: true, setup: option =>
+        {
+            option.DisabledDiagnostics.Remove(CheckedExceptionsAnalyzer.DiagnosticIdRedundantTypedCatchClause);
+        });
     }
 }

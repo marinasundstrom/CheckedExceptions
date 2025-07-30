@@ -31,6 +31,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     public const string DiagnosticIdRedundantTypedCatchClause = "THROW009";
     public const string DiagnosticIdThrowsDeclarationNotValidOnFullProperty = "THROW010";
     public const string DiagnosticIdXmlDocButNoThrows = "THROW011";
+    public const string DiagnosticIdRedundantExceptionDeclaration = "THROW012";
 
     public static IEnumerable<string> AllDiagnosticsIds = [DiagnosticIdUnhandled, DiagnosticIdGeneralThrows, DiagnosticIdGeneralThrow, DiagnosticIdDuplicateDeclarations];
 
@@ -134,8 +135,17 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         description: "This member's XML documentation declares an exception, but it is not declared with a [Throws] attribute. " +
                      "Declare the exception with [Throws] to keep the documentation and the enforced contract consistent.");
 
+    private static readonly DiagnosticDescriptor RuleRedundantExceptionDeclaration = new(
+        DiagnosticIdRedundantExceptionDeclaration,
+        title: "Redundant exception declaration",
+        messageFormat: "Exception type '{0}' is not thrown in this member",
+        category: "Usage",
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "Detects declaration for exception types that are never thrown inside the current member, making the declaration redundant.");
+
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
-        [RuleUnhandledException, RuleIgnoredException, RuleGeneralThrows, RuleGeneralThrow, RuleDuplicateDeclarations, RuleMissingThrowsOnBaseMember, RuleMissingThrowsFromBaseMember, RuleDuplicateThrowsByHierarchy, RuleRedundantTypedCatchClause, RuleThrowsDeclarationNotValidOnFullProperty, RuleXmlDocButNoThrows];
+        [RuleUnhandledException, RuleIgnoredException, RuleGeneralThrows, RuleGeneralThrow, RuleDuplicateDeclarations, RuleMissingThrowsOnBaseMember, RuleMissingThrowsFromBaseMember, RuleDuplicateThrowsByHierarchy, RuleRedundantTypedCatchClause, RuleThrowsDeclarationNotValidOnFullProperty, RuleXmlDocButNoThrows, RuleRedundantExceptionDeclaration];
 
     public override void Initialize(AnalysisContext context)
     {
@@ -322,9 +332,10 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         if (throwsAttributes.Length == 0)
             return;
 
-        CheckForGeneralExceptionThrows(throwsAttributes, context);
-        CheckForDuplicateThrowsAttributes(context, throwsAttributes);
-        CheckForRedundantThrowsHandledByDeclaredSuperClass(context, throwsAttributes);
+        CheckForGeneralExceptionThrowDeclarations(throwsAttributes, context);
+        CheckForDuplicateThrowsDeclarations(context, throwsAttributes);
+        CheckForRedundantThrowsDeclarations(context, throwsAttributes);
+        CheckForRedundantThrowsDeclarationsHandledByDeclaredSuperClass(context, throwsAttributes);
     }
 
     private static IEnumerable<AttributeData> FilterThrowsAttributesByException(ImmutableArray<AttributeData> exceptionAttributes, string exceptionTypeName)
@@ -1302,10 +1313,12 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     /// Analyzes a node that throws or propagates exceptions to check for handling or declaration.
     /// </summary>
     private void AnalyzeExceptionThrowingNode(
-        SyntaxNodeAnalysisContext context,
+        SemanticModel semanticModel,
+        Action<Diagnostic> reportDiagnostic,
         SyntaxNode node,
         INamedTypeSymbol? exceptionType,
-        AnalyzerSettings settings)
+        AnalyzerSettings settings,
+        IList<INamedTypeSymbol>? unhandledExceptions = null)
     {
         if (exceptionType is null)
             return;
@@ -1323,22 +1336,22 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             {
                 // Report as THROW002 (Info level)
                 var diagnostic = Diagnostic.Create(RuleIgnoredException, GetSignificantLocation(node), exceptionType.Name);
-                context.ReportDiagnostic(diagnostic);
+                reportDiagnostic(diagnostic);
                 return;
             }
         }
 
         // Check for general exceptions
-        if (context.Node is not InvocationExpressionSyntax && IsGeneralException(exceptionType))
+        if (node is not InvocationExpressionSyntax && IsGeneralException(exceptionType))
         {
-            context.ReportDiagnostic(Diagnostic.Create(RuleGeneralThrow, GetSignificantLocation(node)));
+            reportDiagnostic(Diagnostic.Create(RuleGeneralThrow, GetSignificantLocation(node)));
         }
 
         // Check if the exception is declared via [Throws]
-        var isDeclared = IsExceptionDeclaredInMember(context, node, exceptionType);
+        var isDeclared = IsExceptionDeclaredInMember(semanticModel, node, exceptionType);
 
         // Determine if the exception is handled by any enclosing try-catch
-        var isHandled = IsExceptionHandled(node, exceptionType, context.SemanticModel);
+        var isHandled = IsExceptionHandled(node, exceptionType, semanticModel);
 
         // Report diagnostic if neither handled nor declared
         if (!isHandled && !isDeclared)
@@ -1347,8 +1360,27 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
                 .Add("ExceptionType", exceptionType.Name);
 
             var diagnostic = Diagnostic.Create(RuleUnhandledException, GetSignificantLocation(node), properties, exceptionType.Name);
-            context.ReportDiagnostic(diagnostic);
+            reportDiagnostic(diagnostic);
+
+            // 🔑 Collect for later redundancy analysis
+            unhandledExceptions?.Add(exceptionType);
         }
+    }
+
+    private void AnalyzeExceptionThrowingNode(
+        SyntaxNodeAnalysisContext context,
+        SyntaxNode node,
+        INamedTypeSymbol? exceptionType,
+        AnalyzerSettings settings,
+        IList<INamedTypeSymbol>? unhandledExceptions = null)
+    {
+        AnalyzeExceptionThrowingNode(
+            context.SemanticModel,
+            context.ReportDiagnostic,
+            node,
+            exceptionType,
+            settings,
+            unhandledExceptions);
     }
 
     private bool ShouldIgnore(SyntaxNode node, ExceptionMode mode)
@@ -1370,6 +1402,11 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
     private bool IsExceptionDeclaredInMember(SyntaxNodeAnalysisContext context, SyntaxNode node, INamedTypeSymbol exceptionType)
     {
+        return IsExceptionDeclaredInMember(context.SemanticModel, node, exceptionType);
+    }
+
+    private bool IsExceptionDeclaredInMember(SemanticModel semanticModel, SyntaxNode node, INamedTypeSymbol exceptionType)
+    {
         foreach (var ancestor in node.Ancestors())
         {
             ISymbol? symbol = null;
@@ -1377,11 +1414,11 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             switch (ancestor)
             {
                 case BaseMethodDeclarationSyntax methodDeclaration:
-                    symbol = context.SemanticModel.GetDeclaredSymbol(methodDeclaration);
+                    symbol = semanticModel.GetDeclaredSymbol(methodDeclaration);
                     break;
 
                 case PropertyDeclarationSyntax propertyDeclaration:
-                    var propertySymbol = context.SemanticModel.GetDeclaredSymbol(propertyDeclaration);
+                    var propertySymbol = semanticModel.GetDeclaredSymbol(propertyDeclaration);
 
                     // Don't continue with the analysis if it's a full property with accessors
                     // In that case, the accessors are analyzed separately
@@ -1404,15 +1441,15 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
                     break;
 
                 case AccessorDeclarationSyntax accessorDeclaration:
-                    symbol = context.SemanticModel.GetDeclaredSymbol(accessorDeclaration);
+                    symbol = semanticModel.GetDeclaredSymbol(accessorDeclaration);
                     break;
 
                 case LocalFunctionStatementSyntax localFunction:
-                    symbol = context.SemanticModel.GetDeclaredSymbol(localFunction);
+                    symbol = semanticModel.GetDeclaredSymbol(localFunction);
                     break;
 
                 case AnonymousFunctionExpressionSyntax anonymousFunction:
-                    symbol = context.SemanticModel.GetSymbolInfo(anonymousFunction).Symbol as IMethodSymbol;
+                    symbol = semanticModel.GetSymbolInfo(anonymousFunction).Symbol as IMethodSymbol;
                     break;
 
                 default:

@@ -34,8 +34,8 @@ public partial class TryCatchTest
 
         await Verifier.VerifyAnalyzerAsync(test, setup: (ex) =>
         {
-            // Enables THROW009
-            ex.DisabledDiagnostics.Clear();
+            ex.DisabledDiagnostics.Remove(CheckedExceptionsAnalyzer.DiagnosticIdRedundantTypedCatchClause);
+
             ex.ExpectedDiagnostics.Add(expected);
         }, executable: true);
 

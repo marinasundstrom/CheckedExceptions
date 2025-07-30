@@ -9,7 +9,7 @@ namespace Sundstrom.CheckedExceptions;
 
 partial class CheckedExceptionsAnalyzer
 {
-    private void CheckForRedundantThrowsHandledByDeclaredSuperClass(
+    private void CheckForRedundantThrowsDeclarationsHandledByDeclaredSuperClass(
         SymbolAnalysisContext context,
         ImmutableArray<AttributeData> throwsAttributes)
     {
