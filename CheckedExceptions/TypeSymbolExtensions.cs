@@ -1,6 +1,7 @@
 namespace Sundstrom.CheckedExceptions;
 
 using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 
 /// <summary>
 /// Extension methods for type symbol analysis.
@@ -24,5 +25,14 @@ public static class TypeSymbolExtensions
             current = current.BaseType;
         }
         return false;
+    }
+
+    public static bool IsAssignableTo(this ITypeSymbol from, ITypeSymbol to, Compilation compilation)
+    {
+        if (from == null || to == null)
+            return false;
+
+        var conversion = compilation.ClassifyConversion(from, to);
+        return conversion.IsImplicit || conversion.IsIdentity;
     }
 }
