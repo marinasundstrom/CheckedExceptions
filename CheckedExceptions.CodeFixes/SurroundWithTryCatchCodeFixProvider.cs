@@ -51,7 +51,7 @@ public class SurroundWithTryCatchCodeFixProvider : CodeFixProvider
         context.RegisterCodeFix(
             CodeAction.Create(
                 title: TitleAddTryCatch,
-                createChangedDocument: c => AddTryCatchAroundStatementAsync(context.Document, statement, diagnostics, WrapStrategy.Minimal, c),
+                createChangedDocument: c => AddTryCatchAroundStatementAsync(context.Document, statement, diagnostics, WrapStrategy.MinimalTransitive, c),
                 equivalenceKey: TitleAddTryCatch),
             diagnostics);
     }
