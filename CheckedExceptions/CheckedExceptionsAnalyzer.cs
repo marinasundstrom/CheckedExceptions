@@ -236,7 +236,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
                 var diagnostic = Diagnostic.Create(
                     RuleRedundantTypedCatchClause,
                     catchClause.Declaration.Type.GetLocation(),
-                    catchType.ToDisplayString());
+                    catchType.Name);
 
                 context.ReportDiagnostic(diagnostic);
             }
