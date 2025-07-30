@@ -83,7 +83,7 @@ public partial class ThrowsAttributeWithMultipleExceptionTypesTest
         """;
 
         var expected = Verifier.DuplicateExceptionDeclared("InvalidOperationException")
-            .WithSpan(9, 13, 9, 46);
+            .WithSpan(9, 20, 9, 45);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }
@@ -110,7 +110,7 @@ public partial class ThrowsAttributeWithMultipleExceptionTypesTest
         """;
 
         var expected = Verifier.DuplicateExceptionDeclared("InvalidOperationException")
-           .WithSpan(10, 9, 10, 42);
+           .WithSpan(10, 16, 10, 41);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }
@@ -138,10 +138,10 @@ public partial class ThrowsAttributeWithMultipleExceptionTypesTest
         """;
 
         var expected1 = Verifier.DuplicateExceptionDeclared("InvalidOperationException")
-           .WithSpan(10, 9, 10, 42);
+           .WithSpan(10, 16, 10, 41);
 
         var expected2 = Verifier.DuplicateExceptionDeclared("InvalidOperationException")
-            .WithSpan(11, 13, 11, 46);
+            .WithSpan(11, 20, 11, 45);
 
         await Verifier.VerifyAnalyzerAsync(test, expected1, expected2);
     }

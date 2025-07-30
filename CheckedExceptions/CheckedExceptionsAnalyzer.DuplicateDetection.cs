@@ -37,7 +37,7 @@ partial class CheckedExceptionsAnalyzer
                     {
                         context.ReportDiagnostic(Diagnostic.Create(
                             RuleDuplicateDeclarations,
-                            typeOfExpr.GetLocation(), // ✅ precise location
+                            typeOfExpr.Type.GetLocation(), // ✅ precise location
                             exceptionType.Name));
                     }
 
@@ -78,7 +78,7 @@ partial class CheckedExceptionsAnalyzer
                     {
                         context.ReportDiagnostic(Diagnostic.Create(
                             RuleDuplicateDeclarations,
-                            typeOfExpr.GetLocation(), // ✅ precise location
+                            typeOfExpr.Type.GetLocation(), // ✅ precise location
                             exceptionType.Name));
                     }
 
