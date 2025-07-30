@@ -10,7 +10,7 @@ partial class CheckedExceptionsAnalyzer
 {
     #region  Method
 
-    private void CheckForDuplicateThrowsAttributes(
+    private void CheckForDuplicateThrowsDeclarations(
         SymbolAnalysisContext context,
         ImmutableArray<AttributeData> throwsAttributes)
     {

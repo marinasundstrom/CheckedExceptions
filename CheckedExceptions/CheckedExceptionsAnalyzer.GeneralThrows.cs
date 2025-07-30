@@ -10,7 +10,7 @@ partial class CheckedExceptionsAnalyzer
 {
     #region  Methods
 
-    private static void CheckForGeneralExceptionThrows(
+    private static void CheckForGeneralExceptionThrowDeclarations(
         ImmutableArray<AttributeData> throwsAttributes,
         SymbolAnalysisContext context)
     {

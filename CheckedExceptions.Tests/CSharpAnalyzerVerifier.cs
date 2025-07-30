@@ -59,7 +59,8 @@ public static class CSharpAnalyzerVerifier<TAnalyzer, TVerifier>
             {
                 var allDiagnostics = CheckedExceptionsAnalyzer.AllDiagnosticsIds;
 
-                test.DisabledDiagnostics.Add("THROW009");
+                test.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdRedundantTypedCatchClause);
+                test.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration);
 
                 test.DisabledDiagnostics.AddRange(allDiagnostics.Except(expected.Select(x => x.Id)));
             }
@@ -106,7 +107,8 @@ public static class CSharpAnalyzerVerifier<TAnalyzer, TVerifier>
         test.TestState.AdditionalReferences.Add(MetadataReference.CreateFromFile(typeof(ThrowsAttribute).Assembly.Location));
         test.TestState.ReferenceAssemblies = Net.Net90;
 
-        test.DisabledDiagnostics.Add("THROW009");
+        test.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdRedundantTypedCatchClause);
+        test.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration);
 
         if (executable)
         {
