@@ -30,6 +30,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     public const string DiagnosticIdDuplicateThrowsByHierarchy = "THROW008";
     public const string DiagnosticIdRedundantTypedCatchClause = "THROW009";
     public const string DiagnosticIdThrowsDeclarationNotValidOnFullProperty = "THROW010";
+    public const string DiagnosticIdXmlDocButNoThrows = "THROW011";
 
     public static IEnumerable<string> AllDiagnosticsIds = [DiagnosticIdUnhandled, DiagnosticIdGeneralThrows, DiagnosticIdGeneralThrow, DiagnosticIdDuplicateDeclarations];
 
@@ -123,8 +124,18 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         isEnabledByDefault: true,
         description: "The [Throws] attribute cannot be applied to full property declarations. Instead, place the attribute on individual accessors (get or set) to indicate which operations may throw exceptions.");
 
+    private static readonly DiagnosticDescriptor RuleXmlDocButNoThrows = new(
+        DiagnosticIdXmlDocButNoThrows,
+        title: "Exception in XML documentation is not declared with [Throws]",
+        messageFormat: "Exception '{0}' is documented in XML documentation but not declared with [Throws]",
+        category: "Usage",
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "This member's XML documentation declares an exception, but it is not declared with a [Throws] attribute. " +
+                     "Declare the exception with [Throws] to keep the documentation and the enforced contract consistent.");
+
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
-        [RuleUnhandledException, RuleIgnoredException, RuleGeneralThrows, RuleGeneralThrow, RuleDuplicateDeclarations, RuleMissingThrowsOnBaseMember, RuleMissingThrowsFromBaseMember, RuleDuplicateThrowsByHierarchy, RuleRedundantTypedCatchClause, RuleThrowsDeclarationNotValidOnFullProperty];
+        [RuleUnhandledException, RuleIgnoredException, RuleGeneralThrows, RuleGeneralThrow, RuleDuplicateDeclarations, RuleMissingThrowsOnBaseMember, RuleMissingThrowsFromBaseMember, RuleDuplicateThrowsByHierarchy, RuleRedundantTypedCatchClause, RuleThrowsDeclarationNotValidOnFullProperty, RuleXmlDocButNoThrows];
 
     public override void Initialize(AnalysisContext context)
     {
@@ -268,6 +279,8 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             .Where(attr => IsThrowsAttribute(attr, semanticModel))
             .ToList();
 
+        CheckXmlDocsForUndeclaredExceptions(throwsAttributes, context);
+
         if (throwsAttributes.Count is 0)
             return;
 
@@ -303,6 +316,8 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         var throwsAttributes = GetThrowsAttributes(methodSymbol).ToImmutableArray();
 
         CheckForCompatibilityWithBaseOrInterface(context, throwsAttributes);
+
+        CheckXmlDocsForUndeclaredExceptions(throwsAttributes, context);
 
         if (throwsAttributes.Length == 0)
             return;
@@ -1052,16 +1067,9 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         var xmlDocumentedExceptions = GetExceptionTypesFromDocumentationCommentXml(context.Compilation, propertySymbol);
 
         // Filter exceptions documented specifically for the getter and setter
-        var getterExceptions = xmlDocumentedExceptions.Where(x =>
-            x.Description.Contains(" get ") ||
-            x.Description.Contains(" gets ") ||
-            x.Description.Contains(" getting ") ||
-            x.Description.Contains(" retrieved "));
+        var getterExceptions = xmlDocumentedExceptions.Where(x => HeuristicRules.IsForGetter(x.Description));
 
-        var setterExceptions = xmlDocumentedExceptions.Where(x =>
-            x.Description.Contains(" set ") ||
-            x.Description.Contains(" sets ") ||
-            x.Description.Contains(" setting "));
+        var setterExceptions = xmlDocumentedExceptions.Where(x => HeuristicRules.IsForSetter(x.Description));
 
         if (isSetter && propertySymbol.SetMethod is not null)
         {

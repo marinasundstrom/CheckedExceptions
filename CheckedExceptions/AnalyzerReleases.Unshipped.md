@@ -12,3 +12,4 @@ THROW007 | Usage   | Warning  | CheckedExceptionsAnalyzer
 THROW008 | Usage   | Warning  | CheckedExceptionsAnalyzer
 THROW009 | Usage   | Warning  | CheckedExceptionsAnalyzer
 THROW010 | Usage   | Error    | CheckedExceptionsAnalyzer
+THROW011 | Usage   | Warning  | CheckedExceptionsAnalyzer
