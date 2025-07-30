@@ -185,12 +185,21 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         if (propertyDeclaration is null)
             return;
 
-        if (propertyDeclaration.ExpressionBody is not null)
-            return;
-
         var throwsAttributes = propertyDeclaration.AttributeLists.SelectMany(x => x.Attributes)
-               .Where(x => x.Name.ToString() is "Throws" or "ThrowsAttribute");
+            .Where(x => x.Name.ToString() is "Throws" or "ThrowsAttribute");
 
+        if (propertyDeclaration.ExpressionBody is not null)
+        {
+            CheckXmlDocsForUndeclaredExceptions_ExpressionBodiedProperty(throwsAttributes, context);
+            return;
+        }
+
+        CheckNoThrowsOnFullPropertyDecl(context, throwsAttributes);
+        CheckXmlDocsForUndeclaredExceptions_Property(throwsAttributes, context);
+    }
+
+    private static void CheckNoThrowsOnFullPropertyDecl(SyntaxNodeAnalysisContext context, IEnumerable<AttributeSyntax> throwsAttributes)
+    {
         foreach (var throwsAttribute in throwsAttributes)
         {
             // Report invalid throws declaration
@@ -289,7 +298,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             .Where(attr => IsThrowsAttribute(attr, semanticModel))
             .ToList();
 
-        CheckXmlDocsForUndeclaredExceptions(throwsAttributes, context);
+        CheckXmlDocsForUndeclaredExceptions_Method(throwsAttributes, context);
 
         if (throwsAttributes.Count is 0)
             return;
