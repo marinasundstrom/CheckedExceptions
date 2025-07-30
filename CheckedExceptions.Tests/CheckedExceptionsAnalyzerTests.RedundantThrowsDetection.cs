@@ -271,7 +271,7 @@ partial class CheckedExceptionsAnalyzerTests
         var expected1 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration)
             .WithArguments("InvalidCastException")
             .WithSpan(7, 20, 7, 40);
-        
+
         var expected2 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration)
             .WithArguments("InvalidOperationException")
             .WithSpan(13, 20, 13, 45);
@@ -279,7 +279,7 @@ partial class CheckedExceptionsAnalyzerTests
         await Verifier.VerifyAnalyzerAsync(test, o =>
         {
             o.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdUnhandled);
-            
+
             ApplyDefaultOptions(o, expected1, expected2);
         });
     }
@@ -340,12 +340,117 @@ partial class CheckedExceptionsAnalyzerTests
         var expected2 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration)
             .WithArguments("InvalidCastException")
             .WithSpan(9, 20, 9, 40);
-        
+
         await Verifier.VerifyAnalyzerAsync(test, o =>
         {
             o.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdUnhandled);
 
-            ApplyDefaultOptions(o,  expected1, expected2);
+            ApplyDefaultOptions(o, expected1, expected2);
+        });
+    }
+
+    [Fact]
+    public async Task RedundantThrows_WhenNeverThrown_LocalFunction()
+    {
+        var test = /* lang=c#-test */ """            
+            using System;
+
+            Foo();
+
+            [Throws(typeof(InvalidOperationException))]
+            void Foo()
+            {
+            }
+            """;
+
+        var expected = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration)
+            .WithArguments("InvalidOperationException")
+            .WithSpan(5, 16, 5, 41);
+
+        await Verifier.VerifyAnalyzerAsync(test, o =>
+        {
+            o.TestState.OutputKind = OutputKind.ConsoleApplication;
+
+            o.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdUnhandled);
+
+            ApplyDefaultOptions(o, expected);
+        });
+    }
+
+    [Fact]
+    public async Task RedundantThrows_WhenNeverThrown_LambdaFunction()
+    {
+        var test = /* lang=c#-test */ """            
+            using System;
+
+            foo();
+
+            var f = [Throws(typeof(InvalidOperationException))] int () => 
+            {
+            
+            }
+            """;
+
+        var expected = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration)
+            .WithArguments("InvalidOperationException")
+            .WithSpan(5, 24, 5, 49);
+
+        await Verifier.VerifyAnalyzerAsync(test, o =>
+        {
+            o.TestState.OutputKind = OutputKind.ConsoleApplication;
+            o.CompilerDiagnostics = CompilerDiagnostics.None;
+
+            o.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdUnhandled);
+
+            ApplyDefaultOptions(o, expected);
+        });
+    }
+
+    [Fact]
+    public async Task RedundantThrows_WhenNeverThrown_LambdaFunction_ExpressionBody()
+    {
+        var test = /* lang=c#-test */ """            
+            using System;
+
+            foo();
+
+            var f = [Throws(typeof(InvalidOperationException))] int () => true;
+            """;
+
+        var expected = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration)
+            .WithArguments("InvalidOperationException")
+            .WithSpan(5, 24, 5, 49);
+
+        await Verifier.VerifyAnalyzerAsync(test, o =>
+        {
+            o.TestState.OutputKind = OutputKind.ConsoleApplication;
+            o.CompilerDiagnostics = CompilerDiagnostics.None;
+
+            o.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdUnhandled);
+
+            ApplyDefaultOptions(o, expected);
+        });
+    }
+
+    [Fact]
+    public async Task RedundantThrows_WhenThrown_LambdaFunction_ExpressionBody_NotShown()
+    {
+        var test = /* lang=c#-test */ """            
+            using System;
+
+            foo();
+
+            var f = [Throws(typeof(InvalidOperationException))] int () => throw new InvalidOperationException;
+            """;
+
+        await Verifier.VerifyAnalyzerAsync(test, o =>
+        {
+            o.TestState.OutputKind = OutputKind.ConsoleApplication;
+            o.CompilerDiagnostics = CompilerDiagnostics.None;
+
+            o.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdUnhandled);
+
+            ApplyDefaultOptions(o);
         });
     }
 }
