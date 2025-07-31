@@ -75,3 +75,18 @@ public class TestDerive : TestBase
         get => throw new ArgumentNullException();
     }
 }
+
+public class TestBase1
+{
+    [Throws(typeof(ArgumentNullException))]
+    public virtual bool Foo3 { get; set; }
+}
+
+public class TestDerive1 : TestBase1
+{
+    public override bool Foo3
+    {
+        [Throws(typeof(ArgumentNullException))]
+        get => throw new ArgumentNullException();
+    }
+}
