@@ -628,10 +628,9 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             {
                 var exceptionTypes = GetExceptionTypes(methodSymbol);
 
-                // Get exceptions from XML documentation
-
                 if (settings.IsXmlInteropEnabled)
                 {
+                    // Get exceptions from XML documentation
                     var xmlExceptionTypes = GetExceptionTypesFromDocumentationCommentXml(semanticModel.Compilation, methodSymbol);
 
                     xmlExceptionTypes = ProcessNullable(context, invocation, methodSymbol, xmlExceptionTypes);
@@ -1190,14 +1189,17 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
         List<INamedTypeSymbol> exceptionTypes = GetExceptionTypes(methodSymbol);
 
-        // Get exceptions from XML documentation
-        var xmlExceptionTypes = GetExceptionTypesFromDocumentationCommentXml(context.Compilation, methodSymbol);
-
-        xmlExceptionTypes = ProcessNullable(context, node, methodSymbol, xmlExceptionTypes);
-
-        if (xmlExceptionTypes.Any())
+        if (settings.IsXmlInteropEnabled)
         {
-            exceptionTypes.AddRange(xmlExceptionTypes.Select(x => x.ExceptionType));
+            // Get exceptions from XML documentation
+            var xmlExceptionTypes = GetExceptionTypesFromDocumentationCommentXml(context.Compilation, methodSymbol);
+
+            xmlExceptionTypes = ProcessNullable(context, node, methodSymbol, xmlExceptionTypes);
+
+            if (xmlExceptionTypes.Any())
+            {
+                exceptionTypes.AddRange(xmlExceptionTypes.Select(x => x.ExceptionType));
+            }
         }
 
         exceptionTypes = ProcessNullable(context, node, methodSymbol, exceptionTypes).ToList();
