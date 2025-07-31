@@ -61,8 +61,11 @@ public class TestBase
     [Throws(typeof(InvalidDataException))]
     public virtual bool Foo => throw new InvalidDataException();
 
-    [Throws(typeof(InvalidOperationException))]
-    public virtual bool Foo2 => throw new InvalidOperationException();
+    [Throws(typeof(ArgumentException))]
+    public virtual bool Foo2 => true;
+
+    [Throws(typeof(InvalidDataException))]
+    public virtual bool Foo3 { get; set; }
 }
 
 public class TestDerive : TestBase
@@ -72,7 +75,7 @@ public class TestDerive : TestBase
 
     public override bool Foo2
     {
-        [Throws(typeof(InvalidOperationException))]
-        get => true;
+        [Throws(typeof(ArgumentNullException))]
+        get => throw new ArgumentNullException();
     }
 }
