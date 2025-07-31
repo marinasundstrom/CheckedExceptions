@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- PR [177](https://github.com/marinasundstrom/CheckedExceptions/pull/177) Handle property decl in XML doc analyser 
+
 ### Fixed
 
 - PR [173](https://github.com/marinasundstrom/CheckedExceptions/pull/173) Handle inheritance in redundancy check

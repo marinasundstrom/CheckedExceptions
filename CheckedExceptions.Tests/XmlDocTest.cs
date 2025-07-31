@@ -36,7 +36,7 @@ public partial class XmlDocTest
 
         var expected = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(16, 9, 16, 21);
-        
+
         var expected2 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdXmlDocButNoThrows)
             .WithArguments("InvalidOperationException")
             .WithSpan(9, 17, 9, 27);
@@ -180,7 +180,11 @@ public partial class XmlDocTest
         var expected = Verifier.UnhandledException("ArgumentNullException")
             .WithSpan(20, 9, 20, 14);
 
-        await Verifier.VerifyAnalyzerAsync(test, [expected]);
+        var expected2 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdXmlDocButNoThrows)
+            .WithArguments("ArgumentNullException")
+            .WithSpan(15, 9, 15, 12);
+
+        await Verifier.VerifyAnalyzerAsync(test, [expected, expected2]);
     }
 
     // Test 7: Ensures that with nullable enabled and declared ArgumentNullException, no diagnostic is reported when assigning null
@@ -213,6 +217,10 @@ public partial class XmlDocTest
             }
             """;
 
-        await Verifier.VerifyAnalyzerAsync(test);
+        var expected = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdXmlDocButNoThrows)
+            .WithArguments("ArgumentNullException")
+            .WithSpan(16, 9, 16, 12);
+
+        await Verifier.VerifyAnalyzerAsync(test, [expected]);
     }
 }
