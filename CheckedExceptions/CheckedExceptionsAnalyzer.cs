@@ -629,13 +629,17 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
                 var exceptionTypes = GetExceptionTypes(methodSymbol);
 
                 // Get exceptions from XML documentation
-                var xmlExceptionTypes = GetExceptionTypesFromDocumentationCommentXml(semanticModel.Compilation, methodSymbol);
 
-                xmlExceptionTypes = ProcessNullable(context, invocation, methodSymbol, xmlExceptionTypes);
-
-                if (xmlExceptionTypes.Any())
+                if (settings.IsXmlInteropEnabled)
                 {
-                    exceptionTypes.AddRange(xmlExceptionTypes.Select(x => x.ExceptionType));
+                    var xmlExceptionTypes = GetExceptionTypesFromDocumentationCommentXml(semanticModel.Compilation, methodSymbol);
+
+                    xmlExceptionTypes = ProcessNullable(context, invocation, methodSymbol, xmlExceptionTypes);
+
+                    if (xmlExceptionTypes.Any())
+                    {
+                        exceptionTypes.AddRange(xmlExceptionTypes.Select(x => x.ExceptionType));
+                    }
                 }
 
                 foreach (var exceptionType in exceptionTypes)
@@ -656,14 +660,17 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             {
                 var exceptionTypes = GetExceptionTypes(methodSymbol);
 
-                // Get exceptions from XML documentation
-                var xmlExceptionTypes = GetExceptionTypesFromDocumentationCommentXml(semanticModel.Compilation, methodSymbol);
-
-                xmlExceptionTypes = ProcessNullable(context, objectCreation, methodSymbol, xmlExceptionTypes);
-
-                if (xmlExceptionTypes.Any())
+                if (settings.IsXmlInteropEnabled)
                 {
-                    exceptionTypes.AddRange(xmlExceptionTypes.Select(x => x.ExceptionType));
+                    // Get exceptions from XML documentation
+                    var xmlExceptionTypes = GetExceptionTypesFromDocumentationCommentXml(semanticModel.Compilation, methodSymbol);
+
+                    xmlExceptionTypes = ProcessNullable(context, objectCreation, methodSymbol, xmlExceptionTypes);
+
+                    if (xmlExceptionTypes.Any())
+                    {
+                        exceptionTypes.AddRange(xmlExceptionTypes.Select(x => x.ExceptionType));
+                    }
                 }
 
                 foreach (var exceptionType in exceptionTypes)
@@ -683,7 +690,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             var propertySymbol = semanticModel.GetSymbolInfo(memberAccess).Symbol as IPropertySymbol;
             if (propertySymbol is not null)
             {
-                HashSet<INamedTypeSymbol> exceptionTypes = GetPropertyExceptionTypes(context, memberAccess, propertySymbol);
+                HashSet<INamedTypeSymbol> exceptionTypes = GetPropertyExceptionTypes(context, memberAccess, propertySymbol, settings);
 
                 foreach (var exceptionType in exceptionTypes)
                 {
@@ -701,7 +708,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             var propertySymbol = semanticModel.GetSymbolInfo(elementAccess).Symbol as IPropertySymbol;
             if (propertySymbol is not null)
             {
-                HashSet<INamedTypeSymbol> exceptionTypes = GetPropertyExceptionTypes(context, elementAccess, propertySymbol);
+                HashSet<INamedTypeSymbol> exceptionTypes = GetPropertyExceptionTypes(context, elementAccess, propertySymbol, settings);
 
                 foreach (var exceptionType in exceptionTypes)
                 {
@@ -719,7 +726,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             var propertySymbol = semanticModel.GetSymbolInfo(identifier).Symbol as IPropertySymbol;
             if (propertySymbol is not null)
             {
-                HashSet<INamedTypeSymbol> exceptionTypes = GetPropertyExceptionTypes(context, identifier, propertySymbol);
+                HashSet<INamedTypeSymbol> exceptionTypes = GetPropertyExceptionTypes(context, identifier, propertySymbol, settings);
 
                 foreach (var exceptionType in exceptionTypes)
                 {
@@ -1096,7 +1103,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     private void AnalyzePropertyExceptions(SyntaxNodeAnalysisContext context, ExpressionSyntax expression, IPropertySymbol propertySymbol,
         AnalyzerSettings settings)
     {
-        HashSet<INamedTypeSymbol> exceptionTypes = GetPropertyExceptionTypes(context, expression, propertySymbol);
+        HashSet<INamedTypeSymbol> exceptionTypes = GetPropertyExceptionTypes(context, expression, propertySymbol, settings);
 
         // Deduplicate and analyze each distinct exception type
         foreach (var exceptionType in exceptionTypes.Distinct(SymbolEqualityComparer.Default).OfType<INamedTypeSymbol>())
@@ -1105,7 +1112,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         }
     }
 
-    private HashSet<INamedTypeSymbol> GetPropertyExceptionTypes(SyntaxNodeAnalysisContext context, ExpressionSyntax expression, IPropertySymbol propertySymbol)
+    private HashSet<INamedTypeSymbol> GetPropertyExceptionTypes(SyntaxNodeAnalysisContext context, ExpressionSyntax expression, IPropertySymbol propertySymbol, AnalyzerSettings settings)
     {
         // Determine if the analyzed expression is for a getter or setter
         bool isGetter = IsPropertyGetter(expression);
@@ -1114,29 +1121,36 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         // List to collect all relevant exception types
         var exceptionTypes = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
 
-        // Retrieve exception types documented in XML comments for the property
-        var xmlDocumentedExceptions = GetExceptionTypesFromDocumentationCommentXml(context.Compilation, propertySymbol);
+        IEnumerable<ExceptionInfo> getterExceptions = [];
+        IEnumerable<ExceptionInfo> setterExceptions = [];
+        IEnumerable<ExceptionInfo> allOtherExceptions = [];
 
-        // Filter exceptions documented specifically for the getter and setter
-        var getterExceptions = xmlDocumentedExceptions.Where(x => HeuristicRules.IsForGetter(x.Description));
-
-        var setterExceptions = xmlDocumentedExceptions.Where(x => HeuristicRules.IsForSetter(x.Description));
-
-        if (isSetter && propertySymbol.SetMethod is not null)
+        if (settings.IsXmlInteropEnabled)
         {
-            // Will filter away 
-            setterExceptions = ProcessNullable(context, expression, propertySymbol.SetMethod, setterExceptions);
-        }
+            // Retrieve exception types documented in XML comments for the property
+            var xmlDocumentedExceptions = GetExceptionTypesFromDocumentationCommentXml(context.Compilation, propertySymbol).ToList();
 
-        // Handle exceptions that don't explicitly belong to getters or setters
-        var allOtherExceptions = xmlDocumentedExceptions
-            .Except(getterExceptions);
-        allOtherExceptions = allOtherExceptions
-            .Except(setterExceptions);
+            // Filter exceptions documented specifically for the getter and setter
+            getterExceptions = xmlDocumentedExceptions.Where(x => HeuristicRules.IsForGetter(x.Description));
 
-        if (isSetter && propertySymbol.SetMethod is not null)
-        {
-            allOtherExceptions = ProcessNullable(context, expression, propertySymbol.SetMethod, allOtherExceptions);
+            setterExceptions = xmlDocumentedExceptions.Where(x => HeuristicRules.IsForSetter(x.Description));
+
+            if (isSetter && propertySymbol.SetMethod is not null)
+            {
+                // Will filter away 
+                setterExceptions = ProcessNullable(context, expression, propertySymbol.SetMethod, setterExceptions);
+            }
+
+            // Handle exceptions that don't explicitly belong to getters or setters
+            allOtherExceptions = xmlDocumentedExceptions
+                .Except(getterExceptions);
+            allOtherExceptions = allOtherExceptions
+                .Except(setterExceptions);
+
+            if (isSetter && propertySymbol.SetMethod is not null)
+            {
+                allOtherExceptions = ProcessNullable(context, expression, propertySymbol.SetMethod, allOtherExceptions);
+            }
         }
 
         // Analyze exceptions thrown by the getter if applicable

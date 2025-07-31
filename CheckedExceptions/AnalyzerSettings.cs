@@ -4,6 +4,10 @@ using System.Text.Json.Serialization;
 
 public partial class AnalyzerSettings
 {
+    public bool DisableXmlDocInterop { get; set; } = false;
+
+    internal bool IsXmlInteropEnabled => !DisableXmlDocInterop;
+
     [JsonPropertyName("ignoredExceptions")]
     public IEnumerable<string> IgnoredExceptions { get; set; } = new List<string>();
 
