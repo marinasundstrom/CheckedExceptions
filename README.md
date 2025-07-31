@@ -131,7 +131,13 @@ Add `CheckedExceptions.settings.json`:
 
 ```json
 {
+  // If true, exceptions will not be read from XML documentation (default: false).
+  "disableXmlDocInterop": false,
+
+  // Exceptions to completely ignore during analysis.
   "ignoredExceptions": [ "System.ArgumentNullException" ],
+
+  // Exceptions to ignore but still report as informational diagnostics.
   "informationalExceptions": {
     "System.IO.IOException": "Propagation",
     "System.TimeoutException": "Always"
