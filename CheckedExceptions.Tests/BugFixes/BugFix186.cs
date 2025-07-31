@@ -60,4 +60,32 @@ public class BugFix186
             s.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdGeneralThrows);
         });
     }
+    
+    [Fact]
+    public async Task Test3()
+    {
+        var test = /* lang=c#-test */ """
+                                      public class TestBase1
+                                      {
+                                          [Throws(typeof(ArgumentNullException))]
+                                          public virtual bool Foo3 { get; set; }
+                                      }
+                                      
+                                      public class TestDerive1 : TestBase1
+                                      {
+                                          public override bool Foo3
+                                          {
+                                              [Throws(typeof(ArgumentNullException))]
+                                              get => throw new ArgumentNullException();
+                                          }
+                                      }
+                                      """;
+
+        await Verifier.VerifyAnalyzerAsync(test, s =>
+        {
+            s.DisabledDiagnostics.Remove(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration);
+
+            s.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdGeneralThrows);
+        });
+    }
 }
