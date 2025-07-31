@@ -80,23 +80,23 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         isEnabledByDefault: true,
         description: "Detects multiple exception declarations for the same exception type on a single member, which is redundant.");
 
-    private static readonly DiagnosticDescriptor RuleMissingThrowsOnBaseMember = new DiagnosticDescriptor(
-        DiagnosticIdMissingThrowsOnBaseMember,
-        "Missing Throws declaration",
-        "Exception '{1}' is not declared in '{0}'",
-        "Usage",
-        DiagnosticSeverity.Warning,
-        isEnabledByDefault: true,
-        description: "Base or interface members should declare compatible exceptions when overridden or implemented members declare them using [Throws].");
-
     private static readonly DiagnosticDescriptor RuleMissingThrowsFromBaseMember = new(
         DiagnosticIdMissingThrowsFromBaseMember,
         "Missing Throws declaration for exception declared on base member",
-        "Exception '{1}' is not compatible with throws declaration(s) in '{0}'",
+        "Exception '{1}' declared in '{0}' is not declared in this override or implemented member",
         "Usage",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
         description: "Ensures that overridden or implemented members declare exceptions required by their base or interface definitions.");
+
+    private static readonly DiagnosticDescriptor RuleMissingThrowsOnBaseMember = new(
+        DiagnosticIdMissingThrowsOnBaseMember,
+        "Incompatible Throws declaration",
+        "Exception '{1}' is not compatible with throws declaration(s) in '{0}'",
+        "Usage",
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "Ensures that overridden or implemented members do not declare exceptions incompatible with their base or interface definitions.");
 
     private static readonly DiagnosticDescriptor RuleDuplicateThrowsByHierarchy = new(
         DiagnosticIdDuplicateThrowsByHierarchy,
@@ -188,14 +188,32 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         var throwsAttributes = propertyDeclaration.AttributeLists.SelectMany(x => x.Attributes)
             .Where(x => x.Name.ToString() is "Throws" or "ThrowsAttribute");
 
-        if (propertyDeclaration.ExpressionBody is not null)
+        var accessorList = propertyDeclaration.AccessorList as AccessorListSyntax;
+
+        if (accessorList is not null)
         {
+            var propertySymbol = semanticModel.GetDeclaredSymbol(propertyDeclaration);
+
+            if (!propertySymbol.IsVirtual && !propertySymbol.IsAbstract)
+            {
+                // Check whether this concrete full property decl has any Throws declarations on it.
+
+                CheckNoThrowsOnFullPropertyDecl(context, throwsAttributes);
+            }
+
+            if (accessorList.Accessors.All(x => x.ExpressionBody is null && x.Body is null))
+            {
+                // Only give diagnostic when we can do anything useful with the docs.
+
+                CheckXmlDocsForUndeclaredExceptions_Property(throwsAttributes, context);
+            }
+        }
+        else if (propertyDeclaration.ExpressionBody is not null)
+        {
+            CheckForRedundantThrowsDeclarations_ExpressionBodiedProperty(throwsAttributes, context);
             CheckXmlDocsForUndeclaredExceptions_ExpressionBodiedProperty(throwsAttributes, context);
             return;
         }
-
-        CheckNoThrowsOnFullPropertyDecl(context, throwsAttributes);
-        CheckXmlDocsForUndeclaredExceptions_Property(throwsAttributes, context);
     }
 
     private static void CheckNoThrowsOnFullPropertyDecl(SyntaxNodeAnalysisContext context, IEnumerable<AttributeSyntax> throwsAttributes)

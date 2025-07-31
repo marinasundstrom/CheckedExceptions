@@ -143,13 +143,67 @@ partial class CheckedExceptionsAnalyzer
 
                 var diagnostic = Diagnostic.Create(
                     RuleMissingThrowsOnBaseMember,
-                    location,
+                    GetLocationOfExceptionNameInTypeOfInThrowsAttribute(context.Compilation, method, declared),
                     memberName,
                     declared.Name);
 
                 context.ReportDiagnostic(diagnostic);
             }
         }
+    }
+
+    private static Location? GetLocationOfExceptionNameInTypeOfInThrowsAttribute(
+        Compilation compilation, IMethodSymbol method, ISymbol declared)
+    {
+        foreach (var syntaxRef in method.DeclaringSyntaxReferences)
+        {
+            var syntaxNode = syntaxRef.GetSyntax();
+
+            // We care about methods and accessors
+            if (syntaxNode is not (BaseMethodDeclarationSyntax or AccessorDeclarationSyntax))
+                continue;
+
+            SyntaxList<AttributeListSyntax> attributeLists =
+                syntaxNode switch
+                {
+                    BaseMethodDeclarationSyntax m => m.AttributeLists,
+                    AccessorDeclarationSyntax a => a.AttributeLists,
+                    _ => default
+                };
+
+            foreach (var attributeList in attributeLists)
+            {
+                foreach (var attribute in attributeList.Attributes)
+                {
+                    // Only consider [Throws]
+                    var name = attribute.Name.ToString();
+                    if (name is not ("Throws" or "ThrowsAttribute"))
+                        continue;
+
+                    if (attribute.ArgumentList is null)
+                        continue;
+
+                    foreach (var arg in attribute.ArgumentList.Arguments)
+                    {
+                        if (arg.Expression is TypeOfExpressionSyntax typeOfExpr)
+                        {
+                            var typeSyntax = typeOfExpr.Type;
+                            var semanticModel = compilation.GetSemanticModel(syntaxRef.SyntaxTree);
+                            var typeSymbol = semanticModel.GetTypeInfo(typeSyntax).Type;
+
+                            if (SymbolEqualityComparer.Default.Equals(typeSymbol, declared))
+                            {
+                                // ✅ Point directly at the type name inside typeof(...)
+                                return typeSyntax.GetLocation();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // Fallback: method name location
+        return method.Locations.FirstOrDefault();
     }
 
     public static string FormatMethodSignature(IMethodSymbol methodSymbol)

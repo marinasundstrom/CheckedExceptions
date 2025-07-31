@@ -32,7 +32,7 @@ partial class CheckedExceptionsAnalyzerTests
 
         await Verifier.VerifyAnalyzerAsync(test, s =>
         {
-            s.DisabledDiagnostics.Add("THROW003");
+            s.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdGeneralThrows);
         });
     }
 
@@ -61,7 +61,7 @@ partial class CheckedExceptionsAnalyzerTests
         """;
 
         var expected = Verifier.MissingThrowsOnBaseMember("IOException", "BaseService.DoWork()")
-            .WithSpan(14, 26, 14, 32);
+            .WithSpan(13, 20, 13, 31);
 
         var expected2 = Verifier.MissingThrowsFromBaseMember("InvalidOperationException", "BaseService.DoWork()")
             .WithSpan(14, 26, 14, 32);
@@ -95,7 +95,7 @@ partial class CheckedExceptionsAnalyzerTests
         """;
 
         var expected = Verifier.MissingThrowsOnBaseMember("SocketException", "IOperation.Execute()")
-            .WithSpan(15, 17, 15, 24);
+            .WithSpan(14, 20, 14, 35);
 
         var expected2 = Verifier.MissingThrowsFromBaseMember("IOException", "IOperation.Execute()")
             .WithSpan(15, 17, 15, 24);
@@ -131,7 +131,7 @@ partial class CheckedExceptionsAnalyzerTests
         """;
 
         var expected = Verifier.MissingThrowsOnBaseMember("IOException", "Base.get_Value()")
-            .WithSpan(19, 9, 19, 12);
+            .WithSpan(18, 24, 18, 35);
 
         var expected2 = Verifier.MissingThrowsFromBaseMember("InvalidOperationException", "Base.get_Value()")
             .WithSpan(19, 9, 19, 12);
@@ -168,7 +168,7 @@ partial class CheckedExceptionsAnalyzerTests
         """;
 
         var expected = Verifier.MissingThrowsOnBaseMember("UnauthorizedAccessException", "Base.add_Something(EventHandler)")
-            .WithSpan(19, 9, 19, 12);
+            .WithSpan(18, 24, 18, 51);
 
         var expected2 = Verifier.MissingThrowsFromBaseMember("NotSupportedException", "Base.add_Something(EventHandler)")
             .WithSpan(19, 9, 19, 12);
@@ -204,7 +204,7 @@ partial class CheckedExceptionsAnalyzerTests
 
         await Verifier.VerifyAnalyzerAsync(test, s =>
         {
-            s.DisabledDiagnostics.Add("THROW003");
+            s.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdGeneralThrows);
         });
     }
 
@@ -238,7 +238,7 @@ partial class CheckedExceptionsAnalyzerTests
 
         await Verifier.VerifyAnalyzerAsync(test, s =>
         {
-            s.DisabledDiagnostics.Add("THROW003");
+            s.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdGeneralThrows);
         });
     }
 }

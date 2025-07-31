@@ -10,6 +10,9 @@ namespace Sundstrom.CheckedExceptions;
 
 partial class CheckedExceptionsAnalyzer
 {
+    /// <summary>
+    /// From method symbol
+    /// </summary>
     private void CheckForRedundantThrowsDeclarations(
         SymbolAnalysisContext context,
         ImmutableArray<AttributeData> throwsAttributes)
@@ -49,10 +52,7 @@ partial class CheckedExceptionsAnalyzer
     }
 
     /// <summary>
-    /// For local functions and lambdas
-    /// </summary>
-    /// <summary>
-    /// For local functions and lambdas
+    /// For local functions and lambda syntaxes
     /// </summary>
     private void CheckForRedundantThrowsDeclarations(
         IEnumerable<AttributeSyntax> throwsAttributes,
@@ -102,6 +102,50 @@ partial class CheckedExceptionsAnalyzer
         }
     }
 
+    private void CheckForRedundantThrowsDeclarations_ExpressionBodiedProperty(
+        IEnumerable<AttributeSyntax> throwsAttributes,
+        SyntaxNodeAnalysisContext context)
+    {
+        var semanticModel = context.SemanticModel;
+        var node = context.Node;
+
+        IPropertySymbol? propertySymbol = null;
+
+        if (node is PropertyDeclarationSyntax)
+        {
+            propertySymbol = semanticModel.GetDeclaredSymbol(node) as IPropertySymbol;
+        }
+
+        if (propertySymbol is null)
+            return;
+
+        // Collect all declared exception types from [Throws]
+        var declared = throwsAttributes.SelectMany(x => GetExceptionTypes(x, semanticModel))
+            .ToImmutableHashSet(SymbolEqualityComparer.Default);
+
+        // Collect all actually escaping exceptions
+        var actual = CollectThrownExceptions(node, semanticModel.Compilation, context.Options);
+
+        // declared - actual = redundant
+        foreach (var declaredType in declared)
+        {
+            if (!actual.Any(exceptionType =>
+                exceptionType.IsAssignableTo((ITypeSymbol)declaredType!, context.Compilation)))
+            {
+                // Try to locate the corresponding attribute syntax for precise squiggle
+                var location = GetThrowsAttributeLocation(propertySymbol, (INamedTypeSymbol?)declaredType!, context.Compilation)
+                               ?? node.GetLocation();
+
+                var diagnostic = Diagnostic.Create(
+                    RuleRedundantExceptionDeclaration,
+                    location,
+                    declaredType.Name);
+
+                context.ReportDiagnostic(diagnostic);
+            }
+        }
+    }
+
     private ImmutableHashSet<INamedTypeSymbol> CollectThrownExceptions(
         IMethodSymbol method,
         Compilation compilation,
@@ -111,8 +155,16 @@ partial class CheckedExceptionsAnalyzer
         if (syntaxRef == null)
             return ImmutableHashSet<INamedTypeSymbol>.Empty;
 
-        var node = syntaxRef.GetSyntax();
+        var syntax = syntaxRef.GetSyntax();
 
+        return CollectThrownExceptions(syntax, compilation, analyzerOptions);
+    }
+
+    private ImmutableHashSet<INamedTypeSymbol> CollectThrownExceptions(
+         SyntaxNode node,
+         Compilation compilation,
+         AnalyzerOptions analyzerOptions)
+    {
         BlockSyntax? body = null;
         ExpressionSyntax? expressionBody = null;
 
@@ -121,6 +173,15 @@ partial class CheckedExceptionsAnalyzer
             case BaseMethodDeclarationSyntax methodDecl:
                 body = methodDecl.Body;
                 expressionBody = methodDecl.ExpressionBody?.Expression;
+                break;
+
+            case PropertyDeclarationSyntax propertyDeclaration:
+                expressionBody = propertyDeclaration.ExpressionBody?.Expression;
+                break;
+
+            case AccessorDeclarationSyntax accessorDeclaration:
+                body = accessorDeclaration.Body;
+                expressionBody = accessorDeclaration.ExpressionBody?.Expression;
                 break;
 
             case LocalFunctionStatementSyntax localFunction:
@@ -236,11 +297,11 @@ partial class CheckedExceptionsAnalyzer
     }
 
     private Location? GetThrowsAttributeLocation(
-      IMethodSymbol method,
+      ISymbol symbol,
       INamedTypeSymbol declaredType,
       Compilation compilation)
     {
-        foreach (var attr in method.GetAttributes())
+        foreach (var attr in symbol.GetAttributes())
         {
             // Match purely on attribute name (ignores namespace)
             if (!string.Equals(attr.AttributeClass?.Name, "ThrowsAttribute", StringComparison.Ordinal))
