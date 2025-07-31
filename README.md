@@ -134,7 +134,7 @@ Add `CheckedExceptions.settings.json`:
   // If true, exceptions will not be read from XML documentation (default: false).
   "disableXmlDocInterop": false,
 
-  // Exceptions to completely ignore during analysis.
+  // Exceptions to completely ignore during analysis (Glob pattern).
   "ignoredExceptions": [
     "System.*",
     "!System.ArgumentNullException",
