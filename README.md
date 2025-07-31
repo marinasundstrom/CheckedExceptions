@@ -131,7 +131,13 @@ Add `CheckedExceptions.settings.json`:
 
 ```json
 {
+  // Exceptions declared in XML won't show. Default: false
+  "disableXmlDocInterop": false,
+
+  // Ignore these exceptions
   "ignoredExceptions": [ "System.ArgumentNullException" ],
+
+  // Ignore these exceptions but inform that they are unhandled
   "informationalExceptions": {
     "System.IO.IOException": "Propagation",
     "System.TimeoutException": "Always"
