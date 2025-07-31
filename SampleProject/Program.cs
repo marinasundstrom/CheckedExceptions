@@ -34,3 +34,18 @@ class InvalidUserInputException : Exception
     public InvalidUserInputException(string message, Exception inner)
         : base(message, inner) { }
 }
+
+public class TestBase
+{
+    [Throws(typeof(ArgumentNullException))]
+    public virtual bool Foo3 { get; set; }
+}
+
+public class TestDerive : TestBase
+{
+    public override bool Foo3
+    {
+        [Throws(typeof(ArgumentNullException))]
+        get => throw new ArgumentNullException();
+    }
+}
