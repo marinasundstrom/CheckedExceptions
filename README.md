@@ -137,7 +137,7 @@ Add `CheckedExceptions.settings.json`:
   // Exceptions to completely ignore during analysis (Glob pattern).
   "ignoredExceptions": [
     "System.*",
-    "!System.ArgumentNullException",
+    "System.ArgumentNullException",
     "!System.InvalidOperationException"
   ],
 
