@@ -8,11 +8,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- PR [#191](https://github.com/marinasundstrom/CheckedExceptions/pull/191) Add support for Glob patterns in ignore list
+
 ## [1.8.0] - 2025-07-31
 
 ### Added
 
-- PR [#177](https://github.com/marinasundstrom/CheckedExceptions/pull/177) Handle property decl in XML doc analyser
+- PR [#177](https://github.com/marinasundstrom/CheckedExceptions/pull/177) Handle property decl in XML doc analyzer
 
 - PR [#183](https://github.com/marinasundstrom/CheckedExceptions/pull/177) Ability to turn off XML doc interop feature
 
