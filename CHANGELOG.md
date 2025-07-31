@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - PR [#179](https://github.com/marinasundstrom/CheckedExceptions/pull/179) Fix display format of exception names in diagnostics
 
+- PR [#181](https://github.com/marinasundstrom/CheckedExceptions/pull/181) Improve robustness for redundancy check and inheritance
+
 ## [1.7.1] - 2025-07-30
 
 ### Fixed
