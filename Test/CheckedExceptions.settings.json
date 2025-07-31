@@ -1,6 +1,9 @@
 {
     "disableXmlDocInterop": false,
-    "ignoredExceptions": [],
+    "ignoredExceptions": [
+        "System.*",
+        "!System.InvalidOperationException"
+    ],
     "informationalExceptions": {
         "System.NotImplementedException": "Propagation",
         "System.IO.IOException": "Propagation",

@@ -498,7 +498,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         {
             var exceptionName = exceptionType.ToDisplayString();
 
-            if (settings.IgnoredExceptions.Contains(exceptionName))
+            if (FilterIgnored(settings, exceptionName))
             {
                 // Completely ignore this exception
                 continue;
@@ -531,6 +531,60 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
                 context.ReportDiagnostic(diagnostic);
             }
         }
+    }
+
+    private static bool FilterIgnored(AnalyzerSettings settings, string exceptionName)
+    {
+        bool matchedPositive = false;
+
+        // First pass: check negations
+        foreach (var pattern in settings.IgnoredExceptions)
+        {
+            if (string.IsNullOrWhiteSpace(pattern))
+                continue;
+
+            if (pattern.StartsWith("!"))
+            {
+                var negated = pattern.Substring(1);
+                if (IsMatch(exceptionName, negated))
+                {
+                    // Explicitly not ignored -> wins immediately
+                    return false;
+                }
+            }
+        }
+
+        // Second pass: check positive patterns
+        foreach (var pattern in settings.IgnoredExceptions)
+        {
+            if (string.IsNullOrWhiteSpace(pattern))
+                continue;
+
+            if (!pattern.StartsWith("!"))
+            {
+                if (IsMatch(exceptionName, pattern))
+                {
+                    matchedPositive = true;
+                }
+            }
+        }
+
+        return matchedPositive;
+    }
+
+    private static bool IsMatch(string exceptionName, string pattern)
+    {
+        // Wildcard '*' support
+        if (pattern.Contains('*'))
+        {
+            var regexPattern = "^" + System.Text.RegularExpressions.Regex.Escape(pattern)
+                .Replace("\\*", ".*") + "$";
+
+            return System.Text.RegularExpressions.Regex.IsMatch(exceptionName, regexPattern);
+        }
+
+        // Exact match
+        return string.Equals(exceptionName, pattern, StringComparison.Ordinal);
     }
 
     private HashSet<INamedTypeSymbol> CollectUnhandledExceptions(SyntaxNodeAnalysisContext context, BlockSyntax block, AnalyzerSettings settings)
@@ -743,11 +797,9 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
     public bool ShouldIncludeException(INamedTypeSymbol exceptionType, SyntaxNode node, AnalyzerSettings settings)
     {
-        var exceptions = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
-
         var exceptionName = exceptionType.ToDisplayString();
 
-        if (settings.IgnoredExceptions.Contains(exceptionName))
+        if (FilterIgnored(settings, exceptionName))
         {
             // Completely ignore this exception
             return false;
@@ -1381,7 +1433,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
         var exceptionName = exceptionType.ToDisplayString();
 
-        if (settings.IgnoredExceptions.Contains(exceptionName))
+        if (FilterIgnored(settings, exceptionName))
         {
             // Completely ignore this exception
             return;
