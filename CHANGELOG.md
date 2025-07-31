@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [1.8.0] - 2025-07-31
+
 ### Added
 
 - PR [#177](https://github.com/marinasundstrom/CheckedExceptions/pull/177) Handle property decl in XML doc analyser
