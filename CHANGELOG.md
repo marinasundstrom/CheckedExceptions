@@ -14,6 +14,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - PR [#183](https://github.com/marinasundstrom/CheckedExceptions/pull/177) Ability to turn off XML doc interop feature
 
+- PR [#184](https://github.com/marinasundstrom/CheckedExceptions/pull/184) Codefix for adding exceptions missing from base member
+
 ### Fixed
 
 - PR [173](https://github.com/marinasundstrom/CheckedExceptions/pull/173) Handle inheritance in redundancy check

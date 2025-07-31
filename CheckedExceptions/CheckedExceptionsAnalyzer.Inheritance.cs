@@ -107,18 +107,40 @@ partial class CheckedExceptionsAnalyzer
 
             if (!isCovered)
             {
-                var location = method.Locations.FirstOrDefault();
                 var baseName = FormatMethodSignature(baseMethod);
+
+                var properties = ImmutableDictionary.Create<string, string?>()
+                .Add("ExceptionType", baseException.Name);
 
                 var diagnostic = Diagnostic.Create(
                     RuleMissingThrowsFromBaseMember,
-                    location,
+                    GetSourceLocationForTarget(method),
+                    properties,
                     baseName,
                     baseException.Name);
 
                 context.ReportDiagnostic(diagnostic);
             }
         }
+    }
+
+    private Location? GetSourceLocationForTarget(IMethodSymbol methodSymbol)
+    {
+        if (methodSymbol.AssociatedSymbol is IPropertySymbol propertySymbol)
+        {
+            var syntaxReference = propertySymbol.DeclaringSyntaxReferences.FirstOrDefault();
+
+            if (syntaxReference is not null)
+            {
+                var propertyDeclaration = syntaxReference.GetSyntax() as PropertyDeclarationSyntax;
+                if (propertyDeclaration is not null && propertyDeclaration.ExpressionBody is not null)
+                {
+                    return propertyDeclaration.GetLocation();
+                }
+            }
+        }
+
+        return methodSymbol.Locations.FirstOrDefault();
     }
 
     private static void AnalyzeMissingThrowsOnBaseMember(SymbolAnalysisContext context, IMethodSymbol method, ImmutableHashSet<ISymbol?> declaredExceptions, IMethodSymbol baseMethod, ImmutableHashSet<ISymbol?> baseExceptions)
@@ -141,9 +163,13 @@ partial class CheckedExceptionsAnalyzer
                 if (string.IsNullOrEmpty(declared!.Name))
                     continue;
 
+                var properties = ImmutableDictionary.Create<string, string?>()
+                    .Add("ExceptionType", declared.Name);
+
                 var diagnostic = Diagnostic.Create(
                     RuleMissingThrowsOnBaseMember,
                     GetLocationOfExceptionNameInTypeOfInThrowsAttribute(context.Compilation, method, declared),
+                    properties,
                     memberName,
                     declared.Name);
 
