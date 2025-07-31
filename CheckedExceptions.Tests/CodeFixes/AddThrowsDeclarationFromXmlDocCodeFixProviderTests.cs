@@ -142,6 +142,6 @@ public class Test
             .WithArguments("InvalidOperationException")
             .WithSpan(6, 16, 6, 19);
 
-        await Verifier.VerifyCodeFixAsync(testCode, expectedDiagnostic, fixedCode);
+        await Verifier.VerifyCodeFixAsync(testCode, expectedDiagnostic, fixedCode, expectedIncrementalIterations: 1);
     }
 }

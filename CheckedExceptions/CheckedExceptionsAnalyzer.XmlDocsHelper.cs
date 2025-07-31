@@ -99,6 +99,18 @@ partial class CheckedExceptionsAnalyzer
 
         if (symbol is IPropertySymbol propertySymbol)
         {
+            // Expression-bodied property? (no accessor list, but has an expression body)
+            if (propertySymbol.DeclaringSyntaxReferences
+                              .Select(r => r.GetSyntax())
+                              .OfType<PropertyDeclarationSyntax>()
+                              .Any(p => p.ExpressionBody is not null))
+            {
+                // ✅ Anchor diagnostics on the property itself
+                var exTypes = GetExceptionTypes(propertySymbol);
+                ProcessDiagnostics(exTypes, propertySymbol, reportDiagnostic, xmlDocumentedExceptions);
+                return;
+            }
+
             // Filter exceptions documented specifically for the getter and setter
             var getterExceptions = xmlDocumentedExceptions.Where(x => HeuristicRules.IsForGetter(x.Description));
 
@@ -166,35 +178,13 @@ partial class CheckedExceptionsAnalyzer
 
                 var diag = Diagnostic.Create(
                     RuleXmlDocButNoThrows,
-                    GetSourceLocation(symbol),
+                    symbol.Locations.FirstOrDefault() ?? Location.None,
                     properties,
                     exceptionInfo.ExceptionType.Name);
 
                 reportDiagnostic(diag);
             }
         }
-    }
-
-    private static Location GetSourceLocation(ISymbol symbol)
-    {
-        if (symbol is IMethodSymbol methodSymbol
-            && methodSymbol.AssociatedSymbol is IPropertySymbol propertySymbol)
-        {
-            var syntaxRef = propertySymbol.DeclaringSyntaxReferences.FirstOrDefault();
-            if (syntaxRef is not null)
-            {
-                var syntax = syntaxRef.GetSyntax();
-                if (syntax is PropertyDeclarationSyntax propertyDecl)
-                {
-                    if (propertyDecl.ExpressionBody is not null)
-                    {
-                        return propertyDecl.Identifier.GetLocation();
-                    }
-                }
-            }
-        }
-
-        return symbol.Locations.FirstOrDefault() ?? Location.None;
     }
 
     private IEnumerable<ExceptionInfo> GetExceptionTypesFromDocumentationCommentXml_Syntax(
