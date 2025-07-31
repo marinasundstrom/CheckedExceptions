@@ -11,9 +11,9 @@
       "type": "array",
       "items": {
         "type": "string",
-        "pattern": "^[a-zA-Z0-9_.]+$"
+        "pattern": "^!?[a-zA-Z0-9_.]+\\*?$"
       },
-      "description": "A list of fully qualified exception type names to be ignored."
+      "description": "A list of fully qualified exception type names or glob-like patterns to be ignored. Entries may optionally start with '!' to indicate exceptions that should not be ignored."
     },
     "informationalExceptions": {
       "type": "object",

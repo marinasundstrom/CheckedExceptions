@@ -135,7 +135,11 @@ Add `CheckedExceptions.settings.json`:
   "disableXmlDocInterop": false,
 
   // Exceptions to completely ignore during analysis.
-  "ignoredExceptions": [ "System.ArgumentNullException" ],
+  "ignoredExceptions": [
+    "System.*",
+    "!System.ArgumentNullException",
+    "!System.InvalidOperationException"
+  ],
 
   // Exceptions to ignore but still report as informational diagnostics.
   "informationalExceptions": {
