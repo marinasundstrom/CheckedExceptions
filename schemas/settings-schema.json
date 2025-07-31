@@ -2,6 +2,11 @@
   "$schema": "http://json-schema.org/draft-07/schema#",
   "type": "object",
   "properties": {
+    "disableXmlDocInterop": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indicates whether XML documentation interoperability is disabled."
+    },
     "ignoredExceptions": {
       "type": "array",
       "items": {
@@ -14,11 +19,18 @@
       "type": "object",
       "additionalProperties": {
         "type": "string",
-        "enum": [ "Throw", "Propagation", "Always" ]
+        "enum": [
+          "Throw",
+          "Propagation",
+          "Always"
+        ]
       },
       "description": "A mapping of fully qualified exception type names to their informational handling strategy."
     }
   },
-  "required": [ "ignoredExceptions", "informationalExceptions" ],
+  "required": [
+    "ignoredExceptions",
+    "informationalExceptions"
+  ],
   "additionalProperties": false
 }
