@@ -1,4 +1,5 @@
 {
+    "disableXmlDocInterop": false,
     "ignoredExceptions": [
         "System.ArgumentNullException"
     ],
