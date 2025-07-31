@@ -53,7 +53,7 @@ partial class CheckedExceptionsAnalyzer
                         context.ReportDiagnostic(Diagnostic.Create(
                             RuleDuplicateThrowsByHierarchy,
                             expression.GetLocation(), // ✅ precise location
-                            otherType.ToDisplayString()));
+                            otherType.Name));
                     }
                     break;
                 }
@@ -113,7 +113,7 @@ partial class CheckedExceptionsAnalyzer
                         context.ReportDiagnostic(Diagnostic.Create(
                             RuleDuplicateThrowsByHierarchy,
                             expr.GetLocation(),
-                            otherType.ToDisplayString()));
+                            otherType.Name));
                     }
                     break;
                 }
