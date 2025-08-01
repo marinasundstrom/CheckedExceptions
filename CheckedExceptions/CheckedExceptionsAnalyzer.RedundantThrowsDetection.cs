@@ -227,9 +227,9 @@ partial class CheckedExceptionsAnalyzer
     }
 
     private HashSet<INamedTypeSymbol> CollectAllEscapingExceptions(
-        SyntaxNodeAnalysisContext context,
-        BlockSyntax block,
-        AnalyzerSettings settings)
+      SyntaxNodeAnalysisContext context,
+      BlockSyntax block,
+      AnalyzerSettings settings)
     {
         var unhandledExceptions = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
 
@@ -237,25 +237,39 @@ partial class CheckedExceptionsAnalyzer
         {
             if (statement is TryStatementSyntax tryStatement)
             {
+                // 1. Analyze the try block
                 var innerUnhandled = CollectAllEscapingExceptions(context, tryStatement.Block, settings);
 
-                var caughtExceptions = GetCaughtExceptions(tryStatement.Catches, context.SemanticModel);
-                innerUnhandled.RemoveWhere(exceptionType =>
-                    IsExceptionCaught(exceptionType, caughtExceptions));
-
-                unhandledExceptions.UnionWith(innerUnhandled);
-
-                // 🔑 NEW: also recurse into catch blocks themselves
                 foreach (var catchClause in tryStatement.Catches)
                 {
-                    if (catchClause.Block is not null)
+                    if (catchClause.Declaration?.Type is null)
                     {
-                        var catchUnhandled = CollectAllEscapingExceptions(context, catchClause.Block, settings);
-                        unhandledExceptions.UnionWith(catchUnhandled);
+                        // All exceptions are caught
+
+                        HandleCatchBlock(context, settings, unhandledExceptions, innerUnhandled, catchClause, null);
+                    }
+                    else
+                    {
+
+                        var caughtException = GetCaughtException(catchClause, context.SemanticModel);
+
+                        // Continue without analyzing if caughtException is not compatible with any exception in innerUnhandled.
+                        bool isCatchHandlingException = innerUnhandled.Any(ex => IsExceptionCaught(ex, caughtException));
+
+                        if (!isCatchHandlingException)
+                            continue;
+
+                        // Remove exceptions that are caught here
+                        innerUnhandled.RemoveWhere(ex => IsExceptionCaught(ex, caughtException));
+
+                        HandleCatchBlock(context, settings, unhandledExceptions, innerUnhandled, catchClause, caughtException);
                     }
                 }
 
-                // Finally, consider `finally` block if present
+                // 3. Add surviving unhandled exceptions from the try
+                unhandledExceptions.UnionWith(innerUnhandled);
+
+                // 4. Analyze finally if present
                 if (tryStatement.Finally?.Block is { } finallyBlock)
                 {
                     var finallyUnhandled = CollectAllEscapingExceptions(context, finallyBlock, settings);
@@ -264,12 +278,35 @@ partial class CheckedExceptionsAnalyzer
             }
             else
             {
+                // Normal statement (could be a throw, an invocation, etc.)
                 var statementExceptions = CollectExceptionsFromStatement(context, statement, settings);
                 unhandledExceptions.UnionWith(statementExceptions);
             }
         }
 
         return unhandledExceptions;
+    }
+
+    private void HandleCatchBlock(SyntaxNodeAnalysisContext context, AnalyzerSettings settings, HashSet<INamedTypeSymbol> unhandledExceptions, HashSet<INamedTypeSymbol> innerUnhandled, CatchClauseSyntax catchClause, INamedTypeSymbol? caughtException)
+    {
+        // Now analyze the body of the catch
+        if (catchClause.Block is not null)
+        {
+            var catchUnhandled = CollectAllEscapingExceptions(context, catchClause.Block, settings);
+
+            if (caughtException is null)
+            {
+                // Catch all
+                if (innerUnhandled.Count == 0)
+                {
+                    catchUnhandled.Clear();
+                }
+
+                innerUnhandled.Clear();
+            }
+
+            unhandledExceptions.UnionWith(catchUnhandled);
+        }
     }
 
     private INamedTypeSymbol? GetExceptionTypeFromNode(SyntaxNode throwNode, SemanticModel semanticModel)

@@ -1,29 +1,36 @@
-﻿using Test;
-
-
-try
+﻿try
 {
-    var httpClient = new HttpClient()
+    int result = ReadAndParse();
+    Console.WriteLine(result);
+}
+catch (InvalidUserInputException ex)
+{
+    Console.WriteLine($"Input error: {ex.Message}");
+}
+
+[Throws(typeof(InvalidUserInputException))] // ✔️ Only the domain-specific exception is exposed
+static int ReadAndParse()
+{
+    string input = "abc";  // Simulated input — could be user input in real scenarios
+
+    try
     {
-        BaseAddress = new Uri("https://www.scrapethissite.com")
-    };
-    var str = await httpClient.GetStringAsync("/");
-
-    Console.WriteLine(str);
+        return int.Parse(input);
+    }
+    catch (FormatException formatException)
+    {
+        // Handle and rethrow as domain-specific exception
+        throw new InvalidUserInputException("Input was not a valid number.", formatException);
+    }
+    catch (OverflowException overflowException)
+    {
+        // Handle and rethrow as domain-specific exception
+        throw new InvalidUserInputException("Input number was too large.", overflowException);
+    }
 }
-catch (InvalidOperationException)
-{
 
-}
-catch (HttpRequestException)
+class InvalidUserInputException : Exception
 {
-
-}
-catch (TaskCanceledException)
-{
-
-}
-catch (UriFormatException)
-{
-
+    public InvalidUserInputException(string message, Exception inner)
+        : base(message, inner) { }
 }
