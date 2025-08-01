@@ -32,6 +32,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     public const string DiagnosticIdThrowsDeclarationNotValidOnFullProperty = "THROW010";
     public const string DiagnosticIdXmlDocButNoThrows = "THROW011";
     public const string DiagnosticIdRedundantExceptionDeclaration = "THROW012";
+    public const string DiagnosticIdRedundantCatchAllClause = "THROW013";
 
     public static IEnumerable<string> AllDiagnosticsIds = [DiagnosticIdUnhandled, DiagnosticIdGeneralThrows, DiagnosticIdGeneralThrow, DiagnosticIdDuplicateDeclarations];
 
@@ -109,8 +110,17 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
     private static readonly DiagnosticDescriptor RuleRedundantTypedCatchClause = new(
         DiagnosticIdRedundantTypedCatchClause,
-        title: "Redundant catch clause",
-        messageFormat: "Exception type '{0}' is not thrown within the try block",
+        title: "Redundant catch typed clause",
+        messageFormat: "Exception type '{0}' is never thrown within the try block",
+        category: "Usage",
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "Detects catch clauses for exception types that are never thrown inside the associated try block, making the catch clause redundant.");
+
+    private static readonly DiagnosticDescriptor RuleRedundantCatchAllClause = new(
+        DiagnosticIdRedundantCatchAllClause,
+        title: "Redundant catch all clause",
+        messageFormat: "No exception is thrown within the try block",
         category: "Usage",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
@@ -138,14 +148,14 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor RuleRedundantExceptionDeclaration = new(
         DiagnosticIdRedundantExceptionDeclaration,
         title: "Redundant exception declaration",
-        messageFormat: "Exception type '{0}' is not thrown in this member",
+        messageFormat: "Exception '{0}' is declared but never thrown",
         category: "Usage",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "Detects declaration for exception types that are never thrown inside the current member, making the declaration redundant.");
+        description: "Detects exception types declared with [Throws] that are never thrown in the method or property body, making the declaration redundant.");
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
-        [RuleUnhandledException, RuleIgnoredException, RuleGeneralThrows, RuleGeneralThrow, RuleDuplicateDeclarations, RuleMissingThrowsOnBaseMember, RuleMissingThrowsFromBaseMember, RuleDuplicateThrowsByHierarchy, RuleRedundantTypedCatchClause, RuleThrowsDeclarationNotValidOnFullProperty, RuleXmlDocButNoThrows, RuleRedundantExceptionDeclaration];
+        [RuleUnhandledException, RuleIgnoredException, RuleGeneralThrows, RuleGeneralThrow, RuleDuplicateDeclarations, RuleMissingThrowsOnBaseMember, RuleMissingThrowsFromBaseMember, RuleDuplicateThrowsByHierarchy, RuleRedundantTypedCatchClause, RuleRedundantCatchAllClause, RuleThrowsDeclarationNotValidOnFullProperty, RuleXmlDocButNoThrows, RuleRedundantExceptionDeclaration];
 
     public override void Initialize(AnalysisContext context)
     {
@@ -243,29 +253,43 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         // Check for redundant typed catch clauses
         foreach (var catchClause in tryStatement.Catches)
         {
-            if (catchClause.Declaration is null)
-                continue; // Skip general catch
-
-            var catchType = semanticModel.GetTypeInfo(catchClause.Declaration.Type).Type as INamedTypeSymbol;
-            if (catchType is null)
-                continue;
-
-            var thrownExceptions = CollectUnhandledExceptions(context, tryStatement.Block, settings);
-
-            // Check if any thrown exception matches or derives from this catch type
-            bool isRelevant = thrownExceptions.OfType<INamedTypeSymbol>().Any(thrown =>
-                thrown.Equals(catchType, SymbolEqualityComparer.Default) ||
-                thrown.InheritsFrom(catchType));
-
-            if (!isRelevant)
+            if (catchClause.Declaration?.Type is null)
             {
+                var thrownExceptions = CollectUnhandledExceptions(context, tryStatement.Block, settings);
+
+                if (thrownExceptions.Count > 0)
+                    continue;
+
                 // Report redundant catch clause
                 var diagnostic = Diagnostic.Create(
-                    RuleRedundantTypedCatchClause,
-                    catchClause.Declaration.Type.GetLocation(),
-                    catchType.Name);
+                RuleRedundantCatchAllClause,
+                catchClause.CatchKeyword.GetLocation());
 
                 context.ReportDiagnostic(diagnostic);
+            }
+            else
+            {
+                var catchType = semanticModel.GetTypeInfo(catchClause.Declaration.Type).Type as INamedTypeSymbol;
+                if (catchType is null)
+                    continue;
+
+                var thrownExceptions = CollectUnhandledExceptions(context, tryStatement.Block, settings);
+
+                // Check if any thrown exception matches or derives from this catch type
+                bool isRelevant = thrownExceptions.OfType<INamedTypeSymbol>().Any(thrown =>
+                    thrown.Equals(catchType, SymbolEqualityComparer.Default) ||
+                    thrown.InheritsFrom(catchType));
+
+                if (!isRelevant)
+                {
+                    // Report redundant catch clause
+                    var diagnostic = Diagnostic.Create(
+                        RuleRedundantTypedCatchClause,
+                        catchClause.Declaration.Type.GetLocation(),
+                        catchType.Name);
+
+                    context.ReportDiagnostic(diagnostic);
+                }
             }
         }
     }
@@ -823,7 +847,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         {
             if (catchClause.Declaration is not null)
             {
-                var catchType = semanticModel.GetTypeInfo(catchClause.Declaration.Type).Type as INamedTypeSymbol;
+                INamedTypeSymbol? catchType = GetCaughtException(catchClause, semanticModel);
                 if (catchType is not null)
                 {
                     caughtExceptions.Add(catchType);
@@ -840,17 +864,37 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         return caughtExceptions;
     }
 
-    private bool IsExceptionCaught(INamedTypeSymbol exceptionType, HashSet<INamedTypeSymbol> caughtExceptions)
+    private static INamedTypeSymbol? GetCaughtException(CatchClauseSyntax catchClause, SemanticModel semanticModel)
+    {
+        if (catchClause.Declaration?.Type is null)
+            return null;
+
+        return semanticModel.GetTypeInfo(catchClause.Declaration.Type).Type as INamedTypeSymbol;
+    }
+
+    private bool IsExceptionCaught(INamedTypeSymbol exceptionType, HashSet<INamedTypeSymbol>? caughtExceptions)
     {
         if (caughtExceptions is null)
         {
-            // General catch clause catches all exceptions
+            // general catch (catch without type) => swallows all
             return true;
         }
 
         return caughtExceptions.Any(catchType =>
             exceptionType.Equals(catchType, SymbolEqualityComparer.Default) ||
             exceptionType.InheritsFrom(catchType));
+    }
+
+    private bool IsExceptionCaught(INamedTypeSymbol exceptionType, INamedTypeSymbol? catchType)
+    {
+        if (catchType is null)
+        {
+            // null means general catch
+            return true;
+        }
+
+        return exceptionType.Equals(catchType, SymbolEqualityComparer.Default) ||
+               exceptionType.InheritsFrom(catchType);
     }
 
     private void AnalyzeAwait(SyntaxNodeAnalysisContext context)

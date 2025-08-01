@@ -14,3 +14,4 @@ THROW009 | Usage   | Warning  | CheckedExceptionsAnalyzer
 THROW010 | Usage   | Error    | CheckedExceptionsAnalyzer
 THROW011 | Usage   | Warning  | CheckedExceptionsAnalyzer
 THROW012 | Usage   | Warning  | CheckedExceptionsAnalyzer
+THROW013 | Usage   | Warning  | CheckedExceptionsAnalyzer
