@@ -28,6 +28,11 @@ partial class CheckedExceptionsAnalyzer
         var declared = GetExceptionTypes(throwsAttributes)
             .ToImmutableHashSet(SymbolEqualityComparer.Default);
 
+        if (IsAbstractOrVirtualAutoProperty(methodSymbol))
+        {
+            return;
+        }
+
         // Collect all actually escaping exceptions
         var actual = CollectThrownExceptions(methodSymbol, context.Compilation, context.Options);
 
@@ -49,6 +54,26 @@ partial class CheckedExceptionsAnalyzer
                 context.ReportDiagnostic(diagnostic);
             }
         }
+    }
+
+    private static bool IsAbstractOrVirtualAutoProperty(IMethodSymbol methodSymbol)
+    {
+        if (methodSymbol.AssociatedSymbol is IPropertySymbol propertySymbol && (propertySymbol.IsAbstract || propertySymbol.IsVirtual))
+        {
+            foreach (var syntaxRef in methodSymbol.DeclaringSyntaxReferences)
+            {
+                if (syntaxRef.GetSyntax() is AccessorDeclarationSyntax accessorDecl)
+                {
+                    // Auto-property accessor if both Body and ExpressionBody are null
+                    if (accessorDecl.Body is null && accessorDecl.ExpressionBody is null)
+                    {
+                        return true; // skip analysis
+                    }
+                }
+            }
+        }
+
+        return false;
     }
 
     /// <summary>

@@ -8,13 +8,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- PR [#192](https://github.com/marinasundstrom/CheckedExceptions/pull/192) Improve redundancy analysis for try/catch
+
+### Fixed 
+
+- PR [#193](https://github.com/marinasundstrom/CheckedExceptions/pull/193) Fix inheritance analysis for virtual properties
+
 ## [1.8.1] - 2025-07-31
 
 ### Added
 
 - PR [#191](https://github.com/marinasundstrom/CheckedExceptions/pull/191) Add support for Glob patterns in ignore list
-
-- PR [#192](https://github.com/marinasundstrom/CheckedExceptions/pull/192) Improve redundancy analysis for try/catch
 
 ## [1.8.0] - 2025-07-31
 

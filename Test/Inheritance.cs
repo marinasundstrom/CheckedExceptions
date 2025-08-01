@@ -63,9 +63,6 @@ public class TestBase
 
     [Throws(typeof(ArgumentException))]
     public virtual bool Foo2 => true;
-
-    [Throws(typeof(InvalidDataException))]
-    public virtual bool Foo3 { get; set; }
 }
 
 public class TestDerive : TestBase
@@ -74,6 +71,24 @@ public class TestDerive : TestBase
     public override bool Foo => false;
 
     public override bool Foo2
+    {
+        get => throw new ArgumentNullException();
+    }
+}
+
+public class TestBase1
+{
+    public virtual bool Foo3
+    {
+        [Throws(typeof(ArgumentException))]
+        get;
+        set;
+    }
+}
+
+public class TestDerive1 : TestBase1
+{
+    public override bool Foo3
     {
         [Throws(typeof(ArgumentNullException))]
         get => throw new ArgumentNullException();

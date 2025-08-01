@@ -56,7 +56,7 @@ partial class CheckedExceptionsAnalyzerTests
 
 
     [Fact]
-    public async Task DeclareThrowsOnVirtualFullProperty_NoDiagnostic()
+    public async Task DeclareThrowsOnVirtualFullProperty_Diagnostic()
     {
         var test = /* lang=c#-test */ """
         using System;
@@ -68,8 +68,13 @@ partial class CheckedExceptionsAnalyzerTests
         }
         """;
 
+        var expected = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdThrowsDeclarationNotValidOnFullProperty)
+          .WithSpan(5, 6, 5, 39);
+
         await Verifier.VerifyAnalyzerAsync(test, s =>
         {
+            s.ExpectedDiagnostics.Add(expected);
+
             s.DisabledDiagnostics.Remove(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration);
 
             s.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdGeneralThrows);

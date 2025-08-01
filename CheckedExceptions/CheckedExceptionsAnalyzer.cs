@@ -204,12 +204,8 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         {
             var propertySymbol = semanticModel.GetDeclaredSymbol(propertyDeclaration);
 
-            if (!propertySymbol.IsVirtual && !propertySymbol.IsAbstract)
-            {
-                // Check whether this concrete full property decl has any Throws declarations on it.
-
-                CheckNoThrowsOnFullPropertyDecl(context, throwsAttributes);
-            }
+            // Check whether this concrete full property decl has any Throws declarations on it.
+            CheckNoThrowsOnFullPropertyDecl(context, throwsAttributes);
 
             if (accessorList.Accessors.All(x => x.ExpressionBody is null && x.Body is null))
             {
