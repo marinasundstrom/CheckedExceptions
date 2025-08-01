@@ -78,8 +78,12 @@ public class TestDerive : TestBase
 
 public class TestBase1
 {
-    [Throws(typeof(ArgumentNullException))]
-    public virtual bool Foo3 { get; set; }
+    public virtual bool Foo3
+    {
+        [Throws(typeof(ArgumentException))]
+        get;
+        set;
+    }
 }
 
 public class TestDerive1 : TestBase1
