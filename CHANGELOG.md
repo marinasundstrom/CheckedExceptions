@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [1.8.2] - 2025-07-01
+
 ### Added
 
 - PR [#192](https://github.com/marinasundstrom/CheckedExceptions/pull/192) Improve redundancy analysis for try/catch
