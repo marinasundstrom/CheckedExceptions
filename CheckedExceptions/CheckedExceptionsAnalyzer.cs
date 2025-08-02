@@ -184,6 +184,63 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         context.RegisterSyntaxNodeAction(AnalyzeEventAssignment, SyntaxKind.SubtractAssignmentExpression);
         context.RegisterSyntaxNodeAction(AnalyzeTryStatement, SyntaxKind.TryStatement);
         context.RegisterSyntaxNodeAction(AnalyzePropertyDeclaration, SyntaxKind.PropertyDeclaration);
+        context.RegisterSyntaxNodeAction(AnalyzeCastExpression, SyntaxKind.CastExpression);
+    }
+
+    private void AnalyzeCastExpression(SyntaxNodeAnalysisContext context)
+    {
+        var castExpression = (CastExpressionSyntax)context.Node;
+        var settings = GetAnalyzerSettings(context.Options);
+
+        var sourceType = context.SemanticModel.GetTypeInfo(castExpression.Expression).Type;
+        var targetType = context.SemanticModel.GetTypeInfo(castExpression.Type).Type;
+
+        if (sourceType is null || targetType is null)
+            return;
+
+        var conversion = context.SemanticModel.ClassifyConversion(castExpression.Expression, targetType);
+
+        INamedTypeSymbol? exceptionType = null;
+
+        if (conversion.IsReference || conversion.IsUnboxing)
+        {
+            // Unsafe reference/unboxing → InvalidCastException
+            exceptionType = context.Compilation.GetTypeByMetadataName("System.InvalidCastException");
+        }
+        else if (conversion.IsNumeric && conversion.IsExplicit)
+        {
+            // Only warn about OverflowException in checked context
+            if (IsInCheckedContext(castExpression, context.SemanticModel, context.Compilation))
+            {
+                exceptionType = context.Compilation.GetTypeByMetadataName("System.OverflowException");
+            }
+        }
+
+        if (exceptionType is not null)
+        {
+            AnalyzeExceptionThrowingNode(context, castExpression, exceptionType, settings);
+        }
+    }
+
+    private static bool IsInCheckedContext(SyntaxNode node, SemanticModel model, Compilation compilation)
+    {
+        // Walk upwards through parents
+        for (var current = node; current is not null; current = current.Parent)
+        {
+            switch (current.Kind())
+            {
+                case SyntaxKind.CheckedExpression:
+                case SyntaxKind.CheckedStatement:
+                    return true;
+
+                case SyntaxKind.UncheckedExpression:
+                case SyntaxKind.UncheckedStatement:
+                    return false;
+            }
+        }
+
+        // Fall back to project-wide default
+        return compilation.Options.CheckOverflow;
     }
 
     private void AnalyzePropertyDeclaration(SyntaxNodeAnalysisContext context)
