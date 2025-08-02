@@ -7,6 +7,13 @@ on:
       - main
     paths-ignore:
       - '**/*.md'
+
+  pull_request:
+    branches:
+      - main     # or whichever branch PRs normally target
+    paths-ignore:
+      - '**/*.md'
+
   workflow_dispatch:
 
 jobs:
