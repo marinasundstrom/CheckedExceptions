@@ -8,7 +8,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
-## [1.8.5] - 2025-07-02
+## [1.8.5] - 2025-08-02
 
 ### Added
 
@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - PR [#201](https://github.com/marinasundstrom/CheckedExceptions/pull/201) Fix wrapping of expression bodies by try/catch
 
-## [1.8.2] - 2025-07-01
+## [1.8.2] - 2025-08-01
 
 ### Added
 
