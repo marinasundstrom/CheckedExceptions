@@ -32,7 +32,7 @@ public class SurroundWithTryCatchCodeFixProvider : CodeFixProvider
         var diagnostic = diagnostics.First();
         var node = root.FindNode(diagnostic.Location.SourceSpan);
 
-        if (IsExpressionBody(node, out var rootExpression))
+        if (IsInExpressionBody(node, out var rootExpression))
         {
             context.RegisterCodeFix(
                 CodeAction.Create(
@@ -56,17 +56,36 @@ public class SurroundWithTryCatchCodeFixProvider : CodeFixProvider
             diagnostics);
     }
 
-    private static bool IsExpressionBody(SyntaxNode node, out ExpressionSyntax? rootExpression)
+    private static bool IsInExpressionBody(SyntaxNode node, out ExpressionSyntax? rootExpression)
     {
         if (node is ExpressionSyntax expr)
         {
-            // Find the root expression node.
-            // Some members have ArrowExpressionClauseSyntax
-            // but for lambda expressions you need to stop by it.
-            while (expr.Parent is ExpressionSyntax expr2
-                and not AnonymousFunctionExpressionSyntax)
+            // Find the root expression node of a lambda or expression body.
+            SyntaxNode n = node;
+
+            while (true)
             {
-                expr = expr2;
+                var parent = n.Parent;
+
+                if (parent is null)
+                    break;
+
+                // 🚨 Short-circuit: we’ve left the realm where an expression body could exist
+                if (parent is MemberDeclarationSyntax or StatementSyntax or CompilationUnitSyntax)
+                {
+                    rootExpression = null;
+                    return false;
+                }
+
+                if (parent is not (AnonymousFunctionExpressionSyntax or ArrowExpressionClauseSyntax))
+                {
+                    n = parent;
+                }
+                else if (n is ExpressionSyntax)
+                {
+                    expr = (ExpressionSyntax)n;
+                    break;
+                }
             }
 
             switch (expr.Parent)
@@ -76,10 +95,10 @@ public class SurroundWithTryCatchCodeFixProvider : CodeFixProvider
                     return true;
 
                 case ArrowExpressionClauseSyntax ace when ace.Parent
-                    is BaseMethodDeclarationSyntax
-                    || ace.Parent is BasePropertyDeclarationSyntax
-                    || ace.Parent is AccessorDeclarationSyntax
-                    || ace.Parent is LocalFunctionStatementSyntax:
+                        is BaseMethodDeclarationSyntax
+                        || ace.Parent is BasePropertyDeclarationSyntax
+                        || ace.Parent is AccessorDeclarationSyntax
+                        || ace.Parent is LocalFunctionStatementSyntax:
                     rootExpression = expr;
                     return true;
             }
