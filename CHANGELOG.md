@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- PR [#203](https://github.com/marinasundstrom/CheckedExceptions/pull/203) Handle Cast expression #202 #203
+
 ### Fixed
 
 - PR [#201](https://github.com/marinasundstrom/CheckedExceptions/pull/201) Fix wrapping of expression bodies by try/catch
