@@ -34,9 +34,21 @@ public class RemoveRedundantCatchClauseCodeFixProvider : CodeFixProvider
 
         var catchClause = node.AncestorsAndSelf().OfType<CatchClauseSyntax>().First();
 
+        var tryStatement = catchClause.Parent as TryStatementSyntax;
+
+        string title = TitleRemoveRedundantCatchClause;
+
+        if (tryStatement is not null)
+        {
+            if (tryStatement.Catches.Count == 1)
+            {
+                title = title.Replace(title, "Remove redundant try/catch");
+            }
+        }
+
         context.RegisterCodeFix(
             CodeAction.Create(
-                title: TitleRemoveRedundantCatchClause,
+                title: title,
                 createChangedDocument: c => RemoveRedundantCatchClauseAsync(context.Document, catchClause, diagnostics, c),
                 equivalenceKey: TitleRemoveRedundantCatchClause),
             diagnostics);
@@ -50,8 +62,54 @@ public class RemoveRedundantCatchClauseCodeFixProvider : CodeFixProvider
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
         if (root is null) return document;
 
-        var newRoot = root.RemoveNode(catchClause, SyntaxRemoveOptions.AddElasticMarker);
+        var tryStatement = catchClause.Parent as TryStatementSyntax;
 
-        return document.WithSyntaxRoot(newRoot);
+        if (tryStatement is not null)
+        {
+            if (tryStatement.Catches.Count == 1)
+            {
+                // Get the current node in the tree
+                var nodeInRoot = root.FindNode(tryStatement.Span);
+
+                // What we want to insert instead
+                var liftedStatements = tryStatement.Block.Statements;
+
+                SyntaxNode newRoot;
+
+                if (nodeInRoot is GlobalStatementSyntax global)
+                {
+                    // Wrap each lifted statement in its own GlobalStatementSyntax
+                    var newGlobals = liftedStatements.Select(
+                        s => GlobalStatement(s)
+                            .WithLeadingTrivia(global.GetLeadingTrivia())
+                            .WithTrailingTrivia(global.GetTrailingTrivia()));
+
+                    newRoot = root.ReplaceNode(global, newGlobals);
+                }
+                else if (nodeInRoot is TryStatementSyntax tryNode)
+                {
+                    // Normal case inside a block
+
+                    var annotatedStatements = liftedStatements
+                        .Select(s => s.WithAdditionalAnnotations(Formatter.Annotation));
+
+                    newRoot = root.ReplaceNode(tryNode, annotatedStatements);
+                }
+                else
+                {
+                    // Fallback (shouldn’t really happen)
+                    return document;
+                }
+
+                return document.WithSyntaxRoot(newRoot);
+            }
+            else
+            {
+                var newRoot = root.RemoveNode(catchClause, SyntaxRemoveOptions.AddElasticMarker);
+                return document.WithSyntaxRoot(newRoot);
+            }
+        }
+
+        return document;
     }
 }
