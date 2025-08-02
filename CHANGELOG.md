@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [1.8.5] - 2025-07-02
+
 ### Added
 
 - PR [#203](https://github.com/marinasundstrom/CheckedExceptions/pull/203) Handle Cast expression
