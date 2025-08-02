@@ -32,6 +32,11 @@ public class SurroundWithTryCatchCodeFixProvider : CodeFixProvider
         var diagnostic = diagnostics.First();
         var node = root.FindNode(diagnostic.Location.SourceSpan);
 
+        if (node is ArgumentSyntax argument)
+        {
+            node = argument.Expression;
+        }
+
         if (IsInExpressionBody(node, out var rootExpression))
         {
             context.RegisterCodeFix(
