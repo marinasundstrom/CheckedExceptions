@@ -10,7 +10,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- PR [#203](https://github.com/marinasundstrom/CheckedExceptions/pull/203) Handle Cast expression #202 #203
+- PR [#203](https://github.com/marinasundstrom/CheckedExceptions/pull/203) Handle Cast expression
+
+- PR [#205](https://github.com/marinasundstrom/CheckedExceptions/pull/205) Remove try when removing last catch using codefix
 
 ### Fixed
 
