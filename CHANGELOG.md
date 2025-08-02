@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+
+- PR [#206](https://github.com/marinasundstrom/CheckedExceptions/pull/206) Handle case for wrap in try/catch in expression bodied
+
 ## [1.8.5] - 2025-08-02
 
 ### Added
