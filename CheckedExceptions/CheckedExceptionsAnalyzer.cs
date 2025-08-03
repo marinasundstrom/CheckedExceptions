@@ -33,6 +33,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     public const string DiagnosticIdXmlDocButNoThrows = "THROW011";
     public const string DiagnosticIdRedundantExceptionDeclaration = "THROW012";
     public const string DiagnosticIdRedundantCatchAllClause = "THROW013";
+    public const string DiagnosticIdUnreachableThrow = "THROW014";
 
     public static IEnumerable<string> AllDiagnosticsIds = [DiagnosticIdUnhandled, DiagnosticIdGeneralThrows, DiagnosticIdGeneralThrow, DiagnosticIdDuplicateDeclarations];
 
@@ -115,16 +116,19 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         category: "Usage",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "Detects catch clauses for exception types that are never thrown inside the associated try block, making the catch clause redundant.");
+        description: "Detects catch clauses for exception types that are never thrown inside the associated try block, making the catch clause redundant.",
+        customTags: [WellKnownDiagnosticTags.Unnecessary]);
 
     private static readonly DiagnosticDescriptor RuleRedundantCatchAllClause = new(
         DiagnosticIdRedundantCatchAllClause,
-        title: "Redundant catch all clause",
-        messageFormat: "No exception is thrown within the try block",
+        title: "Redundant catch-all clause",
+        messageFormat: "This catch-all clause is redundant because no exceptions remain to be handled",
         category: "Usage",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "Detects catch clauses for exception types that are never thrown inside the associated try block, making the catch clause redundant.");
+        description: "Reports catch-all clauses that cannot handle any exceptions because all exceptions " +
+                     "thrown in the try block are either handled by earlier catch clauses or do not occur.",
+        customTags: [WellKnownDiagnosticTags.Unnecessary]);
 
     private static readonly DiagnosticDescriptor RuleThrowsDeclarationNotValidOnFullProperty = new(
         DiagnosticIdThrowsDeclarationNotValidOnFullProperty,
@@ -154,8 +158,18 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         isEnabledByDefault: true,
         description: "Detects exception types declared with [Throws] that are never thrown in the method or property body, making the declaration redundant.");
 
+    private static readonly DiagnosticDescriptor RuleUnreachableThrow = new(
+        DiagnosticIdUnreachableThrow,
+        title: "Unreachable throw statement",
+        messageFormat: "The throwing site is unreachable in the current control flow",
+        category: "Usage",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "Detects throw statements that cannot be reached due to surrounding control flow or exception handling.",
+        customTags: [WellKnownDiagnosticTags.Unnecessary]);
+
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
-        [RuleUnhandledException, RuleIgnoredException, RuleGeneralThrows, RuleGeneralThrow, RuleDuplicateDeclarations, RuleMissingThrowsOnBaseMember, RuleMissingThrowsFromBaseMember, RuleDuplicateThrowsByHierarchy, RuleRedundantTypedCatchClause, RuleRedundantCatchAllClause, RuleThrowsDeclarationNotValidOnFullProperty, RuleXmlDocButNoThrows, RuleRedundantExceptionDeclaration];
+        [RuleUnhandledException, RuleIgnoredException, RuleGeneralThrows, RuleGeneralThrow, RuleDuplicateDeclarations, RuleMissingThrowsOnBaseMember, RuleMissingThrowsFromBaseMember, RuleDuplicateThrowsByHierarchy, RuleRedundantTypedCatchClause, RuleRedundantCatchAllClause, RuleThrowsDeclarationNotValidOnFullProperty, RuleXmlDocButNoThrows, RuleRedundantExceptionDeclaration, RuleUnreachableThrow];
 
     public override void Initialize(AnalysisContext context)
     {
@@ -349,11 +363,11 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
                     continue;
 
                 // Report redundant catch clause
-                var diagnostic = Diagnostic.Create(
+                /*var diagnostic = Diagnostic.Create(
                 RuleRedundantCatchAllClause,
                 catchClause.CatchKeyword.GetLocation());
 
-                context.ReportDiagnostic(diagnostic);
+                context.ReportDiagnostic(diagnostic);*/
             }
             else
             {
@@ -371,12 +385,12 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
                 if (!isRelevant)
                 {
                     // Report redundant catch clause
-                    var diagnostic = Diagnostic.Create(
+                    /*var diagnostic = Diagnostic.Create(
                         RuleRedundantTypedCatchClause,
                         catchClause.Declaration.Type.GetLocation(),
                         catchType.Name);
 
-                    context.ReportDiagnostic(diagnostic);
+                    context.ReportDiagnostic(diagnostic);*/
                 }
             }
         }

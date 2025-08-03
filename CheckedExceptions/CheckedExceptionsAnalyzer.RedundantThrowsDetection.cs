@@ -34,7 +34,7 @@ partial class CheckedExceptionsAnalyzer
         }
 
         // Collect all actually escaping exceptions
-        var actual = CollectThrownExceptions(methodSymbol, context.Compilation, context.Options);
+        var actual = CollectThrownExceptions(methodSymbol, context.Compilation, context.ReportDiagnostic, context.Options);
 
         // declared - actual = redundant
         foreach (var declaredType in declared)
@@ -105,7 +105,7 @@ partial class CheckedExceptionsAnalyzer
             .ToImmutableHashSet(SymbolEqualityComparer.Default);
 
         // Collect all actually escaping exceptions
-        var actual = CollectThrownExceptions(methodSymbol, semanticModel.Compilation, context.Options);
+        var actual = CollectThrownExceptions(methodSymbol, semanticModel.Compilation, context.ReportDiagnostic, context.Options);
 
         // declared - actual = redundant
         foreach (var declaredType in declared)
@@ -149,7 +149,7 @@ partial class CheckedExceptionsAnalyzer
             .ToImmutableHashSet(SymbolEqualityComparer.Default);
 
         // Collect all actually escaping exceptions
-        var actual = CollectThrownExceptions(node, semanticModel.Compilation, context.Options);
+        var actual = CollectThrownExceptions(node, semanticModel.Compilation, context.ReportDiagnostic, context.Options);
 
         // declared - actual = redundant
         foreach (var declaredType in declared)
@@ -174,6 +174,7 @@ partial class CheckedExceptionsAnalyzer
     private ImmutableHashSet<INamedTypeSymbol> CollectThrownExceptions(
         IMethodSymbol method,
         Compilation compilation,
+        Action<Diagnostic> reportDiagnostic,
         AnalyzerOptions analyzerOptions)
     {
         var syntaxRef = method.DeclaringSyntaxReferences.FirstOrDefault();
@@ -182,12 +183,13 @@ partial class CheckedExceptionsAnalyzer
 
         var syntax = syntaxRef.GetSyntax();
 
-        return CollectThrownExceptions(syntax, compilation, analyzerOptions);
+        return CollectThrownExceptions(syntax, compilation, reportDiagnostic, analyzerOptions);
     }
 
     private ImmutableHashSet<INamedTypeSymbol> CollectThrownExceptions(
          SyntaxNode node,
          Compilation compilation,
+         Action<Diagnostic> reportDiagnostic,
          AnalyzerOptions analyzerOptions)
     {
         BlockSyntax? body = null;
@@ -230,7 +232,7 @@ partial class CheckedExceptionsAnalyzer
             node,
             semanticModel,
             options: analyzerOptions,
-            reportDiagnostic: _ => { },
+            reportDiagnostic: reportDiagnostic,
             isSupportedDiagnostic: _ => true,
             cancellationToken: default);
 
@@ -238,8 +240,8 @@ partial class CheckedExceptionsAnalyzer
 
         if (body is not null)
         {
-            var unhandled = CollectAllEscapingExceptions(context, body, settings);
-            return [.. unhandled.OfType<INamedTypeSymbol>()];
+            var unhandled = AnalyzeBlockWithExceptions(context, body, settings);
+            return [.. unhandled.UnhandledExceptions.OfType<INamedTypeSymbol>()];
         }
         else if (expressionBody is not null)
         {
@@ -251,87 +253,145 @@ partial class CheckedExceptionsAnalyzer
         return [];
     }
 
-    private HashSet<INamedTypeSymbol> CollectAllEscapingExceptions(
+    private FlowWithExceptionsResult AnalyzeBlockWithExceptions(
       SyntaxNodeAnalysisContext context,
       BlockSyntax block,
       AnalyzerSettings settings)
     {
-        var unhandledExceptions = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
+        var semanticModel = context.SemanticModel;
+        var flow = semanticModel.AnalyzeControlFlow(block);
+
+        if (!flow.Succeeded || !flow.StartPointIsReachable)
+            return FlowWithExceptionsResult.Unreachable;
+
+        var unhandled = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
+        bool reachable = true;
 
         foreach (var statement in block.Statements)
         {
-            if (statement is TryStatementSyntax tryStatement)
+            if (!reachable)
             {
-                // 1. Analyze the try block
-                var innerUnhandled = CollectAllEscapingExceptions(context, tryStatement.Block, settings);
+                // 🚩 We already know the block can’t continue past here
+                ReportUnreachable(context, statement);
+                continue;
+            }
 
-                foreach (var catchClause in tryStatement.Catches)
+            if (statement is TryStatementSyntax tryStmt)
+            {
+                var tryResult = AnalyzeBlockWithExceptions(context, tryStmt.Block, settings);
+                unhandled.UnionWith(tryResult.UnhandledExceptions);
+
+                bool continuationPossible = false;
+
+                // Path 1: try block falls through
+                if (tryResult.EndReachable)
+                    continuationPossible = true;
+
+                var exceptionsLeftToHandle = new HashSet<INamedTypeSymbol>(tryResult.UnhandledExceptions);
+
+                // Path 2: any catch that actually handles something and falls through
+                foreach (var catchClause in tryStmt.Catches)
                 {
-                    if (catchClause.Declaration?.Type is null)
+                    if (catchClause.Declaration?.Type == null)
                     {
-                        // All exceptions are caught
+                        bool redundant = exceptionsLeftToHandle.Count == 0;
+                        if (redundant)
+                        {
+                            // 🚩 Redundant catch-all
+                            context.ReportDiagnostic(Diagnostic.Create(
+                                RuleRedundantCatchAllClause,
+                                catchClause.CatchKeyword.GetLocation()));
+                        }
 
-                        HandleCatchBlock(context, settings, unhandledExceptions, innerUnhandled, catchClause, null);
+                        // Even if redundant, analyze body for unreachable diagnostics
+                        if (catchClause.Block != null)
+                        {
+                            var catchResult = AnalyzeBlockWithExceptions(context, catchClause.Block, settings);
+                            unhandled.UnionWith(catchResult.UnhandledExceptions);
+
+                            // ✅ Only allow continuation if NOT redundant
+                            if (!redundant && catchResult.EndReachable)
+                                continuationPossible = true;
+                        }
+
+                        // Break — catch-all swallows everything
+                        unhandled.Clear();
+                        exceptionsLeftToHandle.Clear();
+                        break;
                     }
-                    else
+
+                    // typed catch
+                    var caught = GetCaughtException(catchClause, semanticModel);
+                    if (caught != null)
                     {
+                        bool handlesAny = tryResult.UnhandledExceptions.Any(ex => IsExceptionCaught(ex, caught));
+                        if (!handlesAny)
+                        {
+                            // 🚩 Redundant typed catch
+                            context.ReportDiagnostic(Diagnostic.Create(
+                                RuleRedundantTypedCatchClause,
+                                catchClause.Declaration.Type.GetLocation(),
+                                caught.Name));
 
-                        var caughtException = GetCaughtException(catchClause, context.SemanticModel);
+                            continue; // skip analyzing body since it's unreachable
+                        }
 
-                        // Continue without analyzing if caughtException is not compatible with any exception in innerUnhandled.
-                        bool isCatchHandlingException = innerUnhandled.Any(ex => IsExceptionCaught(ex, caughtException));
+                        // Otherwise, remove handled exceptions
+                        unhandled.RemoveWhere(ex => IsExceptionCaught(ex, caught));
+                        exceptionsLeftToHandle.RemoveWhere(ex => IsExceptionCaught(ex, caught));
+                    }
 
-                        if (!isCatchHandlingException)
-                            continue;
+                    if (catchClause.Block != null)
+                    {
+                        var catchResult = AnalyzeBlockWithExceptions(context, catchClause.Block, settings);
+                        unhandled.UnionWith(catchResult.UnhandledExceptions);
 
-                        // Remove exceptions that are caught here
-                        innerUnhandled.RemoveWhere(ex => IsExceptionCaught(ex, caughtException));
-
-                        HandleCatchBlock(context, settings, unhandledExceptions, innerUnhandled, catchClause, caughtException);
+                        if (catchResult.EndReachable)
+                            continuationPossible = true;
                     }
                 }
 
-                // 3. Add surviving unhandled exceptions from the try
-                unhandledExceptions.UnionWith(innerUnhandled);
-
-                // 4. Analyze finally if present
-                if (tryStatement.Finally?.Block is { } finallyBlock)
+                // Path 3: finally falls through
+                if (tryStmt.Finally?.Block is { } finallyBlock)
                 {
-                    var finallyUnhandled = CollectAllEscapingExceptions(context, finallyBlock, settings);
-                    unhandledExceptions.UnionWith(finallyUnhandled);
+                    var finallyResult = AnalyzeBlockWithExceptions(context, finallyBlock, settings);
+                    unhandled.UnionWith(finallyResult.UnhandledExceptions);
+
+                    if (finallyResult.EndReachable)
+                        continuationPossible = true;
                 }
+
+                reachable = continuationPossible;
+            }
+            else if (statement is ThrowStatementSyntax or ReturnStatementSyntax)
+            {
+                var stmtExceptions = CollectExceptionsFromStatement(context, statement, settings);
+                unhandled.UnionWith(stmtExceptions);
+
+                // 🚩 Throw/return terminates
+                reachable = false;
             }
             else
             {
-                // Normal statement (could be a throw, an invocation, etc.)
-                var statementExceptions = CollectExceptionsFromStatement(context, statement, settings);
-                unhandledExceptions.UnionWith(statementExceptions);
+                // Normal statement
+                var stmtExceptions = CollectExceptionsFromStatement(context, statement, settings);
+                unhandled.UnionWith(stmtExceptions);
+
+                // still reachable unless it contains throw/return (already handled)
             }
         }
 
-        return unhandledExceptions;
+        return new FlowWithExceptionsResult(
+            reachable,
+            unhandled.ToImmutableHashSet(SymbolEqualityComparer.Default)
+                .OfType<INamedTypeSymbol>().ToImmutableHashSet());
     }
 
-    private void HandleCatchBlock(SyntaxNodeAnalysisContext context, AnalyzerSettings settings, HashSet<INamedTypeSymbol> unhandledExceptions, HashSet<INamedTypeSymbol> innerUnhandled, CatchClauseSyntax catchClause, INamedTypeSymbol? caughtException)
+    private static void ReportUnreachable(SyntaxNodeAnalysisContext context, StatementSyntax statement)
     {
-        // Now analyze the body of the catch
-        if (catchClause.Block is not null)
-        {
-            var catchUnhandled = CollectAllEscapingExceptions(context, catchClause.Block, settings);
-
-            if (caughtException is null)
-            {
-                // Catch all
-                if (innerUnhandled.Count == 0)
-                {
-                    catchUnhandled.Clear();
-                }
-
-                innerUnhandled.Clear();
-            }
-
-            unhandledExceptions.UnionWith(catchUnhandled);
-        }
+        context.ReportDiagnostic(Diagnostic.Create(
+            RuleUnreachableThrow,
+            statement.GetLocation()));
     }
 
     private INamedTypeSymbol? GetExceptionTypeFromNode(SyntaxNode throwNode, SemanticModel semanticModel)
@@ -398,4 +458,21 @@ partial class CheckedExceptionsAnalyzer
 
         return null;
     }
+}
+
+sealed class FlowWithExceptionsResult
+{
+    public bool EndReachable { get; }
+    public ImmutableHashSet<INamedTypeSymbol> UnhandledExceptions { get; }
+
+    public FlowWithExceptionsResult(
+        bool endReachable,
+        ImmutableHashSet<INamedTypeSymbol> unhandled)
+    {
+        EndReachable = endReachable;
+        UnhandledExceptions = unhandled;
+    }
+
+    public static FlowWithExceptionsResult Unreachable =>
+        new(false, ImmutableHashSet<INamedTypeSymbol>.Empty);
 }

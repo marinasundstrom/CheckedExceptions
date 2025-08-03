@@ -141,7 +141,7 @@ public void TestMethod() => throw new InvalidOperationException();
 
   ```c#
   try { } 
-  // THROW013: No exception is thrown within the try block
+  // THROW013: This catch-all clause is redundant because no exceptions remain to be handled
   catch { }
   ```
 
