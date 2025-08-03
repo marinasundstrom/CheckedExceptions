@@ -1,5 +1,6 @@
 {
     "disableXmlDocInterop": false,
+    "disableControlFlowAnalysis": false,
     "ignoredExceptions": [],
     "informationalExceptions": {
         "System.NotImplementedException": "Propagation",
