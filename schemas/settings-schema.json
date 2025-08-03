@@ -7,6 +7,11 @@
       "default": false,
       "description": "Indicates whether XML documentation interoperability is disabled."
     },
+    "disableControlFlowAnalysis": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indicates whether control flow analysis is disabled."
+    },
     "ignoredExceptions": {
       "type": "array",
       "items": {

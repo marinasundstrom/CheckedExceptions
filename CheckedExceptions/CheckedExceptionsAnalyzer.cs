@@ -332,7 +332,13 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         }
         else if (propertyDeclaration.ExpressionBody is not null)
         {
-            CheckForRedundantThrowsDeclarations_ExpressionBodiedProperty(throwsAttributes, context);
+            var settings = GetAnalyzerSettings(context.Options);
+
+            if (settings.IsControlFlowAnalysisEnabled)
+            {
+                AnalyzeControlFlow_ExpressionBodiedProperty(throwsAttributes, context);
+            }
+
             CheckXmlDocsForUndeclaredExceptions_ExpressionBodiedProperty(throwsAttributes, context);
             return;
         }
@@ -448,13 +454,18 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
     private void AnalyzeFunctionAttributes(SyntaxNode node, IEnumerable<AttributeSyntax> attributes, SemanticModel semanticModel, SyntaxNodeAnalysisContext context)
     {
+        var settings = GetAnalyzerSettings(context.Options);
+
         var throwsAttributes = attributes
             .Where(attr => IsThrowsAttribute(attr, semanticModel))
             .ToList();
 
         CheckXmlDocsForUndeclaredExceptions_Method(throwsAttributes, context);
 
-        AnalyzeControlFlow(throwsAttributes, context);
+        if (settings.IsControlFlowAnalysisEnabled)
+        {
+            AnalyzeControlFlow(throwsAttributes, context);
+        }
 
         if (throwsAttributes.Count is 0)
             return;
@@ -488,13 +499,18 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         if (methodSymbol is null)
             return;
 
+        var settings = GetAnalyzerSettings(context.Options);
+
         var throwsAttributes = GetThrowsAttributes(methodSymbol).ToImmutableArray();
 
         CheckForCompatibilityWithBaseOrInterface(context, throwsAttributes);
 
         CheckXmlDocsForUndeclaredExceptions(throwsAttributes, context);
 
-        AnalyzeControlFlow(context, throwsAttributes);
+        if (settings.IsControlFlowAnalysisEnabled)
+        {
+            AnalyzeControlFlow(context, throwsAttributes);
+        }
 
         if (throwsAttributes.Length == 0)
             return;

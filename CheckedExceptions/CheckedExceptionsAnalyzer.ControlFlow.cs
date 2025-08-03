@@ -128,7 +128,7 @@ partial class CheckedExceptionsAnalyzer
         }
     }
 
-    private void CheckForRedundantThrowsDeclarations_ExpressionBodiedProperty(
+    private void AnalyzeControlFlow_ExpressionBodiedProperty(
         IEnumerable<AttributeSyntax> throwsAttributes,
         SyntaxNodeAnalysisContext context)
     {
