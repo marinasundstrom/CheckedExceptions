@@ -262,4 +262,131 @@ public partial class TryCatchTest2
             o.DisabledDiagnostics.Remove(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration);
         });
     }
+
+    [Fact]
+    public async Task ArgumentException_IsRedundant_WhenThrowIsUnreachable5()
+    {
+        var test = /* lang=c#-test */ """
+    #nullable enable
+    using System;
+
+    class InvalidUserInputException : Exception 
+    {
+        public InvalidUserInputException(string m, Exception inner) : base(m, inner) { }
+    }
+
+    class C
+    {
+        [Throws(typeof(InvalidUserInputException), typeof(ArgumentException))]
+        static int ReadAndParse()
+        {
+            string input = "abc";
+
+            try
+            {
+                bool x = true;
+                if (x)
+                {
+                    //May throw FormatException, or OverflowException, or return
+                    return int.Parse(input);
+                }            
+            }
+            catch (FormatException ex)
+            {
+                throw new InvalidUserInputException("Input was not a valid number.", ex);
+            }
+            catch (OverflowException ex)
+            {
+                throw new InvalidUserInputException("Input number was too large.", ex);
+            }
+            catch
+            {
+                
+            }
+
+            throw new ArgumentException(); // <- unreachable
+        }
+    }
+    """;
+
+        var expected = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdRedundantCatchAllClause)
+            .WithArguments("ArgumentException")
+            .WithSpan(33, 9, 33, 14);
+
+        await Verifier.VerifyAnalyzerAsync(test, o =>
+        {
+            o.ExpectedDiagnostics.AddRange(expected);
+
+            o.DisabledDiagnostics.Remove(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration);
+        });
+    }
+
+
+    [Fact]
+    public async Task ArgumentException_IsRedundant_WhenThrowIsUnreachable6()
+    {
+        var test = /* lang=c#-test */ """
+    #nullable enable
+    using System;
+
+    class InvalidUserInputException : Exception 
+    {
+        public InvalidUserInputException(string m, Exception inner) : base(m, inner) { }
+    }
+
+    class C
+    {
+        [Throws(typeof(InvalidUserInputException), typeof(ArgumentException))]
+        static int ReadAndParse()
+        {
+            string input = "abc";
+
+            try
+            {
+                bool x = true;
+                if (x)
+                {
+                    //May throw FormatException, or OverflowException, or return
+                    return int.Parse(input);
+                }
+                else
+                {
+                    throw new InvalidCastException();
+                }         
+            }
+            catch (FormatException ex)
+            {
+                throw new InvalidUserInputException("Input was not a valid number.", ex);
+            }
+            catch (OverflowException ex)
+            {
+                throw new InvalidUserInputException("Input number was too large.", ex);
+            }
+            catch
+            {
+                
+            }
+
+            throw new ArgumentException(); // <- unreachable
+        }
+    }
+    """;
+
+        /*
+            var expected = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration)
+                .WithArguments("ArgumentException")
+                .WithSpan(11, 55, 11, 72);
+
+            var expected2 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdRedundantCatchAllClause)
+                .WithArguments("ArgumentException")
+                .WithSpan(32, 9, 32, 14);
+    */
+
+        await Verifier.VerifyAnalyzerAsync(test, o =>
+        {
+            //o.ExpectedDiagnostics.AddRange(expected, expected2);
+
+            o.DisabledDiagnostics.Remove(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration);
+        });
+    }
 }

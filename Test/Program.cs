@@ -16,10 +16,15 @@ static int ReadAndParse()
 
     try
     {
-        if (true)
+        bool x = true;
+        if (x)
         {
             //May throw FormatException, or OverflowException, or return
             return int.Parse(input);
+        }
+        else
+        {
+            throw new InvalidCastException();
         }
     }
     catch (FormatException formatException)
@@ -32,6 +37,7 @@ static int ReadAndParse()
         // Handle and rethrow as domain-specific exception
         throw new InvalidUserInputException("Input was not a valid number.", overflowException);
     }
+    catch { }
 
     // This will never be reachable
     // And thus not unhandled

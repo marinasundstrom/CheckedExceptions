@@ -462,11 +462,45 @@ partial class CheckedExceptionsAnalyzer
                     unhandled.UnionWith(CollectExceptionsFromExpression(
                         context, ifStmt.Condition, settings, semanticModel));
 
-                    bool continuation = false;
+                    // Try constant-fold the condition
+                    var constantValue = semanticModel.GetConstantValue(ifStmt.Condition);
 
-                    FlowWithExceptionsResult? thenResult = null;
+                    if (constantValue.HasValue && constantValue.Value is bool constBool)
+                    {
+                        // 🚩 Constant condition — only one branch can ever run
+                        if (constBool)
+                        {
+                            // Always true → analyze THEN only
+                            var thenResult2 = AnalyzeStatementWithExceptions(context, ifStmt.Statement, settings);
+                            unhandled.UnionWith(thenResult2.UnhandledExceptions);
+
+                            return new FlowWithExceptionsResult(
+                                thenResult2.EndReachable,
+                                unhandled.ToImmutableHashSet());
+                        }
+                        else
+                        {
+                            // Always false → analyze ELSE only
+                            if (ifStmt.Else?.Statement != null)
+                            {
+                                var elseResult = AnalyzeStatementWithExceptions(context, ifStmt.Else.Statement, settings);
+                                unhandled.UnionWith(elseResult.UnhandledExceptions);
+
+                                return new FlowWithExceptionsResult(
+                                    elseResult.EndReachable,
+                                    unhandled.ToImmutableHashSet());
+                            }
+
+                            // No else → condition false means it just falls through
+                            return new FlowWithExceptionsResult(true, unhandled.ToImmutableHashSet());
+                        }
+                    }
+
+                    // 🚩 Normal branching if (x) — both branches possible
+                    bool continuation = true; // false
 
                     // Then branch
+                    FlowWithExceptionsResult? thenResult = null;
                     if (ifStmt.Statement != null)
                     {
                         thenResult = AnalyzeStatementWithExceptions(context, ifStmt.Statement, settings);
@@ -482,18 +516,16 @@ partial class CheckedExceptionsAnalyzer
                         var elseResult = AnalyzeStatementWithExceptions(context, ifStmt.Else.Statement, settings);
                         unhandled.UnionWith(elseResult.UnhandledExceptions);
 
-                        if (elseResult.EndReachable)
-                            continuation = true;
+                        continuation = elseResult.EndReachable;
                     }
                     else
                     {
-                        // only continues if the THEN branch itself does not always terminate
+                        // Only continues if the THEN branch doesn’t always terminate
                         if (thenResult?.EndReachable ?? false)
-                            continuation = true; // condition=false → skip then, fall through
+                            continuation = true;
                     }
 
-                    return new FlowWithExceptionsResult(continuation,
-                        unhandled.ToImmutableHashSet());
+                    return new FlowWithExceptionsResult(continuation, unhandled.ToImmutableHashSet());
                 }
 
             case ReturnStatementSyntax:
