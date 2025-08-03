@@ -454,6 +454,8 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
         CheckXmlDocsForUndeclaredExceptions_Method(throwsAttributes, context);
 
+        AnalyzeControlFlow(throwsAttributes, context);
+
         if (throwsAttributes.Count is 0)
             return;
 
@@ -462,7 +464,6 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         if (throwsAttributes.Any())
         {
             CheckForDuplicateThrowsDeclarations(throwsAttributes, context);
-            AnalyzeControlFlow(throwsAttributes, context);
             CheckForRedundantThrowsHandledByDeclaredSuperClass(throwsAttributes, context);
         }
     }
@@ -493,12 +494,13 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
         CheckXmlDocsForUndeclaredExceptions(throwsAttributes, context);
 
+        AnalyzeControlFlow(context, throwsAttributes);
+
         if (throwsAttributes.Length == 0)
             return;
 
         CheckForGeneralExceptionThrowDeclarations(throwsAttributes, context);
         CheckForDuplicateThrowsDeclarations(context, throwsAttributes);
-        AnalyzeControlFlow(context, throwsAttributes);
         CheckForRedundantThrowsDeclarationsHandledByDeclaredSuperClass(context, throwsAttributes);
     }
 
