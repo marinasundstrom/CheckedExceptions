@@ -16,8 +16,11 @@ static int ReadAndParse()
 
     try
     {
-        //May throw FormatException, or OverflowException, or return
-        return int.Parse(input);
+        if (true)
+        {
+            //May throw FormatException, or OverflowException, or return
+            return int.Parse(input);
+        }
     }
     catch (FormatException formatException)
     {
