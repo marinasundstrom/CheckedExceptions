@@ -452,7 +452,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         if (throwsAttributes.Any())
         {
             CheckForDuplicateThrowsDeclarations(throwsAttributes, context);
-            CheckForRedundantThrowsDeclarations(throwsAttributes, context);
+            AnalyzeControlFlow(throwsAttributes, context);
             CheckForRedundantThrowsHandledByDeclaredSuperClass(throwsAttributes, context);
         }
     }
@@ -488,7 +488,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
         CheckForGeneralExceptionThrowDeclarations(throwsAttributes, context);
         CheckForDuplicateThrowsDeclarations(context, throwsAttributes);
-        CheckForRedundantThrowsDeclarations(context, throwsAttributes);
+        AnalyzeControlFlow(context, throwsAttributes);
         CheckForRedundantThrowsDeclarationsHandledByDeclaredSuperClass(context, throwsAttributes);
     }
 

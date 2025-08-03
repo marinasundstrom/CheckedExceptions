@@ -13,7 +13,7 @@ partial class CheckedExceptionsAnalyzer
     /// <summary>
     /// From method symbol
     /// </summary>
-    private void CheckForRedundantThrowsDeclarations(
+    private void AnalyzeControlFlow(
         SymbolAnalysisContext context,
         ImmutableArray<AttributeData> throwsAttributes)
     {
@@ -79,7 +79,7 @@ partial class CheckedExceptionsAnalyzer
     /// <summary>
     /// For local functions and lambda syntaxes
     /// </summary>
-    private void CheckForRedundantThrowsDeclarations(
+    private void AnalyzeControlFlow(
         IEnumerable<AttributeSyntax> throwsAttributes,
         SyntaxNodeAnalysisContext context)
     {
