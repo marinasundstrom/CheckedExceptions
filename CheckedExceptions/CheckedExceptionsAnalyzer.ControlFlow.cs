@@ -315,7 +315,7 @@ partial class CheckedExceptionsAnalyzer
                         }
 
                         // Break — catch-all swallows everything
-                        unhandled.Clear();
+                        unhandled.Union(exceptionsLeftToHandle, SymbolEqualityComparer.Default);
                         exceptionsLeftToHandle.Clear();
                         break;
                     }
