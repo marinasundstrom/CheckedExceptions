@@ -193,11 +193,16 @@ partial class CheckedExceptionsAnalyzer
          Action<Diagnostic> reportDiagnostic,
          AnalyzerOptions analyzerOptions)
     {
+        CompilationUnitSyntax? compilationUnit = null;
         BlockSyntax? body = null;
         ExpressionSyntax? expressionBody = null;
 
         switch (node)
         {
+            case CompilationUnitSyntax cu:
+                compilationUnit = cu;
+                break;
+
             case BaseMethodDeclarationSyntax methodDecl:
                 body = methodDecl.Body;
                 expressionBody = methodDecl.ExpressionBody?.Expression;
@@ -239,7 +244,12 @@ partial class CheckedExceptionsAnalyzer
 
         var settings = GetAnalyzerSettings(context.Options);
 
-        if (body is not null)
+        if (compilationUnit is not null)
+        {
+            var unhandled = AnalyzeBlockWithExceptions(context, compilationUnit, settings);
+            return [.. unhandled.UnhandledExceptions.OfType<INamedTypeSymbol>()];
+        }
+        else if (body is not null)
         {
             var unhandled = AnalyzeBlockWithExceptions(context, body, settings);
             return [.. unhandled.UnhandledExceptions.OfType<INamedTypeSymbol>()];
@@ -256,32 +266,51 @@ partial class CheckedExceptionsAnalyzer
 
     private FlowWithExceptionsResult AnalyzeBlockWithExceptions(
       SyntaxNodeAnalysisContext context,
-      BlockSyntax block,
+      SyntaxNode node,
       AnalyzerSettings settings)
     {
         var semanticModel = context.SemanticModel;
-        var flow = semanticModel.AnalyzeControlFlow(block);
 
-        if (!flow.Succeeded || !flow.StartPointIsReachable)
-            return FlowWithExceptionsResult.Unreachable;
+        if (node is StatementSyntax statementSyntax)
+        {
+            var flow = semanticModel.AnalyzeControlFlow(node);
+
+            if (!flow.Succeeded || !flow.StartPointIsReachable)
+                return FlowWithExceptionsResult.Unreachable;
+        }
 
         var unhandled = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
         bool reachable = true;
 
-        foreach (var statement in block.Statements)
+        IEnumerable<StatementSyntax>? statements = null;
+
+        if (node is BlockSyntax block)
+        {
+            statements = block.Statements;
+        }
+        else if (node is CompilationUnitSyntax cu)
+        {
+            statements = cu.Members
+                .OfType<GlobalStatementSyntax>()
+                .Select(x => x.Statement);
+        }
+        else
+            throw new Exception("Unsupported node type");
+
+        foreach (var statement in statements)
         {
             if (!reachable)
             {
                 // 🚩 We already know the block can’t continue past here
                 var firstUnreachable = statement; // the first statement we know is unreachable
-                var lastStatement = block.Statements.Last();
+                var lastStatement = statements.Last();
 
                 // Span from start of firstUnreachable to end of lastStatement
                 var span = TextSpan.FromBounds(
                     firstUnreachable.FullSpan.Start,
                     lastStatement.FullSpan.End);
 
-                var location = Location.Create(block.SyntaxTree, span);
+                var location = Location.Create(node.SyntaxTree, span);
 
                 ReportUnreachableCode(context, location);
                 break;
