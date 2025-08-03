@@ -528,6 +528,146 @@ partial class CheckedExceptionsAnalyzer
                     return new FlowWithExceptionsResult(continuation, unhandled.ToImmutableHashSet());
                 }
 
+            case WhileStatementSyntax whileStmt:
+                {
+                    unhandled.UnionWith(CollectExceptionsFromExpression(context, whileStmt.Condition, settings, semanticModel));
+
+                    var bodyResult = AnalyzeStatementWithExceptions(context, whileStmt.Statement, settings);
+                    unhandled.UnionWith(bodyResult.UnhandledExceptions);
+
+                    // Try constant-fold the condition
+                    var constantValue = semanticModel.GetConstantValue(whileStmt.Condition);
+
+                    if (constantValue.HasValue && constantValue.Value is bool constBool)
+                    {
+                        // 🚩 Constant condition — only one branch can ever run
+                        if (constBool)
+                        {
+                            // Always true → analyze THEN only
+                            var thenResult2 = AnalyzeStatementWithExceptions(context, whileStmt.Statement, settings);
+                            unhandled.UnionWith(thenResult2.UnhandledExceptions);
+
+                            return new FlowWithExceptionsResult(
+                                thenResult2.EndReachable,
+                                unhandled.ToImmutableHashSet());
+                        }
+                        else
+                        {
+                            // No else → condition false means it just falls through
+                            return new FlowWithExceptionsResult(true, unhandled.ToImmutableHashSet());
+                        }
+                    }
+
+                    bool continuation = true;
+
+                    if (!bodyResult.EndReachable)
+                    {
+                        continuation = false;
+                    }
+
+                    // otherwise assume reachable
+                    return new FlowWithExceptionsResult(continuation, unhandled.ToImmutableHashSet());
+                }
+
+            case DoStatementSyntax doStmt:
+                {
+                    var bodyResult = AnalyzeStatementWithExceptions(context, doStmt.Statement, settings);
+                    unhandled.UnionWith(bodyResult.UnhandledExceptions);
+
+                    unhandled.UnionWith(CollectExceptionsFromExpression(context, doStmt.Condition, settings, semanticModel));
+
+                    return new FlowWithExceptionsResult(true, unhandled.ToImmutableHashSet());
+                }
+
+            case ForStatementSyntax forStmt:
+                {
+                    foreach (var init in forStmt.Initializers)
+                        unhandled.UnionWith(CollectExceptionsFromExpression(context, init, settings, semanticModel));
+
+                    if (forStmt.Condition != null)
+                        unhandled.UnionWith(CollectExceptionsFromExpression(context, forStmt.Condition, settings, semanticModel));
+
+                    foreach (var inc in forStmt.Incrementors)
+                        unhandled.UnionWith(CollectExceptionsFromExpression(context, inc, settings, semanticModel));
+
+                    var bodyResult = AnalyzeStatementWithExceptions(context, forStmt.Statement, settings);
+                    unhandled.UnionWith(bodyResult.UnhandledExceptions);
+
+                    return new FlowWithExceptionsResult(true, unhandled.ToImmutableHashSet());
+                }
+
+            case ForEachStatementSyntax foreachStmt:
+                {
+                    unhandled.UnionWith(CollectExceptionsFromExpression(context, foreachStmt.Expression, settings, semanticModel));
+
+                    var bodyResult = AnalyzeStatementWithExceptions(context, foreachStmt.Statement, settings);
+                    unhandled.UnionWith(bodyResult.UnhandledExceptions);
+
+                    return new FlowWithExceptionsResult(true, unhandled.ToImmutableHashSet());
+                }
+
+            case SwitchStatementSyntax switchStmt:
+                {
+                    unhandled.UnionWith(CollectExceptionsFromExpression(context, switchStmt.Expression, settings, semanticModel));
+
+                    bool continuation = false;
+                    foreach (var section in switchStmt.Sections)
+                    {
+                        foreach (var label in section.Labels)
+                        {
+                            // labels themselves don’t throw
+                        }
+
+                        foreach (var st in section.Statements)
+                        {
+                            var stResult = AnalyzeStatementWithExceptions(context, st, settings);
+                            unhandled.UnionWith(stResult.UnhandledExceptions);
+
+                            if (stResult.EndReachable)
+                                continuation = true;
+                        }
+                    }
+
+                    return new FlowWithExceptionsResult(continuation, unhandled.ToImmutableHashSet());
+                }
+
+            case UsingStatementSyntax usingStmt:
+                {
+                    if (usingStmt.Expression != null)
+                        unhandled.UnionWith(CollectExceptionsFromExpression(context, usingStmt.Expression, settings, semanticModel));
+
+                    if (usingStmt.Declaration != null)
+                    {
+                        foreach (var v in usingStmt.Declaration.Variables)
+                        {
+                            if (v.Initializer?.Value != null)
+                                unhandled.UnionWith(CollectExceptionsFromExpression(context, v.Initializer.Value, settings, semanticModel));
+                        }
+                    }
+
+                    var bodyResult = AnalyzeStatementWithExceptions(context, usingStmt.Statement, settings);
+                    unhandled.UnionWith(bodyResult.UnhandledExceptions);
+
+                    return new FlowWithExceptionsResult(bodyResult.EndReachable, unhandled.ToImmutableHashSet());
+                }
+
+            case LockStatementSyntax lockStmt:
+                {
+                    unhandled.UnionWith(CollectExceptionsFromExpression(context, lockStmt.Expression, settings, semanticModel));
+
+                    var bodyResult = AnalyzeStatementWithExceptions(context, lockStmt.Statement, settings);
+                    unhandled.UnionWith(bodyResult.UnhandledExceptions);
+
+                    return new FlowWithExceptionsResult(bodyResult.EndReachable, unhandled.ToImmutableHashSet());
+                }
+
+            case BreakStatementSyntax:
+            case ContinueStatementSyntax:
+                {
+                    // Terminates current block
+                    return new FlowWithExceptionsResult(false, unhandled.ToImmutableHashSet());
+                }
+
             case ReturnStatementSyntax:
             case ThrowStatementSyntax:
                 unhandled.UnionWith(CollectExceptionsFromStatement(context, statement, settings));
