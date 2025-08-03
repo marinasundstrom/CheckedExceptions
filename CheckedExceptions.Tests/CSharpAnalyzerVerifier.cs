@@ -62,6 +62,7 @@ public static class CSharpAnalyzerVerifier<TAnalyzer, TVerifier>
                 test.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdRedundantTypedCatchClause);
                 test.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration);
                 //test.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdXmlDocButNoThrows);
+                test.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdRuleUnreachableCode);
 
                 test.DisabledDiagnostics.AddRange(allDiagnostics.Except(expected.Select(x => x.Id)));
             }
@@ -110,6 +111,7 @@ public static class CSharpAnalyzerVerifier<TAnalyzer, TVerifier>
 
         test.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdRedundantTypedCatchClause);
         test.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration);
+        test.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdRuleUnreachableCode);
 
         if (executable)
         {

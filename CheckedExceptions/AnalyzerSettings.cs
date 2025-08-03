@@ -10,6 +10,12 @@ public partial class AnalyzerSettings
     [JsonIgnore]
     internal bool IsXmlInteropEnabled => !DisableXmlDocInterop;
 
+    [JsonPropertyName("disableControlFlowAnalysis")]
+    public bool DisableControlFlowAnalysis { get; set; } = false;
+
+    [JsonIgnore]
+    internal bool IsControlFlowAnalysisEnabled => !DisableControlFlowAnalysis;
+
     [JsonPropertyName("ignoredExceptions")]
     public IEnumerable<string> IgnoredExceptions { get; set; } = new List<string>();
 
