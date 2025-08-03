@@ -125,16 +125,12 @@ public partial class Bugfix185
         }
         """;
 
-        var expected1 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration)
-            .WithArguments("InvalidOperationException")
-            .WithSpan(5, 20, 5, 45);
-
-        var expected2 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdRedundantCatchAllClause)
+        var expected = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdRedundantCatchAllClause)
             .WithSpan(12, 9, 12, 14);
 
         await Verifier.VerifyAnalyzerAsync(test, opt =>
         {
-            opt.ExpectedDiagnostics.AddRange(expected1, expected2);
+            opt.ExpectedDiagnostics.AddRange(expected);
             opt.DisabledDiagnostics.Remove(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration);
         });
     }

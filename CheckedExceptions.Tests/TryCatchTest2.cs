@@ -178,7 +178,7 @@ public partial class TryCatchTest2
             }
             catch
             {
-                Console.WriteLine();
+                
             }
 
             throw new ArgumentException(); // <- unreachable
@@ -190,9 +190,13 @@ public partial class TryCatchTest2
             .WithArguments("ArgumentException")
             .WithSpan(11, 55, 11, 72);
 
+        var expected2 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdRedundantCatchAllClause)
+            .WithArguments("ArgumentException")
+            .WithSpan(28, 9, 28, 14);
+
         await Verifier.VerifyAnalyzerAsync(test, o =>
         {
-            o.ExpectedDiagnostics.Add(expected);
+            o.ExpectedDiagnostics.AddRange(expected, expected2);
 
             o.DisabledDiagnostics.Remove(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration);
         });
