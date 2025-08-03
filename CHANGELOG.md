@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- PR [#209](https://github.com/marinasundstrom/CheckedExceptions/pull/209) Improve code flow analysis
+
+
 ### Fixed
 
 - PR [#206](https://github.com/marinasundstrom/CheckedExceptions/pull/206) Handle case for wrap in try/catch in expression bodied
