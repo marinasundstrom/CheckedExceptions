@@ -24,19 +24,19 @@ static int ReadAndParse()
         // Handle and rethrow as domain-specific exception
         throw new InvalidUserInputException("Input was not a valid number.", formatException);
     }
-    catch (OverflowException overflowException)
-    {
-        // Handle and rethrow as domain-specific exception
-        throw new InvalidUserInputException("Input was not a valid number.", overflowException);
-    }
     catch
     {
+        Console.WriteLine();
+
         Console.WriteLine();
     }
 
     // This will never be reachable
     // And thus not unhandled
     throw new ArgumentException();
+
+    throw new ArgumentException();
+
 }
 
 class InvalidUserInputException : Exception

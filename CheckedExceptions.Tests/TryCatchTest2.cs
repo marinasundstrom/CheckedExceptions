@@ -178,7 +178,7 @@ public partial class TryCatchTest2
             }
             catch
             {
-
+                Console.WriteLine();
             }
 
             throw new ArgumentException(); // <- unreachable

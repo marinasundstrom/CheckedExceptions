@@ -5,6 +5,7 @@ using System.Net.NetworkInformation;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.CodeAnalysis.Text;
 
 namespace Sundstrom.CheckedExceptions;
 
@@ -272,8 +273,18 @@ partial class CheckedExceptionsAnalyzer
             if (!reachable)
             {
                 // 🚩 We already know the block can’t continue past here
-                ReportUnreachable(context, statement);
-                continue;
+                var firstUnreachable = statement; // the first statement we know is unreachable
+                var lastStatement = block.Statements.Last();
+
+                // Span from start of firstUnreachable to end of lastStatement
+                var span = TextSpan.FromBounds(
+                    firstUnreachable.FullSpan.Start,
+                    lastStatement.FullSpan.End);
+
+                var location = Location.Create(block.SyntaxTree, span);
+
+                ReportUnreachableCode(context, location);
+                break;
             }
 
             if (statement is TryStatementSyntax tryStmt)
@@ -294,8 +305,8 @@ partial class CheckedExceptionsAnalyzer
                 {
                     if (catchClause.Declaration?.Type == null)
                     {
-                        bool redundant = exceptionsLeftToHandle.Count == 0;
-                        if (redundant)
+                        bool isCatchRedundant = exceptionsLeftToHandle.Count == 0;
+                        if (isCatchRedundant)
                         {
                             // 🚩 Redundant catch-all
                             context.ReportDiagnostic(Diagnostic.Create(
@@ -303,19 +314,25 @@ partial class CheckedExceptionsAnalyzer
                                 catchClause.CatchKeyword.GetLocation()));
                         }
 
-                        // Even if redundant, analyze body for unreachable diagnostics
+                        // Always analyze body for unreachable diagnostics
                         if (catchClause.Block != null)
                         {
                             var catchResult = AnalyzeBlockWithExceptions(context, catchClause.Block, settings);
                             unhandled.UnionWith(catchResult.UnhandledExceptions);
 
-                            // ✅ Only allow continuation if NOT redundant
-                            if (!redundant && catchResult.EndReachable)
+                            // 🔑 Even if body falls through, do NOT flip continuationPossible
+                            // because a redundant catch-all doesn't make later code reachable.
+                            if (!isCatchRedundant && catchResult.EndReachable)
                                 continuationPossible = true;
+
+                            if (isCatchRedundant)
+                            {
+                                ReportUnreachableCode(context, catchClause);
+                            }
                         }
 
-                        // Break — catch-all swallows everything
-                        unhandled.Union(exceptionsLeftToHandle, SymbolEqualityComparer.Default);
+                        // Swallow all remaining exceptions
+                        unhandled.UnionWith(exceptionsLeftToHandle);
                         exceptionsLeftToHandle.Clear();
                         break;
                     }
@@ -332,6 +349,11 @@ partial class CheckedExceptionsAnalyzer
                                 RuleRedundantTypedCatchClause,
                                 catchClause.Declaration.Type.GetLocation(),
                                 caught.Name));
+
+                            if (catchClause.Block != null)
+                            {
+                                ReportUnreachableCode(context, catchClause);
+                            }
 
                             continue; // skip analyzing body since it's unreachable
                         }
@@ -387,11 +409,23 @@ partial class CheckedExceptionsAnalyzer
                 .OfType<INamedTypeSymbol>().ToImmutableHashSet());
     }
 
-    private static void ReportUnreachable(SyntaxNodeAnalysisContext context, StatementSyntax statement)
+    private static void ReportUnreachableThrow(SyntaxNodeAnalysisContext context, SyntaxNode node)
     {
         context.ReportDiagnostic(Diagnostic.Create(
             RuleUnreachableThrow,
-            statement.GetLocation()));
+            node.GetLocation()));
+    }
+
+    private static void ReportUnreachableCode(SyntaxNodeAnalysisContext context, SyntaxNode node)
+    {
+        ReportUnreachableCode(context, node.GetLocation());
+    }
+
+    private static void ReportUnreachableCode(SyntaxNodeAnalysisContext context, Location location)
+    {
+        context.ReportDiagnostic(Diagnostic.Create(
+            RuleUnreachableCode,
+            location));
     }
 
     private INamedTypeSymbol? GetExceptionTypeFromNode(SyntaxNode throwNode, SemanticModel semanticModel)
