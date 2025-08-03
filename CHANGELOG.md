@@ -8,10 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [1.9.0] - 2025-08-04
+
 ### Added
 
 - PR [#209](https://github.com/marinasundstrom/CheckedExceptions/pull/209) Improve code flow analysis
-
 
 ### Fixed
 
