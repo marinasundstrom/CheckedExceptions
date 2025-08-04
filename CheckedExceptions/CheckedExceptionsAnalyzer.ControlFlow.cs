@@ -274,8 +274,8 @@ partial class CheckedExceptionsAnalyzer
         {
             var flow = semanticModel.AnalyzeControlFlow(node);
 
-            if (!flow.Succeeded || !flow.StartPointIsReachable)
-                return FlowWithExceptionsResult.Unreachable;
+            //if (!flow.Succeeded || !flow.StartPointIsReachable)
+            //    return FlowWithExceptionsResult.Unreachable;
         }
 
         var unhandled = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
@@ -300,7 +300,7 @@ partial class CheckedExceptionsAnalyzer
         {
             if (!reachable)
             {
-                var statementIndex = statements.TakeWhile(x => x != statement).Count();
+                var statementIndex = statements.TakeWhile(x => x != statement).Count() - 1;
 
                 // 🚩 We already know the block can’t continue past here
                 for (int i = statementIndex; i < statements.Count(); i++)
@@ -370,8 +370,8 @@ partial class CheckedExceptionsAnalyzer
         // Control flow for this single statement
         var flow = semanticModel.AnalyzeControlFlow(statement);
 
-        if (!flow.Succeeded || !flow.StartPointIsReachable)
-            return FlowWithExceptionsResult.Unreachable;
+        //if (!flow.Succeeded || !flow.StartPointIsReachable)
+        //    return FlowWithExceptionsResult.Unreachable;
 
         // Handle nested blocks
         if (statement is BlockSyntax block)

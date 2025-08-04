@@ -343,16 +343,8 @@ public partial class TryCatchTest2
 
             try
             {
-                bool x = true;
-                if (x)
-                {
-                    //May throw FormatException, or OverflowException, or return
-                    return int.Parse(input);
-                }
-                else
-                {
-                    throw new InvalidCastException();
-                }         
+                //May throw FormatException, or OverflowException, or return
+                return int.Parse(input);    
             }
             catch (FormatException ex)
             {
@@ -372,19 +364,17 @@ public partial class TryCatchTest2
     }
     """;
 
-        /*
-            var expected = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration)
-                .WithArguments("ArgumentException")
-                .WithSpan(11, 55, 11, 72);
+        var expected = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration)
+            .WithArguments("ArgumentException")
+            .WithSpan(11, 55, 11, 72);
 
-            var expected2 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdRedundantCatchAllClause)
-                .WithArguments("ArgumentException")
-                .WithSpan(32, 9, 32, 14);
-    */
+        var expected2 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdRedundantCatchAllClause)
+            .WithArguments("ArgumentException")
+            .WithSpan(29, 9, 29, 14);
 
         await Verifier.VerifyAnalyzerAsync(test, o =>
         {
-            //o.ExpectedDiagnostics.AddRange(expected, expected2);
+            o.ExpectedDiagnostics.AddRange(expected, expected2);
 
             o.DisabledDiagnostics.Remove(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration);
         });
@@ -436,17 +426,13 @@ public partial class TryCatchTest2
     }
     """;
 
-        var expected = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration)
-            .WithArguments("InvalidUserInputException")
-            .WithSpan(11, 20, 11, 45);
-
-        var expected2 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdRedundantCatchAllClause)
+        var expected = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdRedundantCatchAllClause)
             .WithArguments("ArgumentException")
             .WithSpan(33, 9, 33, 14);
 
         await Verifier.VerifyAnalyzerAsync(test, o =>
         {
-            o.ExpectedDiagnostics.AddRange(expected, expected2);
+            o.ExpectedDiagnostics.AddRange(expected);
 
             o.DisabledDiagnostics.Remove(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration);
         });
