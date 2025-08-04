@@ -302,18 +302,46 @@ partial class CheckedExceptionsAnalyzer
         {
             if (!reachable)
             {
+                var statementIndex = statements.TakeWhile(x => x != statement).Count();
+
                 // 🚩 We already know the block can’t continue past here
-                var firstUnreachable = statement; // the first statement we know is unreachable
-                var lastStatement = statements.Last();
+                for (int i = statementIndex; i < statements.Count(); i++)
+                {
+                    var s = statements.ElementAt(i);
 
-                // Span from start of firstUnreachable to end of lastStatement
-                var span = TextSpan.FromBounds(
-                    firstUnreachable.FullSpan.Start,
-                    lastStatement.FullSpan.End);
+                    if (!reachable)
+                    {
+                        // Start of an unreachable region
+                        int start = i;
 
-                var location = Location.Create(node.SyntaxTree, span);
+                        // Advance until we hit the end of the block, or something that resets analysis
+                        while (i < statements.Count())
+                        {
+                            var current = statements.ElementAt(i);
 
-                ReportUnreachableCode(context, location);
+                            // Local functions are *not* unreachable code
+                            if (current is LocalFunctionStatementSyntax)
+                                break;
+
+                            // Extend the unreachable block
+                            i++;
+                        }
+
+                        int end = i - 1; // last unreachable statement before break
+                        if (end >= start)
+                        {
+                            var span = TextSpan.FromBounds(
+                                statements.ElementAt(start).FullSpan.Start,
+                                statements.ElementAt(end).FullSpan.End);
+
+                            var location = Location.Create(node.SyntaxTree, span);
+                            ReportUnreachableCode(context, location);
+                        }
+
+                        // Continue outer loop — i already points at first reachable again
+                        continue;
+                    }
+                }
                 break;
             }
 
