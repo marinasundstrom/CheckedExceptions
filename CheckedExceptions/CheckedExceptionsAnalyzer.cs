@@ -41,7 +41,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         DiagnosticIdUnhandled,
         "Unhandled exception",
         "Unhandled exception type '{0}'",
-        "Usage",
+        "Control flow",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
         description: "Reports exceptions that are thrown but not caught or declared with [Throws], potentially violating exception safety.");
@@ -77,7 +77,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         DiagnosticIdDuplicateDeclarations,
         "Avoid duplicate declarations of the same exception type",
         "Duplicate declaration of the exception type '{0}' found. Remove it to avoid redundancy.",
-        "Usage",
+        "Contract",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
         description: "Detects multiple exception declarations for the same exception type on a single member, which is redundant.");
@@ -86,7 +86,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         DiagnosticIdMissingThrowsFromBaseMember,
         "Missing Throws declaration for exception declared on base member",
         "Exception '{1}' declared in '{0}' is not declared in this override or implemented member",
-        "Usage",
+        "Contract",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
         description: "Ensures that overridden or implemented members declare exceptions required by their base or interface definitions.");
@@ -95,7 +95,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         DiagnosticIdMissingThrowsOnBaseMember,
         "Incompatible Throws declaration",
         "Exception '{1}' is not compatible with throws declaration(s) in '{0}'",
-        "Usage",
+        "Contract",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
         description: "Ensures that overridden or implemented members do not declare exceptions incompatible with their base or interface definitions.");
@@ -104,7 +104,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         DiagnosticIdDuplicateThrowsByHierarchy,
         title: "Redundant exception declaration",
         messageFormat: "Exception already handled by declaration of super type ('{0}')",
-        category: "Usage",
+        category: "Contract",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
         description: "Detects redundant [Throws] declarations where a more general exception type already covers the specific exception.");
@@ -113,7 +113,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         DiagnosticIdRedundantTypedCatchClause,
         title: "Redundant catch typed clause",
         messageFormat: "Exception type '{0}' is never thrown within the try block",
-        category: "Usage",
+        category: "Control flow",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
         description: "Detects catch clauses for exception types that are never thrown inside the associated try block, making the catch clause redundant.",
@@ -123,7 +123,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         DiagnosticIdRedundantCatchAllClause,
         title: "Redundant catch-all clause",
         messageFormat: "This catch-all clause is redundant because no exceptions remain to be handled",
-        category: "Usage",
+        category: "Control flow",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
         description: "Reports catch-all clauses that cannot handle any exceptions because all exceptions " +
@@ -134,7 +134,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         DiagnosticIdThrowsDeclarationNotValidOnFullProperty,
         title: "Throws attribute is not valid on full property declarations",
         messageFormat: "Throws attribute is not valid on full property declarations. Place it on accessors instead.",
-        category: "Usage",
+        category: "Contract",
         DiagnosticSeverity.Error,
         isEnabledByDefault: true,
         description: "The [Throws] attribute cannot be applied to full property declarations. Instead, place the attribute on individual accessors (get or set) to indicate which operations may throw exceptions.");
@@ -143,7 +143,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         DiagnosticIdXmlDocButNoThrows,
         title: "Exception in XML documentation is not declared with [Throws]",
         messageFormat: "Exception '{0}' is documented in XML documentation but not declared with [Throws]",
-        category: "Usage",
+        category: "Contract",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
         description: "This member's XML documentation declares an exception, but it is not declared with a [Throws] attribute. " +
@@ -153,7 +153,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         DiagnosticIdRedundantExceptionDeclaration,
         title: "Redundant exception declaration",
         messageFormat: "Exception '{0}' is declared but never thrown",
-        category: "Usage",
+        category: "Contract",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
         description: "Detects exception types declared with [Throws] that are never thrown in the method or property body, making the declaration redundant.");
@@ -162,7 +162,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         DiagnosticIdRuleUnreachableCode,
         title: "Unreachable code",
         messageFormat: "The code is unreachable in the current control flow",
-        category: "Usage",
+        category: "Control flow",
         defaultSeverity: DiagnosticSeverity.Hidden,
         isEnabledByDefault: true,
         description: "Detects throw statements that cannot be reached due to surrounding control flow or exception handling.",
