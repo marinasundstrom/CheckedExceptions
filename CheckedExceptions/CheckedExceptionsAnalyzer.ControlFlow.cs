@@ -768,13 +768,6 @@ partial class CheckedExceptionsAnalyzer
             catchClause.CatchKeyword.GetLocation()));
     }
 
-    private static void ReportUnreachableThrow(SyntaxNodeAnalysisContext context, SyntaxNode node)
-    {
-        context.ReportDiagnostic(Diagnostic.Create(
-            RuleUnreachableThrow,
-            node.GetLocation()));
-    }
-
     private static void ReportUnreachableCode(SyntaxNodeAnalysisContext context, SyntaxNode node)
     {
         ReportUnreachableCode(context, node.GetLocation());
