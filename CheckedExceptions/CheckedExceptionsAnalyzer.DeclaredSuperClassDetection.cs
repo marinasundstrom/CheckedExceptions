@@ -14,7 +14,7 @@ partial class CheckedExceptionsAnalyzer
         ImmutableArray<AttributeData> throwsAttributes)
     {
         var declaredTypes = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
-        var typeToArgMap = new Dictionary<INamedTypeSymbol, ExpressionSyntax>(SymbolEqualityComparer.Default);
+        var typeToArgMap = new Dictionary<INamedTypeSymbol, TypeOfExpressionSyntax>(SymbolEqualityComparer.Default);
 
         foreach (var attrData in throwsAttributes)
         {
@@ -52,7 +52,7 @@ partial class CheckedExceptionsAnalyzer
                     {
                         context.ReportDiagnostic(Diagnostic.Create(
                             RuleDuplicateThrowsByHierarchy,
-                            expression.GetLocation(), // ✅ precise location
+                            expression.Type.GetLocation(), // ✅ precise location
                             otherType.Name));
                     }
                     break;
@@ -79,7 +79,7 @@ partial class CheckedExceptionsAnalyzer
     {
         var semanticModel = context.SemanticModel;
         var declaredTypes = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
-        var typeToExprMap = new Dictionary<INamedTypeSymbol, ExpressionSyntax>(SymbolEqualityComparer.Default);
+        var typeToExprMap = new Dictionary<INamedTypeSymbol, TypeOfExpressionSyntax>(SymbolEqualityComparer.Default);
 
         foreach (var throwsAttribute in throwsAttributes)
         {
@@ -112,7 +112,7 @@ partial class CheckedExceptionsAnalyzer
                     {
                         context.ReportDiagnostic(Diagnostic.Create(
                             RuleDuplicateThrowsByHierarchy,
-                            expr.GetLocation(),
+                            expr.Type.GetLocation(),
                             otherType.Name));
                     }
                     break;

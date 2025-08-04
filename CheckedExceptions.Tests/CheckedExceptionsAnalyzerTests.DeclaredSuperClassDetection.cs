@@ -25,7 +25,7 @@ partial class CheckedExceptionsAnalyzerTests
             """;
 
         var expected = Verifier.RedundantExceptionDeclarationBySuperType("InvalidOperationException")
-            .WithSpan(6, 13, 6, 44);
+            .WithSpan(6, 20, 6, 43);
 
         await Verifier.VerifyAnalyzerAsync(test, expected);
     }
