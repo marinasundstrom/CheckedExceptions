@@ -1,6 +1,4 @@
 using System.Collections.Immutable;
-using System.Linq.Expressions;
-using System.Net.NetworkInformation;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -345,7 +343,6 @@ partial class CheckedExceptionsAnalyzer
                 break;
             }
 
-
             // Delegate analysis to the per‑statement helper
             var stmtResult = AnalyzeStatementWithExceptions(context, statement, settings, caughtExceptions);
 
@@ -422,9 +419,7 @@ partial class CheckedExceptionsAnalyzer
                             if (isCatchRedundant)
                             {
                                 // 🚩 Redundant catch-all
-                                context.ReportDiagnostic(Diagnostic.Create(
-                                    RuleRedundantCatchAllClause,
-                                    catchClause.CatchKeyword.GetLocation()));
+                                ReportRedundantCatchAll(context, catchClause);
                             }
 
                             // The exceptions caught in this block
@@ -466,10 +461,7 @@ partial class CheckedExceptionsAnalyzer
                             if (!handlesAny)
                             {
                                 // 🚩 Redundant typed catch
-                                context.ReportDiagnostic(Diagnostic.Create(
-                                    RuleRedundantTypedCatchClause,
-                                    catchClause.Declaration.Type.GetLocation(),
-                                    caught.Name));
+                                ReportRedundantTypedCatchClause(context, catchClause, caught);
 
                                 if (catchClause.Block != null)
                                 {
@@ -735,12 +727,45 @@ partial class CheckedExceptionsAnalyzer
                 return new FlowWithExceptionsResult(false,
                     unhandled.ToImmutableHashSet());
 
+            case LocalDeclarationStatementSyntax localDecl
+    when localDecl.Declaration.Variables
+        .Any(v => v.Initializer?.Value is InvocationExpressionSyntax
+               or ElementAccessExpressionSyntax
+               or ObjectCreationExpressionSyntax
+               or ImplicitObjectCreationExpressionSyntax):
+                unhandled.UnionWith(CollectExceptionsFromStatement(context, statement, settings));
+                return new FlowWithExceptionsResult(true, unhandled.ToImmutableHashSet());
+
+            case ExpressionStatementSyntax exprStmt
+    when exprStmt.Expression.DescendantNodesAndSelf()
+        .Any(n => n is InvocationExpressionSyntax
+               or ElementAccessExpressionSyntax
+               or ObjectCreationExpressionSyntax
+               or ImplicitObjectCreationExpressionSyntax):
+                unhandled.UnionWith(CollectExceptionsFromStatement(context, statement, settings));
+                return new FlowWithExceptionsResult(true, unhandled.ToImmutableHashSet());
+
             default:
                 unhandled.UnionWith(CollectExceptionsFromStatement(context, statement, settings));
                 // Fallback: assume it falls through
                 return new FlowWithExceptionsResult(flow.EndPointIsReachable,
                     unhandled.ToImmutableHashSet());
         }
+    }
+
+    private static void ReportRedundantTypedCatchClause(SyntaxNodeAnalysisContext context, CatchClauseSyntax catchClause, INamedTypeSymbol caughtType)
+    {
+        context.ReportDiagnostic(Diagnostic.Create(
+            RuleRedundantTypedCatchClause,
+            catchClause.Declaration.Type.GetLocation(),
+            caughtType.Name));
+    }
+
+    private static void ReportRedundantCatchAll(SyntaxNodeAnalysisContext context, CatchClauseSyntax catchClause)
+    {
+        context.ReportDiagnostic(Diagnostic.Create(
+            RuleRedundantCatchAllClause,
+            catchClause.CatchKeyword.GetLocation()));
     }
 
     private static void ReportUnreachableThrow(SyntaxNodeAnalysisContext context, SyntaxNode node)
@@ -760,30 +785,6 @@ partial class CheckedExceptionsAnalyzer
         context.ReportDiagnostic(Diagnostic.Create(
             RuleUnreachableCode,
             location));
-    }
-
-    private INamedTypeSymbol? GetExceptionTypeFromNode(SyntaxNode throwNode, SemanticModel semanticModel)
-    {
-        switch (throwNode)
-        {
-            case ThrowStatementSyntax throwStmt
-                when throwStmt.Expression is ObjectCreationExpressionSyntax obj:
-                {
-                    var type = semanticModel.GetTypeInfo(obj.Type).Type as INamedTypeSymbol;
-                    return type;
-                }
-
-            case ThrowExpressionSyntax throwExpr
-                when throwExpr.Expression is ObjectCreationExpressionSyntax obj:
-                {
-                    var type = semanticModel.GetTypeInfo(obj.Type).Type as INamedTypeSymbol;
-                    return type;
-                }
-
-                // TODO: handle invocation and rethrow cases if needed
-        }
-
-        return null;
     }
 
     private Location? GetThrowsAttributeLocation(
