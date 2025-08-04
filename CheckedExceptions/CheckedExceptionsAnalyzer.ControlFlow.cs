@@ -494,14 +494,24 @@ partial class CheckedExceptionsAnalyzer
                         }
                     }
 
-                    // Path 3: finally falls through
                     if (tryStmt.Finally?.Block is { } finallyBlock)
                     {
                         var finallyResult = AnalyzeBlockWithExceptions(context, finallyBlock, settings);
-                        unhandled.UnionWith(finallyResult.UnhandledExceptions);
 
-                        if (finallyResult.EndReachable)
+                        if (!finallyResult.EndReachable)
+                        {
+                            // 🚩 Finally always terminates
+                            // Replace unhandled with only the finally’s unhandled exceptions
+                            unhandled.Clear();
+                            unhandled.UnionWith(finallyResult.UnhandledExceptions);
+                            continuationPossible = false; // no continuation past this point
+                        }
+                        else
+                        {
+                            // Finally may fall through → merge
+                            unhandled.UnionWith(finallyResult.UnhandledExceptions);
                             continuationPossible = true;
+                        }
                     }
 
                     return new FlowWithExceptionsResult(continuationPossible,
