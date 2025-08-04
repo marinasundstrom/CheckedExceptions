@@ -161,7 +161,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor RuleUnreachableCode = new(
         DiagnosticIdRuleUnreachableCode,
         title: "Unreachable code",
-        messageFormat: "The code is unreachable in the current control flow",
+        messageFormat: "Unreachable in the current control flow",
         category: "Control flow",
         defaultSeverity: DiagnosticSeverity.Hidden,
         isEnabledByDefault: true,
