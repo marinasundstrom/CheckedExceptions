@@ -29,14 +29,14 @@ public class RethrowTest
         }
     }
 
-    [Throws(typeof(InvalidOperationException))]
+    [Throws(typeof(InvalidCastException))]
     public void Foo12()
     {
         try
         {
-            MethodThatThrows();
+            throw new InvalidCastException();
         }
-        catch (InvalidOperationException)
+        catch (InvalidCastException ex)
         {
             throw;
         }
@@ -79,6 +79,7 @@ public class RethrowTest
         }
     }
 
+    [Throws(typeof(ArgumentException))]
     public void Foo32()
     {
         try
@@ -88,9 +89,9 @@ public class RethrowTest
         }
         catch
         {
-            throw new Exception();
-
             throw;
+
+            throw new Exception();
         }
     }
 

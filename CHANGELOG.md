@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+
+- PR [#214](https://github.com/marinasundstrom/CheckedExceptions/pull/214) Fix handling of re-throws in catch and catch-all
+
 ## [1.9.0] - 2025-08-04
 
 ### Added

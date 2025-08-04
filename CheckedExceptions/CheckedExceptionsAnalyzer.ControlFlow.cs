@@ -267,7 +267,8 @@ partial class CheckedExceptionsAnalyzer
     private FlowWithExceptionsResult AnalyzeBlockWithExceptions(
       SyntaxNodeAnalysisContext context,
       SyntaxNode node,
-      AnalyzerSettings settings)
+      AnalyzerSettings settings,
+      HashSet<INamedTypeSymbol>? caughtExceptions = null)
     {
         var semanticModel = context.SemanticModel;
 
@@ -318,7 +319,7 @@ partial class CheckedExceptionsAnalyzer
 
 
             // Delegate analysis to the per‑statement helper
-            var stmtResult = AnalyzeStatementWithExceptions(context, statement, settings);
+            var stmtResult = AnalyzeStatementWithExceptions(context, statement, settings, caughtExceptions);
 
             // Merge exceptions
             unhandled.UnionWith(stmtResult.UnhandledExceptions);
@@ -336,7 +337,8 @@ partial class CheckedExceptionsAnalyzer
     private FlowWithExceptionsResult AnalyzeStatementWithExceptions(
         SyntaxNodeAnalysisContext context,
         StatementSyntax statement,
-        AnalyzerSettings settings)
+        AnalyzerSettings settings,
+        HashSet<INamedTypeSymbol>? caughtExceptions = null)
     {
         var semanticModel = context.SemanticModel;
 
@@ -356,6 +358,20 @@ partial class CheckedExceptionsAnalyzer
 
         switch (statement)
         {
+            case ThrowStatementSyntax throwStmt:
+                if (throwStmt.Expression == null)
+                {
+                    // 🚩 Rethrow
+                    if (caughtExceptions != null)
+                        unhandled.AddRange(caughtExceptions);
+                }
+                else
+                {
+                    // Normal throw
+                    unhandled.UnionWith(CollectExceptionsFromStatement(context, statement, settings));
+                }
+                return new FlowWithExceptionsResult(false, unhandled.ToImmutableHashSet());
+
             case TryStatementSyntax tryStmt:
                 {
                     var tryResult = AnalyzeBlockWithExceptions(context, tryStmt.Block, settings);
@@ -383,14 +399,25 @@ partial class CheckedExceptionsAnalyzer
                                     catchClause.CatchKeyword.GetLocation()));
                             }
 
-                            // Always analyze body for unreachable diagnostics
+                            // The exceptions caught in this block
+                            var caughtExceptionsInCatch = new HashSet<INamedTypeSymbol>(exceptionsLeftToHandle);
+
+                            // 🚩 Swallow everything the catch-all covers (from try body)
+                            unhandled.RemoveWhere(ex => exceptionsLeftToHandle.Contains(ex));
+                            exceptionsLeftToHandle.Clear();
+
+                            // Always analyze body for unreachable diagnostics and catch-body exceptions
                             if (catchClause.Block != null)
                             {
-                                var catchResult = AnalyzeBlockWithExceptions(context, catchClause.Block, settings);
+                                var catchResult = AnalyzeBlockWithExceptions(
+                                    context,
+                                    catchClause.Block,
+                                    settings,
+                                    caughtExceptionsInCatch // pass the caught exceptions in this block so to able to signal rethrow.
+                                );
+
                                 unhandled.UnionWith(catchResult.UnhandledExceptions);
 
-                                // 🔑 Even if body falls through, do NOT flip continuationPossible
-                                // because a redundant catch-all doesn't make later code reachable.
                                 if (!isCatchRedundant && catchResult.EndReachable)
                                     continuationPossible = true;
 
@@ -400,9 +427,6 @@ partial class CheckedExceptionsAnalyzer
                                 }
                             }
 
-                            // Swallow all remaining exceptions
-                            unhandled.UnionWith(exceptionsLeftToHandle);
-                            exceptionsLeftToHandle.Clear();
                             break;
                         }
 
@@ -434,7 +458,7 @@ partial class CheckedExceptionsAnalyzer
 
                         if (catchClause.Block != null)
                         {
-                            var catchResult = AnalyzeBlockWithExceptions(context, catchClause.Block, settings);
+                            var catchResult = AnalyzeBlockWithExceptions(context, catchClause.Block, settings, [caught!]);
                             unhandled.UnionWith(catchResult.UnhandledExceptions);
 
                             if (catchResult.EndReachable)
@@ -669,7 +693,6 @@ partial class CheckedExceptionsAnalyzer
                 }
 
             case ReturnStatementSyntax:
-            case ThrowStatementSyntax:
                 unhandled.UnionWith(CollectExceptionsFromStatement(context, statement, settings));
                 return new FlowWithExceptionsResult(false,
                     unhandled.ToImmutableHashSet());
