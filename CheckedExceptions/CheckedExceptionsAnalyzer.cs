@@ -33,7 +33,6 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     public const string DiagnosticIdXmlDocButNoThrows = "THROW011";
     public const string DiagnosticIdRedundantExceptionDeclaration = "THROW012";
     public const string DiagnosticIdRedundantCatchAllClause = "THROW013";
-    public const string DiagnosticIdUnreachableThrow = "THROW014";
     public const string DiagnosticIdRuleUnreachableCode = "THROW020";
 
     public static IEnumerable<string> AllDiagnosticsIds = [DiagnosticIdUnhandled, DiagnosticIdGeneralThrows, DiagnosticIdGeneralThrow, DiagnosticIdDuplicateDeclarations, DiagnosticIdRuleUnreachableCode];
@@ -159,15 +158,6 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         isEnabledByDefault: true,
         description: "Detects exception types declared with [Throws] that are never thrown in the method or property body, making the declaration redundant.");
 
-    private static readonly DiagnosticDescriptor RuleUnreachableThrow = new(
-        DiagnosticIdUnreachableThrow,
-        title: "Unreachable throw statement",
-        messageFormat: "The throwing site is unreachable in the current control flow",
-        category: "Usage",
-        defaultSeverity: DiagnosticSeverity.Warning,
-        isEnabledByDefault: true,
-        description: "Detects throw statements that cannot be reached due to surrounding control flow or exception handling.");
-
     private static readonly DiagnosticDescriptor RuleUnreachableCode = new(
         DiagnosticIdRuleUnreachableCode,
         title: "Unreachable code",
@@ -179,7 +169,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         customTags: [WellKnownDiagnosticTags.Unnecessary]);
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
-        [RuleUnhandledException, RuleIgnoredException, RuleGeneralThrows, RuleGeneralThrow, RuleDuplicateDeclarations, RuleMissingThrowsOnBaseMember, RuleMissingThrowsFromBaseMember, RuleDuplicateThrowsByHierarchy, RuleRedundantTypedCatchClause, RuleRedundantCatchAllClause, RuleThrowsDeclarationNotValidOnFullProperty, RuleXmlDocButNoThrows, RuleRedundantExceptionDeclaration, RuleUnreachableThrow, RuleUnreachableCode];
+        [RuleUnhandledException, RuleIgnoredException, RuleGeneralThrows, RuleGeneralThrow, RuleDuplicateDeclarations, RuleMissingThrowsOnBaseMember, RuleMissingThrowsFromBaseMember, RuleDuplicateThrowsByHierarchy, RuleRedundantTypedCatchClause, RuleRedundantCatchAllClause, RuleThrowsDeclarationNotValidOnFullProperty, RuleXmlDocButNoThrows, RuleRedundantExceptionDeclaration, RuleUnreachableCode];
 
     public override void Initialize(AnalysisContext context)
     {
