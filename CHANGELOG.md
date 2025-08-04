@@ -8,19 +8,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+Adding improvements to the control flow analysis that was introduced in the last release.
+
+### Added
+
+- [#212](https://github.com/marinasundstrom/CheckedExceptions/issues/212) Handle finally clause
+- [#217](https://github.com/marinasundstrom/CheckedExceptions/issues/217) Remove unused diagnostic
+- [#216](https://github.com/marinasundstrom/CheckedExceptions/issues/216) Assign categories to diagnostics
+
 ### Fixed
 
 - PR [#214](https://github.com/marinasundstrom/CheckedExceptions/pull/214) Fix handling of re-throws in catch and catch-all
-
-* PR [#220](https://github.com/marinasundstrom/CheckedExceptions/pull/220) Fixes and enhancements to control flow analysis
-  - Exclude local func from unreachable code diagnostic [#210](https://github.com/marinasundstrom/CheckedExceptions/issues/210)
-  - Handle finally clause [#212](https://github.com/marinasundstrom/CheckedExceptions/issues/212)
-  - Exclude stmts with contracts from Roslyn ctrl flow analysis [#221](https://github.com/marinasundstrom/CheckedExceptions/issues/221)
-  - Remove unused diagnostic [#217](https://github.com/marinasundstrom/CheckedExceptions/issues/217)
-  - Assign categories to diagnostics [#216](https://github.com/marinasundstrom/CheckedExceptions/issues/216)
-
+- [#210](https://github.com/marinasundstrom/CheckedExceptions/issues/210) Exclude local func from unreachable code diagnostic
+- [#221](https://github.com/marinasundstrom/CheckedExceptions/issues/221) Exclude stmts with contracts from Roslyn ctrl flow analysis
 
 ## [1.9.0] - 2025-08-04
+
+Added new control flow analysis. This will be improved over the next releases.
 
 ### Added
 
