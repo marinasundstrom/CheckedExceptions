@@ -451,4 +451,57 @@ public partial class TryCatchTest2
             o.DisabledDiagnostics.Remove(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration);
         });
     }
+
+    [Fact]
+    public async Task Test100()
+    {
+        var test = /* lang=c#-test */ """
+        using System;
+
+        Foo();
+
+        [Throws(typeof(ArgumentException))]
+        void Foo()
+        {
+            try
+            {
+                MethodThatThrows2();
+                MethodThatThrows();
+            }
+            catch
+            {
+                throw new OverflowException();
+            }
+        }
+
+        [Throws(typeof(InvalidOperationException))]
+        void MethodThatThrows()
+        {
+            throw new InvalidOperationException();
+        }
+
+        [Throws(typeof(ArgumentException))]
+        void MethodThatThrows2()
+        {
+            throw new ArgumentException();
+        }
+        """;
+
+        var expected = Verifier.UnhandledException("ArgumentException")
+            .WithSpan(3, 1, 3, 6);
+
+        var expected2 = Verifier.UnhandledException("OverflowException")
+            .WithSpan(15, 9, 15, 39);
+
+        var expected3 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration)
+            .WithArguments("ArgumentException")
+            .WithSpan(5, 16, 5, 33);
+
+        await Verifier.VerifyAnalyzerAsync(test, setup: o =>
+        {
+            o.ExpectedDiagnostics.AddRange(expected, expected2, expected3);
+
+            o.DisabledDiagnostics.Remove(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration);
+        }, executable: true);
+    }
 }

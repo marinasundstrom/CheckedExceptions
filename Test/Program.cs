@@ -1,5 +1,4 @@
-﻿
-try
+﻿try
 {
     int result = ReadAndParse();
     Console.WriteLine(result);
@@ -9,23 +8,14 @@ catch (InvalidUserInputException ex)
     Console.WriteLine($"Input error: {ex.Message}");
 }
 
-[Throws(typeof(InvalidUserInputException), typeof(ArgumentException))] // ✔️ Only the domain-specific exception is exposed
+[Throws(typeof(InvalidUserInputException))] // ✔️ Only the domain-specific exception is exposed
 static int ReadAndParse()
 {
     string input = "abc";  // Simulated input — could be user input in real scenarios
 
     try
     {
-        bool x = true;
-        if (x)
-        {
-            //May throw FormatException, or OverflowException, or return
-            return int.Parse(input);
-        }
-        else
-        {
-            throw new InvalidCastException();
-        }
+        return int.Parse(input);
     }
     catch (FormatException formatException)
     {
@@ -35,13 +25,8 @@ static int ReadAndParse()
     catch (OverflowException overflowException)
     {
         // Handle and rethrow as domain-specific exception
-        throw new InvalidUserInputException("Input was not a valid number.", overflowException);
+        throw new InvalidUserInputException("Input number was too large.", overflowException);
     }
-    catch { }
-
-    // This will never be reachable
-    // And thus not unhandled
-    throw new ArgumentException();
 }
 
 class InvalidUserInputException : Exception
