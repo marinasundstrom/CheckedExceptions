@@ -189,11 +189,29 @@ Register in `.csproj`:
 
 The analyzer offers the following automated code fixes:
 
-- ✅ **Add `[Throws]` declaration** – Adds a `[Throws(typeof(...))]` attribute to declare the exception.
-- 🧯 **Surround with try/catch** – Wraps the statement in a `try` block with a generated `catch`.
-- 🧯 **Add catch to existing try block** – Appends a new `catch` clause to a nearby `try` block.
-- 🧹 **Remove redundant catch clause** – Removes the catch clause for an undeclared exception type.
-- 🪛 **Suppress warning** – Adds `#pragma warning disable` or `[SuppressMessage]`.
+* ✅ **Add exception declaration**
+  Adds `[Throws(typeof(...))]` attribute to declare the exception, or appends exception to existing attribute.
+  *(Fixes `THROW001`)*
+
+* 🧯 **Surround with try/catch**
+  Wraps the throwing site in a `try`/`catch` block.
+  *(Fixes `THROW001`)*
+
+* ➕ **Add catch to existing try block**
+  Appends a new `catch` clause to an existing `try`.
+  *(Fixes `THROW001`)*
+
+* 🧹 **Remove redundant catch clause**
+  Removes a catch clause for an exception type that is never thrown.
+  *(Fixes `THROW009`)*
+
+* 🔧 **Add `[Throws]` declaration from base member**
+  Ensures overridden or implemented members declare the same exceptions as their base/interface.
+  *(Fixes `THROW007`)*
+
+* 🔧 **Add `[Throws]` declaration from XML doc**
+  Converts `<exception>` XML documentation into `[Throws]` attributes.
+  *(Fixes `THROW011`)*
 
 ---
 

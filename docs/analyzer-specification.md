@@ -1,5 +1,24 @@
 # Analyzer Specification
 
+## Overview
+
+The **CheckedExceptionsAnalyzer** operates in two complementary layers:
+
+1. **Exception Handling Analysis (core, always on)**
+
+   * Detects thrown exceptions from `throw` statements, `[Throws]` annotations, and `<exception>` XML docs.
+   * Ensures each exception is either **caught** in a surrounding `try/catch` or **declared** with `[Throws]`.
+   * Produces diagnostics such as **unhandled exceptions** (`THROW001`) and **bad practices** (e.g. `THROW004` for `throw new Exception()`).
+
+2. **Control Flow Analysis (optional)**
+
+   * Performs lightweight reachability analysis to refine diagnostics.
+   * Detects **redundant catch clauses** and **unreachable code** (with IDE gray‑out support).
+   * Improves accuracy by reporting only exceptions that are truly reachable in context.
+   * This analysis can be **disabled** in configuration if only the basic handling checks are desired.
+
+---
+
 ## `Throws` attribute
 
 The `[Throws]` attribute is the contract that tells that a method, property accessor, local function, or lambda expression might throw one or more specified exceptions.
@@ -8,7 +27,7 @@ Placing a `Throws` declaration on a declaration will mark the specified exceptio
 
 ---
 
-## Unhandled exceptions
+## Unhandled exceptions (Core analysis)
 
 The diagnostic for *Unhandled exception types* is **`THROW001`**.
 
@@ -36,7 +55,7 @@ public void TestMethod()
 
 ---
 
-## Handling exceptions
+## Handling exceptions (Core analysis)
 
 ### Exception declarations (`[Throws]`)
 
@@ -125,9 +144,11 @@ public void TestMethod() => throw new InvalidOperationException();
 
 ---
 
-## Redundant or invalid handling
+## Redundant or invalid handling (Control flow analysis)
 
 ### Redundant catch clauses
+
+Detected only with control flow analysis:
 
 * **Typed catch never matched** → **`THROW009`**
 
@@ -147,6 +168,8 @@ public void TestMethod() => throw new InvalidOperationException();
 
 ### Redundant exception declarations
 
+Control flow analysis is also used to determine whether declarations are truly necessary:
+
 * **Declared but never thrown** → **`THROW012`**
 
   ```c#
@@ -158,33 +181,31 @@ public void TestMethod() => throw new InvalidOperationException();
 
 * **Already covered by base type** → **`THROW008`**
 
-Flow analysis is used to determine whether declared exceptions are necessary based on actual code paths.
-
-### Invalid placement
+### Invalid placement (Core analysis)
 
 * **Throws on full property (instead of accessor)** → **`THROW010`**
 
 ---
 
-## Bad practices with `Exception`
+## Bad practices with `Exception` (Core analysis)
 
 * **Throwing `System.Exception` directly** → **`THROW004`**
 * **Declaring `[Throws(typeof(Exception))]`** → **`THROW003`**
 
 ---
 
-## Inheritance hierarchies
+## Inheritance hierarchies (Core analysis)
 
 The analyzer ensures consistency across inheritance and interface implementations:
 
 * **Missing exceptions from base/interface** → **`THROW007`**
 * **Declaring incompatible exceptions** → **`THROW006`**
 
-Redundant handling is also reported when more general types make specific ones unnecessary (**`THROW008`**).
+Redundant handling is also reported when more general types make specific ones unnecessary (**`THROW008`**, via control flow analysis).
 
 ---
 
-## Interop: XML documentation support
+## Interop: XML documentation support (Core analysis)
 
 Exceptions from XML documentation are outwardly treated as *declared* by the consumer. This provides compatibility with the .NET class library and third‑party code.
 
@@ -215,7 +236,94 @@ Disabling removes XML doc interop, including .NET class library coverage.
 
 ---
 
-## Ignored exceptions
+### Property heuristics
+
+When `<exception>` documentation is applied to a **property**, the analyzer uses text‑based heuristics to decide which accessor receives the implied `[Throws]`:
+
+* If the text mentions **“get”**, **“gets”**, **“getting”**, or **“retrieved”** → `[Throws]` is applied to the **getter**.
+* If the text mentions **“set”**, **“sets”**, or **“setting”** → `[Throws]` is applied to the **setter**.
+* If **no keywords are found**:
+
+  * If the property has only a **getter** or only a **setter** → `[Throws]` applies to that accessor.
+  * If the property has both → the analyzer **defaults to the getter**.
+
+#### Examples
+
+**Setter keyword**
+
+```c#
+/// <exception cref="InvalidOperationException">
+/// Thrown if the value cannot be **set**.
+/// </exception>
+public int Value { get; set; }
+
+// Analyzer interprets this as:
+// [Throws(typeof(InvalidOperationException))]
+// set { ... }
+```
+
+**Getter keyword**
+
+```c#
+/// <exception cref="InvalidOperationException">
+/// Thrown if the value cannot be **retrieved**.
+/// </exception>
+public int Value { get; set; }
+
+// Analyzer interprets this as:
+// [Throws(typeof(InvalidOperationException))]
+// get { ... }
+```
+
+**No keyword, defaults to getter**
+
+```c#
+/// <exception cref="InvalidOperationException">
+/// Thrown if the property is in an invalid state.
+/// </exception>
+public int Value { get; set; }
+
+// Analyzer interprets this as:
+// [Throws(typeof(InvalidOperationException))]
+// get { ... }
+```
+
+---
+
+#### Expression‑bodied properties
+
+Expression‑bodied properties (`=>`) are treated as a single accessor:
+
+* If it has only a `get` → `[Throws]` applies to the getter.
+* If it has only a `set` (rare, but possible with `init` or `set =>`) → `[Throws]` applies to the setter.
+
+Examples:
+
+```c#
+/// <exception cref="InvalidOperationException">
+/// Thrown when retrieving the value.
+/// </exception>
+public int Value => throw new InvalidOperationException();
+
+// Analyzer interprets this as:
+// [Throws(typeof(InvalidOperationException))]
+// get => ...
+```
+
+```c#
+/// <exception cref="InvalidOperationException">
+/// Thrown when attempting to set.
+/// </exception>
+public int Value { set => throw new InvalidOperationException(); }
+
+// Analyzer interprets this as:
+// [Throws(typeof(InvalidOperationException))]
+// set => ...
+```
+
+---
+
+## Ignored exceptions (Core analysis)
 
 You can configure ignored exception types in `CheckedExceptions.settings.json`.
 
@@ -225,7 +333,7 @@ Ignored exceptions will not produce *unhandled* diagnostics, but are still repor
 
 ---
 
-## Casts and conversions
+## Casts and conversions (Core analysis, refined by control flow)
 
 The analyzer inspects explicit and implicit **cast syntax** and accounts for possible exceptions raised by the runtime:
 
@@ -250,13 +358,13 @@ checked
 }
 ```
 
-Flow analysis considers these conversions part of the potential throw set for a method or block.
+Control flow analysis ensures these conversions are only reported when reachable on actual paths.
 
 ---
 
 ## Special cases
 
-### Expression-bodied property declarations
+### Expression‑bodied property declarations (Core analysis)
 
 Normally, `[Throws]` belongs on accessors:
 
@@ -276,3 +384,36 @@ public int TestProp => throw new InvalidOperationException();
 ```
 
 This is treated as valid when there is only a `get` accessor.
+
+> ℹ️ When exceptions are inferred from **XML documentation**, the same [property heuristics](#property-heuristics) apply to expression‑bodied properties: if only a `get` is present, exceptions are mapped to the getter; if only a `set` is present, exceptions are mapped to the setter.
+
+---
+
+## Configuration
+
+Certain features can be toggled in `CheckedExceptions.settings.json`.
+
+### Disable XML documentation interop
+
+```json
+{
+  "disableXmlDocInterop": true
+}
+```
+
+Disables XML doc interop, including .NET class library coverage.
+
+### Disable control flow analysis
+
+```json
+{
+  "disableControlFlowAnalysis": true
+}
+```
+
+Disables the optional flow‑sensitive analysis.
+When set, the analyzer will still report **unhandled exceptions** and enforce `[Throws]` contracts, but will no longer:
+
+* Detect redundant catch clauses (`THROW009`, `THROW013`)
+* Report redundant exception declarations (`THROW012`, `THROW008`)
+* Highlight unreachable code (IDE gray‑out support)
