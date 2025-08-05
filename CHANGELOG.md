@@ -15,6 +15,7 @@ Adding improvements to the control flow analysis that was introduced in the last
 - [#212](https://github.com/marinasundstrom/CheckedExceptions/issues/212) Handle finally clause
 - [#217](https://github.com/marinasundstrom/CheckedExceptions/issues/217) Remove unused diagnostic
 - [#216](https://github.com/marinasundstrom/CheckedExceptions/issues/216) Assign categories to diagnostics
+- PR [#222](https://github.com/marinasundstrom/CheckedExceptions/pull/222) Work on control flow in try/catch
 
 ### Fixed
 
