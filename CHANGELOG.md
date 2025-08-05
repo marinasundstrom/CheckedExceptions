@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [1.9.5] - 2025-08-05
+
 Adding improvements to the control flow analysis that was introduced in the last release.
 
 ### Added
