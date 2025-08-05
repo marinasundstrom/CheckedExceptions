@@ -331,40 +331,36 @@ partial class CheckedExceptionsAnalyzer
         {
             var s = statements.ElementAt(i);
 
-            if (!reachable)
+            // Start of an unreachable region
+            int start = i;
+
+            // Advance until we hit the end of the block, or something that resets analysis
+            while (i < statements.Count())
             {
-                // Start of an unreachable region
-                int start = i;
+                var current = statements.ElementAt(i);
 
-                // Advance until we hit the end of the block, or something that resets analysis
-                while (i < statements.Count())
-                {
-                    var current = statements.ElementAt(i);
+                // Local functions are *not* unreachable code
+                if (current is LocalFunctionStatementSyntax)
+                    break;
 
-                    // Local functions are *not* unreachable code
-                    if (current is LocalFunctionStatementSyntax)
-                        break;
-
-                    // Extend the unreachable block
-                    i++;
-                }
-
-                int end = i - 1; // last unreachable statement before break
-                if (end >= start)
-                {
-                    var span = TextSpan.FromBounds(
-                        statements.ElementAt(start).FullSpan.Start,
-                        statements.ElementAt(end).FullSpan.End);
-
-                    var location = Location.Create(node.SyntaxTree, span);
-                    ReportUnreachableCodeHidden(context, location);
-                }
-
-                // Continue outer loop — i already points at first reachable again
-                continue;
+                // Extend the unreachable block
+                i++;
             }
+
+            int end = i - 1; // last unreachable statement before break
+            if (end >= start)
+            {
+                var span = TextSpan.FromBounds(
+                    statements.ElementAt(start).FullSpan.Start,
+                    statements.ElementAt(end).FullSpan.End);
+
+                var location = Location.Create(node.SyntaxTree, span);
+                ReportUnreachableCodeHidden(context, location);
+            }
+
+            // Continue outer loop — i already points at first reachable again
+            continue;
         }
-        //
     }
 
     private FlowWithExceptionsResult AnalyzeStatementWithExceptions(
@@ -750,7 +746,7 @@ partial class CheckedExceptionsAnalyzer
                 containsReturn |= catchResult.ContainsReturn;
 
                 if (!handlesAny)
-                    ReportUnreachableCode(context, catchClause);
+                    ReportUnreachableCodeHidden(context, catchClause.GetLocation());
             }
         }
         else
@@ -764,7 +760,6 @@ partial class CheckedExceptionsAnalyzer
                 handlesAny = tryUnhandled.Any(ex => IsExceptionCaught(ex, caught));
                 if (!handlesAny)
                     ReportRedundantTypedCatchClause(context, catchClause, caught);
-
 
                 // NEW: shadowed by earlier catch
                 bool alreadyHandledByEarlier = !exceptionsLeftToHandle.Any(ex => IsExceptionCaught(ex, caught));
@@ -795,9 +790,6 @@ partial class CheckedExceptionsAnalyzer
                     continuationPossible = true;
 
                 containsReturn |= catchResult.ContainsReturn;
-
-                if (!handlesAny)
-                    ReportUnreachableCode(context, catchClause);
             }
         }
 
