@@ -391,121 +391,7 @@ partial class CheckedExceptionsAnalyzer
                 return new FlowWithExceptionsResult(false, unhandled.ToImmutableHashSet());
 
             case TryStatementSyntax tryStmt:
-                {
-                    // === Analyze try body ===
-                    var tryResult = AnalyzeBlockWithExceptions(context, tryStmt.Block, settings);
-                    unhandled.UnionWith(tryResult.UnhandledExceptions);
-
-                    bool continuationPossible = tryResult.EndReachable;
-                    bool containsReturn = tryResult.ContainsReturn;
-
-                    var exceptionsLeftToHandle = new HashSet<INamedTypeSymbol>(tryResult.UnhandledExceptions);
-
-                    // === Analyze catch clauses ===
-                    foreach (var catchClause in tryStmt.Catches)
-                    {
-                        bool handlesAny = false;
-                        INamedTypeSymbol? caught = null;
-
-                        if (catchClause.Declaration?.Type == null)
-                        {
-                            // --- catch-all ---
-                            handlesAny = exceptionsLeftToHandle.Count > 0;
-                            if (!handlesAny)
-                                ReportRedundantCatchAll(context, catchClause);
-
-                            var caughtExceptionsInCatch = new HashSet<INamedTypeSymbol>(exceptionsLeftToHandle);
-
-                            // Swallow everything the try might throw
-                            unhandled.RemoveWhere(ex => exceptionsLeftToHandle.Contains(ex));
-                            exceptionsLeftToHandle.Clear();
-
-                            if (catchClause.Block is { } catchBlock)
-                            {
-                                var catchResult = AnalyzeBlockWithExceptions(
-                                    context,
-                                    catchBlock,
-                                    settings,
-                                    caughtExceptionsInCatch);
-
-                                unhandled.UnionWith(catchResult.UnhandledExceptions);
-
-                                if (handlesAny && catchResult.EndReachable)
-                                    continuationPossible = true;
-
-                                containsReturn |= catchResult.ContainsReturn;
-
-                                if (!handlesAny)
-                                    ReportUnreachableCode(context, catchClause);
-                            }
-                        }
-                        else
-                        {
-                            // --- typed catch ---
-                            caught = GetCaughtException(catchClause, semanticModel);
-                            if (caught != null)
-                            {
-                                handlesAny = tryResult.UnhandledExceptions.Any(ex => IsExceptionCaught(ex, caught));
-                                if (!handlesAny)
-                                    ReportRedundantTypedCatchClause(context, catchClause, caught);
-
-                                if (handlesAny)
-                                {
-                                    unhandled.RemoveWhere(ex => IsExceptionCaught(ex, caught));
-                                    exceptionsLeftToHandle.RemoveWhere(ex => IsExceptionCaught(ex, caught));
-                                }
-                            }
-
-                            if (catchClause.Block is { } catchBlock)
-                            {
-                                var catchResult = AnalyzeBlockWithExceptions(
-                                    context,
-                                    catchBlock,
-                                    settings,
-                                    caught != null ? [caught] : null);
-
-                                if (handlesAny)
-                                    unhandled.UnionWith(catchResult.UnhandledExceptions);
-
-                                if (handlesAny && catchResult.EndReachable)
-                                    continuationPossible = true;
-
-                                containsReturn |= catchResult.ContainsReturn;
-
-                                if (!handlesAny)
-                                    ReportUnreachableCode(context, catchClause);
-                            }
-                        }
-                    }
-
-                    // === Analyze finally ===
-                    if (tryStmt.Finally?.Block is { } finallyBlock)
-                    {
-                        var finallyResult = AnalyzeBlockWithExceptions(context, finallyBlock, settings);
-
-                        // Always merge exceptions
-                        unhandled.UnionWith(finallyResult.UnhandledExceptions);
-
-                        if (!finallyResult.EndReachable && !finallyResult.ContainsReturn)
-                        {
-                            // Finally always terminates (throw/return in finally)
-                            unhandled.Clear();
-                            unhandled.UnionWith(finallyResult.UnhandledExceptions);
-                            continuationPossible = false;
-                        }
-                        else
-                        {
-                            // If finally can fall through → continuation depends on try/catches
-                            continuationPossible = continuationPossible && finallyResult.EndReachable;
-                            containsReturn |= finallyResult.ContainsReturn;
-                        }
-                    }
-
-                    return new FlowWithExceptionsResult(
-                        continuationPossible,
-                        containsReturn,
-                        unhandled.ToImmutableHashSet());
-                }
+                return AnalyzeTryStatement(context, settings, semanticModel, unhandled, tryStmt);
 
             case IfStatementSyntax ifStmt:
                 {
@@ -756,6 +642,152 @@ partial class CheckedExceptionsAnalyzer
                     flow.Succeeded ? flow.EndPointIsReachable : true,
                     unhandled.ToImmutableHashSet());
         }
+    }
+
+    private FlowWithExceptionsResult AnalyzeTryStatement(SyntaxNodeAnalysisContext context, AnalyzerSettings settings, SemanticModel semanticModel, HashSet<INamedTypeSymbol> unhandled, TryStatementSyntax tryStmt)
+    {
+        // === Analyze try body ===
+        var tryResult = AnalyzeBlockWithExceptions(context, tryStmt.Block, settings);
+        unhandled.UnionWith(tryResult.UnhandledExceptions);
+
+        bool continuationPossible = tryResult.EndReachable;
+        bool containsReturn = tryResult.ContainsReturn;
+
+        var exceptionsLeftToHandle = new HashSet<INamedTypeSymbol>(tryResult.UnhandledExceptions);
+
+        // === Analyze each catch ===
+        foreach (var catchClause in tryStmt.Catches)
+        {
+            var catchResult = AnalyzeCatchClause(
+                context,
+                catchClause,
+                semanticModel,
+                [.. tryResult.UnhandledExceptions],
+                exceptionsLeftToHandle,
+                unhandled,
+                settings);
+
+            continuationPossible |= catchResult.EndReachable;
+            containsReturn |= catchResult.ContainsReturn;
+            unhandled.UnionWith(catchResult.UnhandledExceptions);
+        }
+
+        // === Analyze finally ===
+        if (tryStmt.Finally?.Block is { } finallyBlock)
+        {
+            var finallyResult = AnalyzeBlockWithExceptions(context, finallyBlock, settings);
+
+            // Always merge exceptions
+            unhandled.UnionWith(finallyResult.UnhandledExceptions);
+
+            if (!finallyResult.EndReachable && !finallyResult.ContainsReturn)
+            {
+                // Finally always terminates
+                unhandled.Clear();
+                unhandled.UnionWith(finallyResult.UnhandledExceptions);
+                continuationPossible = false;
+            }
+            else
+            {
+                continuationPossible = continuationPossible && finallyResult.EndReachable;
+                containsReturn |= finallyResult.ContainsReturn;
+            }
+        }
+
+        return new FlowWithExceptionsResult(
+            continuationPossible,
+            containsReturn,
+            unhandled.ToImmutableHashSet());
+    }
+
+    private FlowWithExceptionsResult AnalyzeCatchClause(
+        SyntaxNodeAnalysisContext context,
+        CatchClauseSyntax catchClause,
+        SemanticModel semanticModel,
+        HashSet<INamedTypeSymbol> tryUnhandled,
+        HashSet<INamedTypeSymbol> exceptionsLeftToHandle,
+        HashSet<INamedTypeSymbol> unhandled,
+        AnalyzerSettings settings)
+    {
+        bool continuationPossible = false;
+        bool containsReturn = false;
+
+        // --- catch-all ---
+        if (catchClause.Declaration?.Type == null)
+        {
+            bool handlesAny = exceptionsLeftToHandle.Count > 0;
+            if (!handlesAny)
+                ReportRedundantCatchAll(context, catchClause);
+
+            var caughtExceptionsInCatch = new HashSet<INamedTypeSymbol>(exceptionsLeftToHandle);
+
+            // Swallow everything the try might throw
+            unhandled.RemoveWhere(ex => exceptionsLeftToHandle.Contains(ex));
+            exceptionsLeftToHandle.Clear();
+
+            if (catchClause.Block is { } catchBlock)
+            {
+                var catchResult = AnalyzeBlockWithExceptions(
+                    context,
+                    catchBlock,
+                    settings,
+                    caughtExceptionsInCatch);
+
+                unhandled.UnionWith(catchResult.UnhandledExceptions);
+
+                if (handlesAny && catchResult.EndReachable)
+                    continuationPossible = true;
+
+                containsReturn |= catchResult.ContainsReturn;
+
+                if (!handlesAny)
+                    ReportUnreachableCode(context, catchClause);
+            }
+        }
+        else
+        {
+            // --- typed catch ---
+            var caught = GetCaughtException(catchClause, semanticModel);
+            bool handlesAny = false;
+
+            if (caught != null)
+            {
+                handlesAny = tryUnhandled.Any(ex => IsExceptionCaught(ex, caught));
+                if (!handlesAny)
+                    ReportRedundantTypedCatchClause(context, catchClause, caught);
+
+                if (handlesAny)
+                {
+                    unhandled.RemoveWhere(ex => IsExceptionCaught(ex, caught));
+                    exceptionsLeftToHandle.RemoveWhere(ex => IsExceptionCaught(ex, caught));
+                }
+            }
+
+            if (catchClause.Block is { } catchBlock)
+            {
+                var catchResult = AnalyzeBlockWithExceptions(
+                    context,
+                    catchBlock,
+                    settings,
+                    caught != null ? [caught] : null);
+
+                if (handlesAny)
+                    unhandled.UnionWith(catchResult.UnhandledExceptions);
+
+                if (handlesAny && catchResult.EndReachable)
+                    continuationPossible = true;
+
+                containsReturn |= catchResult.ContainsReturn;
+
+                if (!handlesAny)
+                    ReportUnreachableCode(context, catchClause);
+            }
+        }
+
+        return new FlowWithExceptionsResult(
+            continuationPossible,
+            containsReturn,
+            unhandled.ToImmutableHashSet());
     }
 
     private static void ReportRedundantTypedCatchClause(SyntaxNodeAnalysisContext context, CatchClauseSyntax catchClause, INamedTypeSymbol caughtType)
