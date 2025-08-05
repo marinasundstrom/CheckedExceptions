@@ -1,31 +1,44 @@
 ﻿try
 {
-    int result = ReadAndParse();
-    Console.WriteLine(result);
+    NewMethod();
 }
-catch (InvalidUserInputException ex)
+catch (InvalidUserInputException invalidUserInputException)
 {
-    Console.WriteLine($"Input error: {ex.Message}");
 }
 
-[Throws(typeof(InvalidUserInputException))] // ✔️ Only the domain-specific exception is exposed
-static int ReadAndParse()
+public class Foo
 {
-    string input = "abc";  // Simulated input — could be user input in real scenarios
 
-    try
+    [Throws(typeof(InvalidUserInputException))] // ✔️ Only the domain-specific exception is exposed
+    static int ReadAndParse()
     {
-        return int.Parse(input);
+        string input = "abc";  // Simulated input — could be user input in real scenarios
+
+        try
+        {
+            return int.Parse(input);
+        }
+        catch (FormatException formatException)
+        {
+            // Handle and rethrow as domain-specific exception
+            throw new InvalidUserInputException("Input was not a valid number.", formatException);
+        }
+        catch (OverflowException overflowException)
+        {
+            // Handle and rethrow as domain-specific exception
+            throw new InvalidUserInputException("Input number was too large.", overflowException);
+        }
     }
-    catch (FormatException formatException)
+
+    /// <summary>
+    /// Test
+    /// </summary>
+    /// <exception cref="InvalidUserInputException" />
+    [Throws(typeof(InvalidUserInputException))]
+    static void NewMethod()
     {
-        // Handle and rethrow as domain-specific exception
-        throw new InvalidUserInputException("Input was not a valid number.", formatException);
-    }
-    catch (OverflowException overflowException)
-    {
-        // Handle and rethrow as domain-specific exception
-        throw new InvalidUserInputException("Input number was too large.", overflowException);
+        int result = ReadAndParse();
+        Console.WriteLine(result);
     }
 }
 
