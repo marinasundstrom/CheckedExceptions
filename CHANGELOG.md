@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [1.9.8] - 2025-08-06
+
 ### Fixed
 
 - PR [#231](https://github.com/marinasundstrom/CheckedExceptions/pull/231) Detangle nested "Unreachable code detected" (`IDE001`)
