@@ -161,9 +161,9 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor RuleUnreachableCode = new(
         DiagnosticIdRuleUnreachableCode,
         title: "Unreachable code",
-        messageFormat: "Unreachable in the current control flow",
+        messageFormat: "Unreachable code detected",
         category: "Control flow",
-        defaultSeverity: DiagnosticSeverity.Hidden,
+        defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
         description: "Detects throw statements that cannot be reached due to surrounding control flow or exception handling.",
         customTags: [WellKnownDiagnosticTags.Unnecessary]);
