@@ -140,4 +140,51 @@ string z = "";
             option.DisabledDiagnostics.Remove(CheckedExceptionsAnalyzer.DiagnosticIdRedundantTypedCatchClause);
         });
     }
+
+    [Fact]
+    public async Task RemoveCatchAlBlock()
+    {
+        var testCode = /* lang=c#-test */  """
+#nullable enable
+using System;
+
+try
+{
+    int.Parse("a");
+}
+catch (FormatException formatException)
+{
+}
+catch (OverflowException overflowException)
+{
+}
+catch
+{
+}
+""";
+
+        var fixedCode = /* lang=c#-test */  """
+#nullable enable
+using System;
+
+try
+{
+    int.Parse("a");
+}
+catch (FormatException formatException)
+{
+}
+catch (OverflowException overflowException)
+{
+}
+""";
+
+        var expectedDiagnostic = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdRedundantCatchAllClause)
+                .WithSpan(14, 1, 14, 6);
+
+        await Verifier.VerifyCodeFixAsync(testCode, [expectedDiagnostic], fixedCode, executable: true, setup: option =>
+        {
+            option.DisabledDiagnostics.Remove(CheckedExceptionsAnalyzer.DiagnosticIdRedundantTypedCatchClause);
+        });
+    }
 }
