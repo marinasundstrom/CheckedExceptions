@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [1.9.7] - 2025-08-05
+
 ### Added
 
 - PR [#226](https://github.com/marinasundstrom/CheckedExceptions/issues/226) Enable codefix "Remove redundant catch clause" for catch all
