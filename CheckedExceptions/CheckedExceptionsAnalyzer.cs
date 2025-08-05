@@ -358,6 +358,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         }
     }
 
+    // Legacy redundancy check
     private void AnalyzeTryStatement(SyntaxNodeAnalysisContext context)
     {
         var tryStatement = context.Node as TryStatementSyntax;
@@ -367,47 +368,57 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
         var settings = GetAnalyzerSettings(context.Options);
 
-        var semanticModel = context.SemanticModel;
-
-        // Check for redundant typed catch clauses
-        foreach (var catchClause in tryStatement.Catches)
+        if (!settings.IsControlFlowAnalysisEnabled && settings.IsLegacyRedundancyChecksEnabled)
         {
-            if (catchClause.Declaration?.Type is null)
+            var semanticModel = context.SemanticModel;
+
+            var thrownExceptions = CollectUnhandledExceptions(context, tryStatement.Block, settings);
+
+            HashSet<INamespaceOrTypeSymbol> unhandledExceptions = new HashSet<INamespaceOrTypeSymbol>(thrownExceptions, SymbolEqualityComparer.Default);
+
+            // Check for redundant typed catch clauses
+            foreach (var catchClause in tryStatement.Catches)
             {
-                var thrownExceptions = CollectUnhandledExceptions(context, tryStatement.Block, settings);
-
-                if (thrownExceptions.Count > 0)
-                    continue;
-
-                // Report redundant catch clause
-                /*var diagnostic = Diagnostic.Create(
-                RuleRedundantCatchAllClause,
-                catchClause.CatchKeyword.GetLocation());
-
-                context.ReportDiagnostic(diagnostic);*/
-            }
-            else
-            {
-                var catchType = semanticModel.GetTypeInfo(catchClause.Declaration.Type).Type as INamedTypeSymbol;
-                if (catchType is null)
-                    continue;
-
-                var thrownExceptions = CollectUnhandledExceptions(context, tryStatement.Block, settings);
-
-                // Check if any thrown exception matches or derives from this catch type
-                bool isRelevant = thrownExceptions.OfType<INamedTypeSymbol>().Any(thrown =>
-                    thrown.Equals(catchType, SymbolEqualityComparer.Default) ||
-                    thrown.InheritsFrom(catchType));
-
-                if (!isRelevant)
+                if (catchClause.Declaration?.Type is null)
                 {
-                    // Report redundant catch clause
-                    /*var diagnostic = Diagnostic.Create(
-                        RuleRedundantTypedCatchClause,
-                        catchClause.Declaration.Type.GetLocation(),
-                        catchType.Name);
+                    if (unhandledExceptions.Count > 0)
+                        continue;
 
-                    context.ReportDiagnostic(diagnostic);*/
+                    unhandledExceptions.Clear();
+
+                    // Report redundant catch clause
+                    var diagnostic = Diagnostic.Create(
+                            RuleRedundantCatchAllClause,
+                            catchClause.CatchKeyword.GetLocation());
+
+                    context.ReportDiagnostic(diagnostic);
+                }
+                else
+                {
+                    var catchType = semanticModel.GetTypeInfo(catchClause.Declaration.Type).Type as INamedTypeSymbol;
+                    if (catchType is null)
+                        continue;
+
+                    // Update unhandled set
+                    unhandledExceptions.RemoveWhere(thrown =>
+                        SymbolEqualityComparer.Default.Equals(thrown, catchType) ||
+                        (thrown is INamedTypeSymbol named && named.InheritsFrom(catchType)));
+
+                    // Check if any thrown exception matches or derives from this catch type
+                    bool isRelevant = thrownExceptions.OfType<INamedTypeSymbol>().Any(thrown =>
+                        thrown.Equals(catchType, SymbolEqualityComparer.Default) ||
+                        thrown.InheritsFrom(catchType));
+
+                    if (!isRelevant)
+                    {
+                        // Report redundant catch clause
+                        var diagnostic = Diagnostic.Create(
+                            RuleRedundantTypedCatchClause,
+                            catchClause.Declaration.Type.GetLocation(),
+                            catchType.Name);
+
+                        context.ReportDiagnostic(diagnostic);
+                    }
                 }
             }
         }

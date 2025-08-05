@@ -12,6 +12,11 @@
       "default": false,
       "description": "Indicates whether control flow analysis is disabled."
     },
+    "enableLegacyRedundancyChecks": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indicates whether redundancy checks are available when control flow analysis is disabled."
+    },
     "ignoredExceptions": {
       "type": "array",
       "items": {

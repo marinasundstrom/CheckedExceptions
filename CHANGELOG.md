@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - PR [#226](https://github.com/marinasundstrom/CheckedExceptions/issues/226) Enable codefix "Remove redundant catch clause" for catch all
+- PR [#229](https://github.com/marinasundstrom/CheckedExceptions/issues/229) Legacy redundancy checks
 
 ## [1.9.6] - 2025-08-05
 
