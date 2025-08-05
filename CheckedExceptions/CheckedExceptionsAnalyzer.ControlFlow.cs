@@ -255,14 +255,14 @@ partial class CheckedExceptionsAnalyzer
             AnalyzerSettings settings,
             HashSet<INamedTypeSymbol>? triedExceptions = null,
             HashSet<INamedTypeSymbol>? remainingExceptions = null,
-            bool isUnreachableContext = false)
+            bool isUnreachable = false)
         {
             SyntaxContext = syntaxContext;
             Node = node;
             Settings = settings;
             TriedExceptions = triedExceptions ?? [];
             RemainingExceptions = remainingExceptions;
-            IsUnreachableContext = isUnreachableContext;
+            IsUnreachable = isUnreachable;
         }
 
         public ControlFlowContext(
@@ -270,8 +270,8 @@ partial class CheckedExceptionsAnalyzer
           SyntaxNode node,
           HashSet<INamedTypeSymbol>? triedExceptions = null,
           HashSet<INamedTypeSymbol>? remainingExceptions = null,
-          bool isUnreachableContext = false)
-          : this(baseContext.SyntaxContext, node, baseContext.Settings, triedExceptions, remainingExceptions, isUnreachableContext)
+          bool isUnreachable = false)
+          : this(baseContext.SyntaxContext, node, baseContext.Settings, triedExceptions, remainingExceptions, isUnreachable)
         {
 
         }
@@ -297,7 +297,7 @@ partial class CheckedExceptionsAnalyzer
         /// <summary>
         /// Indicates that the block is unreachable
         /// </summary>
-        public bool IsUnreachableContext { get; }
+        public bool IsUnreachable { get; }
 
         public void ReportRedundantCatchAll(CatchClauseSyntax catchClause)
         {
@@ -320,8 +320,8 @@ partial class CheckedExceptionsAnalyzer
 
         public void ReportUnreachableCodeHidden(Location location)
         {
-            // Alreadys
-            if (IsUnreachableContext)
+            // Prevents the diagnostic from being reported in a nested block.
+            if (IsUnreachable)
                 return;
 
             SyntaxContext.ReportDiagnostic(Diagnostic.Create(
@@ -370,7 +370,7 @@ partial class CheckedExceptionsAnalyzer
             }
 
             // Delegate analysis to the per‑statement helper
-            var stmtResult = AnalyzeStatementWithExceptions(new ControlFlowContext(context, statement, context.TriedExceptions));
+            var stmtResult = AnalyzeStatementWithExceptions(new ControlFlowContext(context, statement, context.TriedExceptions, isUnreachable: context.IsUnreachable));
 
             if (stmtResult.ContainsReturn)
                 containsReturn = true;
@@ -472,7 +472,7 @@ partial class CheckedExceptionsAnalyzer
                 return new FlowWithExceptionsResult(false, unhandled.ToImmutableHashSet());
 
             case TryStatementSyntax tryStmt:
-                return AnalyzeTryStatement(new ControlFlowContext(context, tryStmt, unhandled));
+                return AnalyzeTryStatement(new ControlFlowContext(context, tryStmt, unhandled, isUnreachable: context.IsUnreachable));
 
             case IfStatementSyntax ifStmt:
                 {
@@ -745,7 +745,7 @@ partial class CheckedExceptionsAnalyzer
         {
             var catchResult = AnalyzeCatchClause(
                 new ControlFlowContext(
-                       context, catchClause, triedExceptions),
+                       context, catchClause, triedExceptions, isUnreachable: context.IsUnreachable),
                        new HashSet<INamedTypeSymbol>(tryResult.UnhandledExceptions),
                        exceptionsLeftToHandle);
 
@@ -812,7 +812,8 @@ partial class CheckedExceptionsAnalyzer
                     new ControlFlowContext(
                         context,
                         catchBlock,
-                        caughtExceptionsInCatch));
+                        caughtExceptionsInCatch,
+                        isUnreachable: !handlesAny));
 
                 triedExceptions.UnionWith(catchResult.UnhandledExceptions);
 
@@ -857,7 +858,8 @@ partial class CheckedExceptionsAnalyzer
                     new ControlFlowContext(
                     context,
                     catchBlock,
-                    caught != null ? [caught] : null));
+                    caught != null ? [caught] : null,
+                    isUnreachable: !handlesAny));
 
                 if (handlesAny)
                     triedExceptions.UnionWith(catchResult.UnhandledExceptions);
