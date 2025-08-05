@@ -34,8 +34,9 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     public const string DiagnosticIdRedundantExceptionDeclaration = "THROW012";
     public const string DiagnosticIdRedundantCatchAllClause = "THROW013";
     public const string DiagnosticIdRuleUnreachableCode = "THROW020";
+    public const string DiagnosticIdRuleUnreachableCodeHidden = "IDE001";
 
-    public static IEnumerable<string> AllDiagnosticsIds = [DiagnosticIdUnhandled, DiagnosticIdGeneralThrows, DiagnosticIdGeneralThrow, DiagnosticIdDuplicateDeclarations, DiagnosticIdRuleUnreachableCode];
+    public static IEnumerable<string> AllDiagnosticsIds = [DiagnosticIdUnhandled, DiagnosticIdGeneralThrows, DiagnosticIdGeneralThrow, DiagnosticIdDuplicateDeclarations, DiagnosticIdRuleUnreachableCode, DiagnosticIdRuleUnreachableCodeHidden];
 
     private static readonly DiagnosticDescriptor RuleUnhandledException = new(
         DiagnosticIdUnhandled,
@@ -161,7 +162,17 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor RuleUnreachableCode = new(
         DiagnosticIdRuleUnreachableCode,
         title: "Unreachable code",
-        messageFormat: "The code is unreachable in the current control flow",
+        messageFormat: "Unreachable code detected",
+        category: "Control flow",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "Detects throw statements that cannot be reached due to surrounding control flow or exception handling.",
+        customTags: [WellKnownDiagnosticTags.Unnecessary]);
+
+    private static readonly DiagnosticDescriptor RuleUnreachableCodeHidden = new(
+        DiagnosticIdRuleUnreachableCodeHidden,
+        title: "Unreachable code",
+        messageFormat: "Unreachable code detected",
         category: "Control flow",
         defaultSeverity: DiagnosticSeverity.Hidden,
         isEnabledByDefault: true,
@@ -169,7 +180,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         customTags: [WellKnownDiagnosticTags.Unnecessary]);
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
-        [RuleUnhandledException, RuleIgnoredException, RuleGeneralThrows, RuleGeneralThrow, RuleDuplicateDeclarations, RuleMissingThrowsOnBaseMember, RuleMissingThrowsFromBaseMember, RuleDuplicateThrowsByHierarchy, RuleRedundantTypedCatchClause, RuleRedundantCatchAllClause, RuleThrowsDeclarationNotValidOnFullProperty, RuleXmlDocButNoThrows, RuleRedundantExceptionDeclaration, RuleUnreachableCode];
+        [RuleUnhandledException, RuleIgnoredException, RuleGeneralThrows, RuleGeneralThrow, RuleDuplicateDeclarations, RuleMissingThrowsOnBaseMember, RuleMissingThrowsFromBaseMember, RuleDuplicateThrowsByHierarchy, RuleRedundantTypedCatchClause, RuleRedundantCatchAllClause, RuleThrowsDeclarationNotValidOnFullProperty, RuleXmlDocButNoThrows, RuleRedundantExceptionDeclaration, RuleUnreachableCode, RuleUnreachableCodeHidden];
 
     public override void Initialize(AnalysisContext context)
     {
