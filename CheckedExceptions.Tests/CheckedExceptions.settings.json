@@ -1,6 +1,4 @@
 {
-    "disableXmlDocInterop": false,
-    "disableControlFlowAnalysis": false,
     "ignoredExceptions": [
         "System.ArgumentNullException"
     ],
@@ -8,5 +6,7 @@
         "System.NotImplementedException": "Propagation",
         "System.IO.IOException": "Propagation",
         "System.TimeoutException": "Always"
-    }
+    },
+    "disableXmlDocInterop": false,
+    "disableControlFlowAnalysis": false
 }

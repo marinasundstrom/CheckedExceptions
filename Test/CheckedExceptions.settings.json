@@ -1,10 +1,10 @@
 {
-    "disableXmlDocInterop": false,
-    "disableControlFlowAnalysis": false,
     "ignoredExceptions": [],
     "informationalExceptions": {
         "System.NotImplementedException": "Propagation",
         "System.IO.IOException": "Propagation",
         "System.TimeoutException": "Always"
-    }
+    },
+    "disableXmlDocInterop": false,
+    "disableControlFlowAnalysis": false
 }
