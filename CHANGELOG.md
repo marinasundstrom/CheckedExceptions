@@ -8,18 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+
+- PR [#231](https://github.com/marinasundstrom/CheckedExceptions/pull/231) Detangle nested "Unreachable code detected" (`IDE001`)
+
 ## [1.9.7] - 2025-08-05
 
 ### Added
 
-- PR [#226](https://github.com/marinasundstrom/CheckedExceptions/issues/226) Enable codefix "Remove redundant catch clause" for catch all
-- PR [#229](https://github.com/marinasundstrom/CheckedExceptions/issues/229) Legacy redundancy checks
+- PR [#226](https://github.com/marinasundstrom/CheckedExceptions/pull/226) Enable codefix "Remove redundant catch clause" for catch all
+- PR [#229](https://github.com/marinasundstrom/CheckedExceptions/pull/229) Legacy redundancy checks
 
 ## [1.9.6] - 2025-08-05
 
 ### Added
 
-- [#224](https://github.com/marinasundstrom/CheckedExceptions/issues/224) Update heuristics for accessor section from XML docs
+- [#224](https://github.com/marinasundstrom/CheckedExceptions/issues/224) Update heuristics for accessor selection from XML docs
 
 ## [1.9.5] - 2025-08-05
 
