@@ -13,8 +13,13 @@ public partial class AnalyzerSettings
     [JsonPropertyName("disableControlFlowAnalysis")]
     public bool DisableControlFlowAnalysis { get; set; } = false;
 
+    [JsonPropertyName("enableLegacyRedundancyChecks")]
+    public bool EnableLegacyRedundancyChecks { get; set; } = false;
+
     [JsonIgnore]
     internal bool IsControlFlowAnalysisEnabled => !DisableControlFlowAnalysis;
+
+    internal bool IsLegacyRedundancyChecksEnabled => EnableLegacyRedundancyChecks;
 
     [JsonPropertyName("ignoredExceptions")]
     public IEnumerable<string> IgnoredExceptions { get; set; } = new List<string>();

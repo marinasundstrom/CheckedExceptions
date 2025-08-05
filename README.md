@@ -148,7 +148,10 @@ Add `CheckedExceptions.settings.json`:
   "disableXmlDocInterop": false,
 
   // If true, control flow analysis, with redundancy checks, is disabled (default: false).
-  "disableControlFlowAnalysis": true
+  "disableControlFlowAnalysis": false,
+
+    // If true, basic redundancy checks are available when control flow analysis is disabled (default: false).
+  "enableLegacyRedundancyChecks": false
 }
 ```
 
