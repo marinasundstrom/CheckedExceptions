@@ -765,6 +765,14 @@ partial class CheckedExceptionsAnalyzer
                 if (!handlesAny)
                     ReportRedundantTypedCatchClause(context, catchClause, caught);
 
+
+                // NEW: shadowed by earlier catch
+                bool alreadyHandledByEarlier = !exceptionsLeftToHandle.Any(ex => IsExceptionCaught(ex, caught));
+                if (alreadyHandledByEarlier)
+                {
+                    ReportUnreachableCodeHidden(context, catchClause.GetLocation());
+                }
+
                 if (handlesAny)
                 {
                     unhandled.RemoveWhere(ex => IsExceptionCaught(ex, caught));
