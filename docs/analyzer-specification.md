@@ -417,3 +417,20 @@ When set, the analyzer will still report **unhandled exceptions** and enforce `[
 * Detect redundant catch clauses (`THROW009`, `THROW013`)
 * Report redundant exception declarations (`THROW012`, `THROW008`)
 * Highlight unreachable code (IDE gray‑out support)
+
+### Enable legacy redundancy checks
+
+> This option enables a simplified _light mode_.
+
+```json
+{
+  "disableControlFlowAnalysis": true, // prerequisite
+  "enableLegacyRedundancyChecks": true
+}
+```
+
+When enabled, the analyzer performs **basic redundancy checks** without relying on full control flow analysis.
+
+It provides:
+
+* Detection of redundant catch clauses (`THROW009`, `THROW013`)
