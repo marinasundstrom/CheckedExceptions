@@ -244,12 +244,12 @@ partial class CheckedExceptionsAnalyzer
 
         if (compilationUnit is not null)
         {
-            var unhandled = AnalyzeBlockWithExceptions(context, compilationUnit, settings);
+            var unhandled = AnalyzeBlockWithExceptions(new ControlFlowContext(context, compilationUnit, settings));
             return [.. unhandled.UnhandledExceptions.OfType<INamedTypeSymbol>()];
         }
         else if (body is not null)
         {
-            var unhandled = AnalyzeBlockWithExceptions(context, body, settings);
+            var unhandled = AnalyzeBlockWithExceptions(new ControlFlowContext(context, body, settings));
             return [.. unhandled.UnhandledExceptions.OfType<INamedTypeSymbol>()];
         }
         else if (expressionBody is not null)
@@ -262,16 +262,98 @@ partial class CheckedExceptionsAnalyzer
         return [];
     }
 
+    public class ControlFlowContext
+    {
+        public ControlFlowContext(
+            SyntaxNodeAnalysisContext syntaxContext,
+            SyntaxNode node,
+            AnalyzerSettings settings,
+            HashSet<INamedTypeSymbol>? triedExceptions = null,
+            HashSet<INamedTypeSymbol>? remainingExceptions = null,
+            bool isUnreachableContext = false)
+        {
+            SyntaxContext = syntaxContext;
+            Node = node;
+            Settings = settings;
+            TriedExceptions = triedExceptions ?? [];
+            RemainingExceptions = remainingExceptions;
+            IsUnreachableContext = isUnreachableContext;
+        }
+
+        public ControlFlowContext(
+          ControlFlowContext baseContext,
+          SyntaxNode node,
+          HashSet<INamedTypeSymbol>? triedExceptions = null,
+          HashSet<INamedTypeSymbol>? remainingExceptions = null,
+          bool isUnreachableContext = false)
+          : this(baseContext.SyntaxContext, node, baseContext.Settings, triedExceptions, remainingExceptions, isUnreachableContext)
+        {
+
+        }
+
+        public Compilation Compilation => SyntaxContext.Compilation;
+        public SemanticModel SemanticModel => SyntaxContext.SemanticModel;
+
+        public SyntaxNodeAnalysisContext SyntaxContext { get; }
+        public SyntaxNode Node { get; }
+        public AnalyzerSettings Settings { get; }
+
+        /// <summary>
+        /// Exceptions identified in immediate Try block
+        /// </summary>
+        public HashSet<INamedTypeSymbol>? TriedExceptions { get; }
+
+        /// <summary>
+        /// Remaining unhandled exceptions from try block
+        /// </summary>
+        /// <remarks>Remove exception to handle.</remarks>
+        public HashSet<INamedTypeSymbol>? RemainingExceptions { get; }
+
+        /// <summary>
+        /// Indicates that the block is unreachable
+        /// </summary>
+        public bool IsUnreachableContext { get; }
+
+        public void ReportRedundantCatchAll(CatchClauseSyntax catchClause)
+        {
+            SyntaxContext.ReportDiagnostic(Diagnostic.Create(
+                RuleRedundantCatchAllClause,
+                catchClause.CatchKeyword.GetLocation()));
+        }
+
+        public void ReportUnreachableCode(SyntaxNode node)
+        {
+            ReportUnreachableCode(node.GetLocation());
+        }
+
+        public void ReportUnreachableCode(Location location)
+        {
+            SyntaxContext.ReportDiagnostic(Diagnostic.Create(
+                RuleUnreachableCode,
+                location));
+        }
+
+        public void ReportUnreachableCodeHidden(Location location)
+        {
+            // Alreadys
+            if (IsUnreachableContext)
+                return;
+
+            SyntaxContext.ReportDiagnostic(Diagnostic.Create(
+                RuleUnreachableCodeHidden,
+                location));
+        }
+    }
+
     private FlowWithExceptionsResult AnalyzeBlockWithExceptions(
-      SyntaxNodeAnalysisContext context,
-      SyntaxNode node,
-      AnalyzerSettings settings,
-      HashSet<INamedTypeSymbol>? caughtExceptions = null)
+      ControlFlowContext context)
     {
         var semanticModel = context.SemanticModel;
 
         var unhandled = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
         bool reachable = true;
+
+        var node = context.Node;
 
         IEnumerable<StatementSyntax>? statements = null;
 
@@ -296,14 +378,14 @@ partial class CheckedExceptionsAnalyzer
             {
                 if (statement is not LocalFunctionStatementSyntax)
                 {
-                    ReportUnreachableCode(context, statement);
+                    context.ReportUnreachableCode(statement);
                 }
-                ReportUnreachableCodeHidden(context, node, reachable, statements, statement);
+                ReportUnreachableCodeHidden(context, statements, statement);
                 break;
             }
 
             // Delegate analysis to the per‑statement helper
-            var stmtResult = AnalyzeStatementWithExceptions(context, statement, settings, caughtExceptions);
+            var stmtResult = AnalyzeStatementWithExceptions(new ControlFlowContext(context, statement, context.TriedExceptions));
 
             if (stmtResult.ContainsReturn)
                 containsReturn = true;
@@ -322,7 +404,7 @@ partial class CheckedExceptionsAnalyzer
                 .OfType<INamedTypeSymbol>().ToImmutableHashSet());
     }
 
-    private void ReportUnreachableCodeHidden(SyntaxNodeAnalysisContext context, SyntaxNode node, bool reachable, IEnumerable<StatementSyntax> statements, StatementSyntax statement)
+    private void ReportUnreachableCodeHidden(ControlFlowContext context, IEnumerable<StatementSyntax> statements, StatementSyntax statement)
     {
         var statementIndex = statements.TakeWhile(x => x != statement).Count();
 
@@ -354,8 +436,8 @@ partial class CheckedExceptionsAnalyzer
                     statements.ElementAt(start).FullSpan.Start,
                     statements.ElementAt(end).FullSpan.End);
 
-                var location = Location.Create(node.SyntaxTree, span);
-                ReportUnreachableCodeHidden(context, location);
+                var location = Location.Create(context.Node.SyntaxTree, span);
+                context.ReportUnreachableCodeHidden(location);
             }
 
             // Continue outer loop — i already points at first reachable again
@@ -364,17 +446,16 @@ partial class CheckedExceptionsAnalyzer
     }
 
     private FlowWithExceptionsResult AnalyzeStatementWithExceptions(
-        SyntaxNodeAnalysisContext context,
-        StatementSyntax statement,
-        AnalyzerSettings settings,
-        HashSet<INamedTypeSymbol>? caughtExceptions = null)
+        ControlFlowContext context)
     {
         var semanticModel = context.SemanticModel;
+
+        var statement = (StatementSyntax)context.Node;
 
         // Handle nested blocks
         if (statement is BlockSyntax block)
         {
-            return AnalyzeBlockWithExceptions(context, block, settings);
+            return AnalyzeBlockWithExceptions(new ControlFlowContext(context, block));
         }
 
         var unhandled = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
@@ -385,24 +466,24 @@ partial class CheckedExceptionsAnalyzer
                 if (throwStmt.Expression == null)
                 {
                     // 🚩 Rethrow
-                    if (caughtExceptions != null)
-                        unhandled.AddRange(caughtExceptions);
+                    if (context.TriedExceptions != null)
+                        unhandled.AddRange(context.TriedExceptions);
                 }
                 else
                 {
                     // Normal throw
-                    unhandled.UnionWith(CollectExceptionsFromStatement(context, statement, settings));
+                    unhandled.UnionWith(CollectExceptionsFromStatement(context.SyntaxContext, statement, context.Settings));
                 }
                 return new FlowWithExceptionsResult(false, unhandled.ToImmutableHashSet());
 
             case TryStatementSyntax tryStmt:
-                return AnalyzeTryStatement(context, settings, semanticModel, unhandled, tryStmt);
+                return AnalyzeTryStatement(new ControlFlowContext(context, tryStmt, unhandled));
 
             case IfStatementSyntax ifStmt:
                 {
                     // exceptions in condition
                     unhandled.UnionWith(CollectExceptionsFromExpression(
-                        context, ifStmt.Condition, settings, semanticModel));
+                        context.SyntaxContext, ifStmt.Condition, context.Settings, semanticModel));
 
                     // Try constant-fold the condition
                     var constantValue = semanticModel.GetConstantValue(ifStmt.Condition);
@@ -413,7 +494,8 @@ partial class CheckedExceptionsAnalyzer
                         if (constBool)
                         {
                             // Always true → analyze THEN only
-                            var thenResult2 = AnalyzeStatementWithExceptions(context, ifStmt.Statement, settings);
+                            var thenResult2 = AnalyzeStatementWithExceptions(
+                                new ControlFlowContext(context, ifStmt.Statement));
                             unhandled.UnionWith(thenResult2.UnhandledExceptions);
 
                             return new FlowWithExceptionsResult(
@@ -425,7 +507,7 @@ partial class CheckedExceptionsAnalyzer
                             // Always false → analyze ELSE only
                             if (ifStmt.Else?.Statement != null)
                             {
-                                var elseResult = AnalyzeStatementWithExceptions(context, ifStmt.Else.Statement, settings);
+                                var elseResult = AnalyzeStatementWithExceptions(new ControlFlowContext(context, ifStmt.Else.Statement));
                                 unhandled.UnionWith(elseResult.UnhandledExceptions);
 
                                 return new FlowWithExceptionsResult(
@@ -445,7 +527,7 @@ partial class CheckedExceptionsAnalyzer
                     FlowWithExceptionsResult? thenResult = null;
                     if (ifStmt.Statement != null)
                     {
-                        thenResult = AnalyzeStatementWithExceptions(context, ifStmt.Statement, settings);
+                        thenResult = AnalyzeStatementWithExceptions(new ControlFlowContext(context, ifStmt.Statement));
                         unhandled.UnionWith(thenResult.UnhandledExceptions);
 
                         if (thenResult.EndReachable)
@@ -455,7 +537,7 @@ partial class CheckedExceptionsAnalyzer
                     // Else branch
                     if (ifStmt.Else?.Statement != null)
                     {
-                        var elseResult = AnalyzeStatementWithExceptions(context, ifStmt.Else.Statement, settings);
+                        var elseResult = AnalyzeStatementWithExceptions(new ControlFlowContext(context, ifStmt.Else.Statement));
                         unhandled.UnionWith(elseResult.UnhandledExceptions);
 
                         continuation = elseResult.EndReachable;
@@ -472,9 +554,9 @@ partial class CheckedExceptionsAnalyzer
 
             case WhileStatementSyntax whileStmt:
                 {
-                    unhandled.UnionWith(CollectExceptionsFromExpression(context, whileStmt.Condition, settings, semanticModel));
+                    unhandled.UnionWith(CollectExceptionsFromExpression(context.SyntaxContext, whileStmt.Condition, context.Settings, semanticModel));
 
-                    var bodyResult = AnalyzeStatementWithExceptions(context, whileStmt.Statement, settings);
+                    var bodyResult = AnalyzeStatementWithExceptions(new ControlFlowContext(context, whileStmt.Statement));
                     unhandled.UnionWith(bodyResult.UnhandledExceptions);
 
                     // Try constant-fold the condition
@@ -486,7 +568,7 @@ partial class CheckedExceptionsAnalyzer
                         if (constBool)
                         {
                             // Always true → analyze THEN only
-                            var thenResult2 = AnalyzeStatementWithExceptions(context, whileStmt.Statement, settings);
+                            var thenResult2 = AnalyzeStatementWithExceptions(new ControlFlowContext(context, whileStmt.Statement));
                             unhandled.UnionWith(thenResult2.UnhandledExceptions);
 
                             return new FlowWithExceptionsResult(
@@ -513,10 +595,10 @@ partial class CheckedExceptionsAnalyzer
 
             case DoStatementSyntax doStmt:
                 {
-                    var bodyResult = AnalyzeStatementWithExceptions(context, doStmt.Statement, settings);
+                    var bodyResult = AnalyzeStatementWithExceptions(new ControlFlowContext(context, doStmt.Statement));
                     unhandled.UnionWith(bodyResult.UnhandledExceptions);
 
-                    unhandled.UnionWith(CollectExceptionsFromExpression(context, doStmt.Condition, settings, semanticModel));
+                    unhandled.UnionWith(CollectExceptionsFromExpression(context.SyntaxContext, doStmt.Condition, context.Settings, semanticModel));
 
                     return new FlowWithExceptionsResult(true, unhandled.ToImmutableHashSet());
                 }
@@ -524,15 +606,15 @@ partial class CheckedExceptionsAnalyzer
             case ForStatementSyntax forStmt:
                 {
                     foreach (var init in forStmt.Initializers)
-                        unhandled.UnionWith(CollectExceptionsFromExpression(context, init, settings, semanticModel));
+                        unhandled.UnionWith(CollectExceptionsFromExpression(context.SyntaxContext, init, context.Settings, semanticModel));
 
                     if (forStmt.Condition != null)
-                        unhandled.UnionWith(CollectExceptionsFromExpression(context, forStmt.Condition, settings, semanticModel));
+                        unhandled.UnionWith(CollectExceptionsFromExpression(context.SyntaxContext, forStmt.Condition, context.Settings, semanticModel));
 
                     foreach (var inc in forStmt.Incrementors)
-                        unhandled.UnionWith(CollectExceptionsFromExpression(context, inc, settings, semanticModel));
+                        unhandled.UnionWith(CollectExceptionsFromExpression(context.SyntaxContext, inc, context.Settings, semanticModel));
 
-                    var bodyResult = AnalyzeStatementWithExceptions(context, forStmt.Statement, settings);
+                    var bodyResult = AnalyzeStatementWithExceptions(new ControlFlowContext(context, forStmt.Statement));
                     unhandled.UnionWith(bodyResult.UnhandledExceptions);
 
                     return new FlowWithExceptionsResult(true, unhandled.ToImmutableHashSet());
@@ -540,9 +622,9 @@ partial class CheckedExceptionsAnalyzer
 
             case ForEachStatementSyntax foreachStmt:
                 {
-                    unhandled.UnionWith(CollectExceptionsFromExpression(context, foreachStmt.Expression, settings, semanticModel));
+                    unhandled.UnionWith(CollectExceptionsFromExpression(context.SyntaxContext, foreachStmt.Expression, context.Settings, semanticModel));
 
-                    var bodyResult = AnalyzeStatementWithExceptions(context, foreachStmt.Statement, settings);
+                    var bodyResult = AnalyzeStatementWithExceptions(new ControlFlowContext(context, foreachStmt.Statement));
                     unhandled.UnionWith(bodyResult.UnhandledExceptions);
 
                     return new FlowWithExceptionsResult(true, unhandled.ToImmutableHashSet());
@@ -550,7 +632,7 @@ partial class CheckedExceptionsAnalyzer
 
             case SwitchStatementSyntax switchStmt:
                 {
-                    unhandled.UnionWith(CollectExceptionsFromExpression(context, switchStmt.Expression, settings, semanticModel));
+                    unhandled.UnionWith(CollectExceptionsFromExpression(context.SyntaxContext, switchStmt.Expression, context.Settings, semanticModel));
 
                     bool continuation = false;
                     foreach (var section in switchStmt.Sections)
@@ -562,7 +644,7 @@ partial class CheckedExceptionsAnalyzer
 
                         foreach (var st in section.Statements)
                         {
-                            var stResult = AnalyzeStatementWithExceptions(context, st, settings);
+                            var stResult = AnalyzeStatementWithExceptions(new ControlFlowContext(context, st));
                             unhandled.UnionWith(stResult.UnhandledExceptions);
 
                             if (stResult.EndReachable)
@@ -576,18 +658,18 @@ partial class CheckedExceptionsAnalyzer
             case UsingStatementSyntax usingStmt:
                 {
                     if (usingStmt.Expression != null)
-                        unhandled.UnionWith(CollectExceptionsFromExpression(context, usingStmt.Expression, settings, semanticModel));
+                        unhandled.UnionWith(CollectExceptionsFromExpression(context.SyntaxContext, usingStmt.Expression, context.Settings, semanticModel));
 
                     if (usingStmt.Declaration != null)
                     {
                         foreach (var v in usingStmt.Declaration.Variables)
                         {
                             if (v.Initializer?.Value != null)
-                                unhandled.UnionWith(CollectExceptionsFromExpression(context, v.Initializer.Value, settings, semanticModel));
+                                unhandled.UnionWith(CollectExceptionsFromExpression(context.SyntaxContext, v.Initializer.Value, context.Settings, semanticModel));
                         }
                     }
 
-                    var bodyResult = AnalyzeStatementWithExceptions(context, usingStmt.Statement, settings);
+                    var bodyResult = AnalyzeStatementWithExceptions(new ControlFlowContext(context, usingStmt.Statement));
                     unhandled.UnionWith(bodyResult.UnhandledExceptions);
 
                     return new FlowWithExceptionsResult(bodyResult.EndReachable, unhandled.ToImmutableHashSet());
@@ -595,9 +677,9 @@ partial class CheckedExceptionsAnalyzer
 
             case LockStatementSyntax lockStmt:
                 {
-                    unhandled.UnionWith(CollectExceptionsFromExpression(context, lockStmt.Expression, settings, semanticModel));
+                    unhandled.UnionWith(CollectExceptionsFromExpression(context.SyntaxContext, lockStmt.Expression, context.Settings, semanticModel));
 
-                    var bodyResult = AnalyzeStatementWithExceptions(context, lockStmt.Statement, settings);
+                    var bodyResult = AnalyzeStatementWithExceptions(new ControlFlowContext(context, lockStmt.Statement));
                     unhandled.UnionWith(bodyResult.UnhandledExceptions);
 
                     return new FlowWithExceptionsResult(bodyResult.EndReachable, unhandled.ToImmutableHashSet());
@@ -614,7 +696,7 @@ partial class CheckedExceptionsAnalyzer
                 {
                     if (returnStmt.Expression is not null)
                     {
-                        unhandled.UnionWith(CollectExceptionsFromExpression(context, returnStmt.Expression, settings, semanticModel));
+                        unhandled.UnionWith(CollectExceptionsFromExpression(context.SyntaxContext, returnStmt.Expression, context.Settings, semanticModel));
                     }
                     return new FlowWithExceptionsResult(endReachable: false, containsReturn: true, unhandledExceptions: unhandled.ToImmutableHashSet());
                 }
@@ -625,7 +707,7 @@ partial class CheckedExceptionsAnalyzer
                or ElementAccessExpressionSyntax
                or ObjectCreationExpressionSyntax
                or ImplicitObjectCreationExpressionSyntax):
-                unhandled.UnionWith(CollectExceptionsFromStatement(context, statement, settings));
+                unhandled.UnionWith(CollectExceptionsFromStatement(context.SyntaxContext, statement, context.Settings));
                 return new FlowWithExceptionsResult(true, unhandled.ToImmutableHashSet());
 
             case ExpressionStatementSyntax exprStmt
@@ -634,13 +716,13 @@ partial class CheckedExceptionsAnalyzer
                or ElementAccessExpressionSyntax
                or ObjectCreationExpressionSyntax
                or ImplicitObjectCreationExpressionSyntax):
-                unhandled.UnionWith(CollectExceptionsFromStatement(context, statement, settings));
+                unhandled.UnionWith(CollectExceptionsFromStatement(context.SyntaxContext, statement, context.Settings));
                 return new FlowWithExceptionsResult(true, unhandled.ToImmutableHashSet());
 
             default:
                 var flow = semanticModel.AnalyzeControlFlow(statement);
 
-                unhandled.UnionWith(CollectExceptionsFromStatement(context, statement, settings));
+                unhandled.UnionWith(CollectExceptionsFromStatement(context.SyntaxContext, statement, context.Settings));
 
                 // Fallback: assume it falls through
                 return new FlowWithExceptionsResult(
@@ -649,11 +731,14 @@ partial class CheckedExceptionsAnalyzer
         }
     }
 
-    private FlowWithExceptionsResult AnalyzeTryStatement(SyntaxNodeAnalysisContext context, AnalyzerSettings settings, SemanticModel semanticModel, HashSet<INamedTypeSymbol> unhandled, TryStatementSyntax tryStmt)
+    private FlowWithExceptionsResult AnalyzeTryStatement(ControlFlowContext context)
     {
+        var tryStmt = (TryStatementSyntax)context.Node;
+        var triedExceptions = context.TriedExceptions ?? [];
+
         // === Analyze try body ===
-        var tryResult = AnalyzeBlockWithExceptions(context, tryStmt.Block, settings);
-        unhandled.UnionWith(tryResult.UnhandledExceptions);
+        var tryResult = AnalyzeBlockWithExceptions(new ControlFlowContext(context, tryStmt.Block));
+        triedExceptions.UnionWith(tryResult.UnhandledExceptions);
 
         bool continuationPossible = tryResult.EndReachable;
         bool containsReturn = tryResult.ContainsReturn;
@@ -664,32 +749,29 @@ partial class CheckedExceptionsAnalyzer
         foreach (var catchClause in tryStmt.Catches)
         {
             var catchResult = AnalyzeCatchClause(
-                context,
-                catchClause,
-                semanticModel,
-                [.. tryResult.UnhandledExceptions],
-                exceptionsLeftToHandle,
-                unhandled,
-                settings);
+                new ControlFlowContext(
+                       context, catchClause, triedExceptions),
+                       new HashSet<INamedTypeSymbol>(tryResult.UnhandledExceptions),
+                       exceptionsLeftToHandle);
 
             continuationPossible |= catchResult.EndReachable;
             containsReturn |= catchResult.ContainsReturn;
-            unhandled.UnionWith(catchResult.UnhandledExceptions);
+            triedExceptions.UnionWith(catchResult.UnhandledExceptions);
         }
 
         // === Analyze finally ===
         if (tryStmt.Finally?.Block is { } finallyBlock)
         {
-            var finallyResult = AnalyzeBlockWithExceptions(context, finallyBlock, settings);
+            var finallyResult = AnalyzeBlockWithExceptions(new ControlFlowContext(context, finallyBlock));
 
             // Always merge exceptions
-            unhandled.UnionWith(finallyResult.UnhandledExceptions);
+            triedExceptions.UnionWith(finallyResult.UnhandledExceptions);
 
             if (!finallyResult.EndReachable && !finallyResult.ContainsReturn)
             {
                 // Finally always terminates
-                unhandled.Clear();
-                unhandled.UnionWith(finallyResult.UnhandledExceptions);
+                triedExceptions.Clear();
+                triedExceptions.UnionWith(finallyResult.UnhandledExceptions);
                 continuationPossible = false;
             }
             else
@@ -702,18 +784,17 @@ partial class CheckedExceptionsAnalyzer
         return new FlowWithExceptionsResult(
             continuationPossible,
             containsReturn,
-            unhandled.ToImmutableHashSet());
+            triedExceptions.ToImmutableHashSet());
     }
 
     private FlowWithExceptionsResult AnalyzeCatchClause(
-        SyntaxNodeAnalysisContext context,
-        CatchClauseSyntax catchClause,
-        SemanticModel semanticModel,
-        HashSet<INamedTypeSymbol> tryUnhandled,
-        HashSet<INamedTypeSymbol> exceptionsLeftToHandle,
-        HashSet<INamedTypeSymbol> unhandled,
-        AnalyzerSettings settings)
+        ControlFlowContext context,
+        IReadOnlyCollection<INamedTypeSymbol> unhandledInTry,
+        HashSet<INamedTypeSymbol> exceptionsLeftToHandle)
     {
+        var catchClause = (CatchClauseSyntax)context.Node;
+        var triedExceptions = context.TriedExceptions ?? [];
+
         bool continuationPossible = false;
         bool containsReturn = false;
 
@@ -722,23 +803,23 @@ partial class CheckedExceptionsAnalyzer
         {
             bool handlesAny = exceptionsLeftToHandle.Count > 0;
             if (!handlesAny)
-                ReportRedundantCatchAll(context, catchClause);
+                context.ReportRedundantCatchAll(catchClause);
 
             var caughtExceptionsInCatch = new HashSet<INamedTypeSymbol>(exceptionsLeftToHandle);
 
             // Swallow everything the try might throw
-            unhandled.RemoveWhere(ex => exceptionsLeftToHandle.Contains(ex));
+            triedExceptions.RemoveWhere(ex => exceptionsLeftToHandle.Contains(ex));
             exceptionsLeftToHandle.Clear();
 
             if (catchClause.Block is { } catchBlock)
             {
                 var catchResult = AnalyzeBlockWithExceptions(
-                    context,
-                    catchBlock,
-                    settings,
-                    caughtExceptionsInCatch);
+                    new ControlFlowContext(
+                        context,
+                        catchBlock,
+                        caughtExceptionsInCatch));
 
-                unhandled.UnionWith(catchResult.UnhandledExceptions);
+                triedExceptions.UnionWith(catchResult.UnhandledExceptions);
 
                 if (handlesAny && catchResult.EndReachable)
                     continuationPossible = true;
@@ -746,31 +827,31 @@ partial class CheckedExceptionsAnalyzer
                 containsReturn |= catchResult.ContainsReturn;
 
                 if (!handlesAny)
-                    ReportUnreachableCodeHidden(context, catchClause.GetLocation());
+                    context.ReportUnreachableCodeHidden(catchClause.GetLocation());
             }
         }
         else
         {
             // --- typed catch ---
-            var caught = GetCaughtException(catchClause, semanticModel);
+            var caught = GetCaughtException(catchClause, context.SemanticModel);
             bool handlesAny = false;
 
             if (caught != null)
             {
-                handlesAny = tryUnhandled.Any(ex => IsExceptionCaught(ex, caught));
+                handlesAny = unhandledInTry.Any(ex => IsExceptionCaught(ex, caught));
                 if (!handlesAny)
-                    ReportRedundantTypedCatchClause(context, catchClause, caught);
+                    ReportRedundantTypedCatchClause(context.SyntaxContext, catchClause, caught);
 
                 // NEW: shadowed by earlier catch
                 bool alreadyHandledByEarlier = !exceptionsLeftToHandle.Any(ex => IsExceptionCaught(ex, caught));
                 if (alreadyHandledByEarlier)
                 {
-                    ReportUnreachableCodeHidden(context, catchClause.GetLocation());
+                    context.ReportUnreachableCodeHidden(catchClause.GetLocation());
                 }
 
                 if (handlesAny)
                 {
-                    unhandled.RemoveWhere(ex => IsExceptionCaught(ex, caught));
+                    triedExceptions.RemoveWhere(ex => IsExceptionCaught(ex, caught));
                     exceptionsLeftToHandle.RemoveWhere(ex => IsExceptionCaught(ex, caught));
                 }
             }
@@ -778,13 +859,13 @@ partial class CheckedExceptionsAnalyzer
             if (catchClause.Block is { } catchBlock)
             {
                 var catchResult = AnalyzeBlockWithExceptions(
+                    new ControlFlowContext(
                     context,
                     catchBlock,
-                    settings,
-                    caught != null ? [caught] : null);
+                    caught != null ? [caught] : null));
 
                 if (handlesAny)
-                    unhandled.UnionWith(catchResult.UnhandledExceptions);
+                    triedExceptions.UnionWith(catchResult.UnhandledExceptions);
 
                 if (handlesAny && catchResult.EndReachable)
                     continuationPossible = true;
@@ -796,7 +877,7 @@ partial class CheckedExceptionsAnalyzer
         return new FlowWithExceptionsResult(
             continuationPossible,
             containsReturn,
-            unhandled.ToImmutableHashSet());
+            triedExceptions.ToImmutableHashSet());
     }
 
     private static void ReportRedundantTypedCatchClause(SyntaxNodeAnalysisContext context, CatchClauseSyntax catchClause, INamedTypeSymbol caughtType)
@@ -805,32 +886,6 @@ partial class CheckedExceptionsAnalyzer
             RuleRedundantTypedCatchClause,
             catchClause.Declaration.Type.GetLocation(),
             caughtType.Name));
-    }
-
-    private static void ReportRedundantCatchAll(SyntaxNodeAnalysisContext context, CatchClauseSyntax catchClause)
-    {
-        context.ReportDiagnostic(Diagnostic.Create(
-            RuleRedundantCatchAllClause,
-            catchClause.CatchKeyword.GetLocation()));
-    }
-
-    private static void ReportUnreachableCode(SyntaxNodeAnalysisContext context, SyntaxNode node)
-    {
-        ReportUnreachableCode(context, node.GetLocation());
-    }
-
-    private static void ReportUnreachableCode(SyntaxNodeAnalysisContext context, Location location)
-    {
-        context.ReportDiagnostic(Diagnostic.Create(
-            RuleUnreachableCode,
-            location));
-    }
-
-    private static void ReportUnreachableCodeHidden(SyntaxNodeAnalysisContext context, Location location)
-    {
-        context.ReportDiagnostic(Diagnostic.Create(
-            RuleUnreachableCodeHidden,
-            location));
     }
 
     private Location? GetThrowsAttributeLocation(
