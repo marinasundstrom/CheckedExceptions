@@ -131,12 +131,6 @@ Add `CheckedExceptions.settings.json`:
 
 ```json
 {
-  // If true, exceptions will not be read from XML documentation (default: false).
-  "disableXmlDocInterop": false,
-
-  // If true, control flow analysis, with redundancy checks, is disabled (default: false).
-  "disableControlFlowAnalysis": true,
-
   // Exceptions to completely ignore during analysis (Glob pattern).
   "ignoredExceptions": [
     "System.*",
@@ -148,9 +142,18 @@ Add `CheckedExceptions.settings.json`:
   "informationalExceptions": {
     "System.IO.IOException": "Propagation",
     "System.TimeoutException": "Always"
-  }
+  },
+
+  // If true, exceptions will not be read from XML documentation (default: false).
+  "disableXmlDocInterop": false,
+
+  // If true, control flow analysis, with redundancy checks, is disabled (default: false).
+  "disableControlFlowAnalysis": true
 }
 ```
+
+> **Control flow analysis** powers redundancy checks (e.g. unreachable code, redundant catches, unused exception declarations).
+> Disabling it may improve analyzer performance slightly at the cost of precision.
 
 Register in `.csproj`:
 
@@ -164,17 +167,23 @@ Register in `.csproj`:
 
 ## 🔍 Diagnostics
 
-| ID         | Message                                                   |
-| ---------- | --------------------------------------------------------- |
-| `THROW001` | ❗ Unhandled exception: must be caught or declared                         |
-| `THROW003` | 🚫 Avoid declaring general `Exception` in `[Throws]`                       |
-| `THROW004` | 🚫 Avoid throwing exception base type `Exception`                          |
-| `THROW005` | 🔁 Duplicate declarations of the same exception type in `[Throws]`         |
-| `THROW006` | 🧬 Declared on override, missing from base                                 |
-| `THROW007` | 🧬 Declared on base, missing from override                                 |
-| `THROW008` | 📦 Exception already handled by declaration of super type in `[Throws]`    |
-| `THROW009` | 🧹 Redundant catch clause                                                  |
-| `THROW010` | ⚠️ Throws attribute is not valid on full property declarations             |
+| ID         | Message                                                                 |
+|------------|-------------------------------------------------------------------------|
+| `THROW001` | ❗ Unhandled exception: must be caught or declared                       |
+| `THROW002` | ℹ️ Ignored exception may cause runtime issues                           |
+| `THROW003` | 🚫 Avoid declaring exception type `System.Exception`                    |
+| `THROW004` | 🚫 Avoid throwing exception base type `System.Exception`                |
+| `THROW005` | 🔁 Duplicate declarations of the same exception type in `[Throws]`      |
+| `THROW006` | 🧬 Incompatible Throws declaration (not declared on base member)        |
+| `THROW007` | 🧬 Missing Throws declaration for base member's exception               |
+| `THROW008` | 📦 Exception already handled by declaration of super type in `[Throws]` |
+| `THROW009` | 🧹 Redundant catch typed clause                                          |
+| `THROW010` | ⚠️ `[Throws]` is not valid on full property declarations                |
+| `THROW011` | 📄 Exception in XML docs is not declared with `[Throws]`                |
+| `THROW012` | 🧹 Redundant exception declaration (declared but never thrown)          |
+| `THROW013` | 🧹 Redundant catch-all clause (no remaining exceptions to catch)        |
+| `THROW020` | 🛑 Unreachable code detected                                             |
+| `IDE001`   | 🙈 Unreachable code (hidden diagnostic for editor greying)              |
 
 ## 🛠 Code Fixes
 
@@ -190,11 +199,12 @@ The analyzer offers the following automated code fixes:
 
 ## ✨ Advanced Features
 
-- Supports lambdas, local functions, accessors, events
-- Analyzes exception inheritance trees
-- Merges `[Throws]` with `<exception>` from XML docs
-- Handles nullability context (`#nullable enable`)  
-- Understands standard library exceptions (e.g. `Console.WriteLine` → `IOException`)
+* **Lambdas, local functions, accessors, events** – full support across member kinds
+* **Exception inheritance analysis** – understands base/derived exception relationships
+* **XML documentation interop** – merges `[Throws]` with `<exception>` tags from external libraries
+* **Nullability awareness** – respects `#nullable enable` context
+* **Standard library knowledge** – recognizes common framework exceptions (e.g. `Console.WriteLine` → `IOException`)
+* **Control flow analysis** – detects whether exceptions are reachable, flags redundant `catch` clauses, and reports unreachable code caused by prior throws or returns
 
 ---
 
