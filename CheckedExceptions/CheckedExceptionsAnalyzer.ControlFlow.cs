@@ -45,12 +45,7 @@ partial class CheckedExceptionsAnalyzer
                 var location = GetThrowsAttributeLocation(methodSymbol, (INamedTypeSymbol)declaredType!, context.Compilation)
                                ?? methodSymbol.Locations.FirstOrDefault();
 
-                var diagnostic = Diagnostic.Create(
-                    RuleRedundantExceptionDeclaration,
-                    location,
-                    declaredType.Name);
-
-                context.ReportDiagnostic(diagnostic);
+                ReportRedundantExceptionDeclaration(context.ReportDiagnostic, declaredType, location);
             }
         }
     }
@@ -116,12 +111,7 @@ partial class CheckedExceptionsAnalyzer
                 var location = GetThrowsAttributeLocation(methodSymbol, (INamedTypeSymbol?)declaredType!, context.Compilation)
                                ?? node.GetLocation();
 
-                var diagnostic = Diagnostic.Create(
-                    RuleRedundantExceptionDeclaration,
-                    location,
-                    declaredType.Name);
-
-                context.ReportDiagnostic(diagnostic);
+                ReportRedundantExceptionDeclaration(context.ReportDiagnostic, declaredType, location);
             }
         }
     }
@@ -160,12 +150,7 @@ partial class CheckedExceptionsAnalyzer
                 var location = GetThrowsAttributeLocation(propertySymbol, (INamedTypeSymbol?)declaredType!, context.Compilation)
                                ?? node.GetLocation();
 
-                var diagnostic = Diagnostic.Create(
-                    RuleRedundantExceptionDeclaration,
-                    location,
-                    declaredType.Name);
-
-                context.ReportDiagnostic(diagnostic);
+                ReportRedundantExceptionDeclaration(context.ReportDiagnostic, declaredType, location);
             }
         }
     }
@@ -402,6 +387,16 @@ partial class CheckedExceptionsAnalyzer
             containsReturn,
             unhandled.ToImmutableHashSet(SymbolEqualityComparer.Default)
                 .OfType<INamedTypeSymbol>().ToImmutableHashSet());
+    }
+
+    private static void ReportRedundantExceptionDeclaration(Action<Diagnostic> reportDiagnostic, ISymbol? declaredType, Location? location)
+    {
+        var diagnostic = Diagnostic.Create(
+            RuleRedundantExceptionDeclaration,
+            location,
+            declaredType.Name);
+
+        reportDiagnostic(diagnostic);
     }
 
     private void ReportUnreachableCodeHidden(ControlFlowContext context, IEnumerable<StatementSyntax> statements, StatementSyntax statement)
