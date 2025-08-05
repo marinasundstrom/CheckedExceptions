@@ -294,47 +294,11 @@ partial class CheckedExceptionsAnalyzer
         {
             if (!reachable)
             {
-                var statementIndex = statements.TakeWhile(x => x != statement).Count();
-
-                // 🚩 We already know the block can’t continue past here
-                for (int i = statementIndex; i < statements.Count(); i++)
+                if (statement is not LocalFunctionStatementSyntax)
                 {
-                    var s = statements.ElementAt(i);
-
-                    if (!reachable)
-                    {
-                        // Start of an unreachable region
-                        int start = i;
-
-                        // Advance until we hit the end of the block, or something that resets analysis
-                        while (i < statements.Count())
-                        {
-                            var current = statements.ElementAt(i);
-
-                            // Local functions are *not* unreachable code
-                            if (current is LocalFunctionStatementSyntax)
-                                break;
-
-                            // Extend the unreachable block
-                            i++;
-                        }
-
-                        int end = i - 1; // last unreachable statement before break
-                        if (end >= start)
-                        {
-                            var span = TextSpan.FromBounds(
-                                statements.ElementAt(start).FullSpan.Start,
-                                statements.ElementAt(end).FullSpan.End);
-
-                            var location = Location.Create(node.SyntaxTree, span);
-                            ReportUnreachableCode(context, location);
-                        }
-
-                        // Continue outer loop — i already points at first reachable again
-                        continue;
-                    }
+                    ReportUnreachableCode(context, statement);
                 }
-                //
+                ReportUnreachableCodeHidden(context, node, reachable, statements, statement);
                 break;
             }
 
@@ -356,6 +320,51 @@ partial class CheckedExceptionsAnalyzer
             containsReturn,
             unhandled.ToImmutableHashSet(SymbolEqualityComparer.Default)
                 .OfType<INamedTypeSymbol>().ToImmutableHashSet());
+    }
+
+    private void ReportUnreachableCodeHidden(SyntaxNodeAnalysisContext context, SyntaxNode node, bool reachable, IEnumerable<StatementSyntax> statements, StatementSyntax statement)
+    {
+        var statementIndex = statements.TakeWhile(x => x != statement).Count();
+
+        // 🚩 We already know the block can’t continue past here
+        for (int i = statementIndex; i < statements.Count(); i++)
+        {
+            var s = statements.ElementAt(i);
+
+            if (!reachable)
+            {
+                // Start of an unreachable region
+                int start = i;
+
+                // Advance until we hit the end of the block, or something that resets analysis
+                while (i < statements.Count())
+                {
+                    var current = statements.ElementAt(i);
+
+                    // Local functions are *not* unreachable code
+                    if (current is LocalFunctionStatementSyntax)
+                        break;
+
+                    // Extend the unreachable block
+                    i++;
+                }
+
+                int end = i - 1; // last unreachable statement before break
+                if (end >= start)
+                {
+                    var span = TextSpan.FromBounds(
+                        statements.ElementAt(start).FullSpan.Start,
+                        statements.ElementAt(end).FullSpan.End);
+
+                    var location = Location.Create(node.SyntaxTree, span);
+                    ReportUnreachableCodeHidden(context, location);
+                }
+
+                // Continue outer loop — i already points at first reachable again
+                continue;
+            }
+        }
+        //
     }
 
     private FlowWithExceptionsResult AnalyzeStatementWithExceptions(
@@ -814,6 +823,13 @@ partial class CheckedExceptionsAnalyzer
     {
         context.ReportDiagnostic(Diagnostic.Create(
             RuleUnreachableCode,
+            location));
+    }
+
+    private static void ReportUnreachableCodeHidden(SyntaxNodeAnalysisContext context, Location location)
+    {
+        context.ReportDiagnostic(Diagnostic.Create(
+            RuleUnreachableCodeHidden,
             location));
     }
 
