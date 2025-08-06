@@ -703,10 +703,14 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
             if (!isHandled && !isDeclared)
             {
+                var properties = ImmutableDictionary.Create<string, string?>()
+                    .Add("ExceptionType", exceptionType.Name);
+
                 // Report diagnostic for unhandled exception
                 var diagnostic = Diagnostic.Create(
                     RuleUnhandledException,
                     GetSignificantLocation(throwStatement),
+                    properties,
                     exceptionType.Name);
 
                 context.ReportDiagnostic(diagnostic);
@@ -1668,7 +1672,12 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             var properties = ImmutableDictionary.Create<string, string?>()
                 .Add("ExceptionType", exceptionType.Name);
 
-            var diagnostic = Diagnostic.Create(RuleUnhandledException, GetSignificantLocation(node), properties, exceptionType.Name);
+            var diagnostic = Diagnostic.Create(
+                RuleUnhandledException,
+                GetSignificantLocation(node),
+                properties,
+                exceptionType.Name);
+
             reportDiagnostic(diagnostic);
 
             // 🔑 Collect for later redundancy analysis
