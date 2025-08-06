@@ -32,6 +32,7 @@ If a method might throw an exception, the caller must either:
 💡 Analyzer warnings by default — can be elevated to errors<br />
 📄 Supports .NET and third-party libraries via XML documentation<br />
 🛠 Includes code fixes to help you quickly handle or declare exceptions<br />
+➕ Supports .NET Standard 2.1<br />
 
 ---
 
