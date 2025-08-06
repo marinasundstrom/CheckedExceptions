@@ -255,6 +255,7 @@ partial class CheckedExceptionsAnalyzer
             AnalyzerSettings settings,
             HashSet<INamedTypeSymbol>? triedExceptions = null,
             HashSet<INamedTypeSymbol>? remainingExceptions = null,
+            HashSet<INamedTypeSymbol>? previouslyCaughtExceptionTypes = null,
             bool isUnreachable = false)
         {
             SyntaxContext = syntaxContext;
@@ -262,6 +263,7 @@ partial class CheckedExceptionsAnalyzer
             Settings = settings;
             TriedExceptions = triedExceptions ?? [];
             RemainingExceptions = remainingExceptions;
+            PreviouslyCaughtExceptionTypes = previouslyCaughtExceptionTypes ?? [];
             IsUnreachable = isUnreachable;
         }
 
@@ -270,8 +272,9 @@ partial class CheckedExceptionsAnalyzer
           SyntaxNode node,
           HashSet<INamedTypeSymbol>? triedExceptions = null,
           HashSet<INamedTypeSymbol>? remainingExceptions = null,
+          HashSet<INamedTypeSymbol>? previouslyCaughtExceptionTypes = null,
           bool isUnreachable = false)
-          : this(baseContext.SyntaxContext, node, baseContext.Settings, triedExceptions, remainingExceptions, isUnreachable)
+          : this(baseContext.SyntaxContext, node, baseContext.Settings, triedExceptions, remainingExceptions, previouslyCaughtExceptionTypes, isUnreachable)
         {
 
         }
@@ -293,6 +296,12 @@ partial class CheckedExceptionsAnalyzer
         /// </summary>
         /// <remarks>Remove exception to handle.</remarks>
         public HashSet<INamedTypeSymbol>? RemainingExceptions { get; }
+
+        /// <summary>
+        /// Previously caught exception types (if from catch)
+        /// </summary>
+        /// <remarks>Remove exception to handle.</remarks>
+        public HashSet<INamedTypeSymbol> PreviouslyCaughtExceptionTypes { get; }
 
         /// <summary>
         /// Indicates that the block is unreachable
@@ -383,6 +392,7 @@ partial class CheckedExceptionsAnalyzer
         }
 
         return new FlowWithExceptionsResult(
+            node,
             reachable,
             containsReturn,
             unhandled.ToImmutableHashSet(SymbolEqualityComparer.Default)
@@ -397,6 +407,24 @@ partial class CheckedExceptionsAnalyzer
             declaredType.Name);
 
         reportDiagnostic(diagnostic);
+    }
+
+    private static void ReportRedundantTypedCatchClause(SyntaxNodeAnalysisContext context, CatchClauseSyntax catchClause, INamedTypeSymbol caughtType)
+    {
+        context.ReportDiagnostic(Diagnostic.Create(
+            RuleRedundantTypedCatchClause,
+            catchClause.Declaration.Type.GetLocation(),
+            caughtType.Name));
+    }
+
+    private static void ReportCatchHandlesNoRemainingExceptions(SyntaxNodeAnalysisContext context, CatchClauseSyntax catchClause, IEnumerable<INamedTypeSymbol> exceptionTypes)
+    {
+        var exceptionTypeNames = exceptionTypes.Select(x => $"'{x.Name}'");
+
+        context.ReportDiagnostic(Diagnostic.Create(
+            RuleCatchHandlesNoRemainingExceptions,
+            catchClause.Declaration.Type.GetLocation(),
+            string.Join(", ", exceptionTypeNames)));
     }
 
     private void ReportUnreachableCodeHidden(ControlFlowContext context, IEnumerable<StatementSyntax> statements, StatementSyntax statement)
@@ -469,7 +497,7 @@ partial class CheckedExceptionsAnalyzer
                     // Normal throw
                     unhandled.UnionWith(CollectExceptionsFromStatement(context.SyntaxContext, statement, context.Settings));
                 }
-                return new FlowWithExceptionsResult(false, unhandled.ToImmutableHashSet());
+                return new FlowWithExceptionsResult(throwStmt, false, unhandled.ToImmutableHashSet());
 
             case TryStatementSyntax tryStmt:
                 return AnalyzeTryStatement(new ControlFlowContext(context, tryStmt, unhandled, isUnreachable: context.IsUnreachable));
@@ -494,6 +522,7 @@ partial class CheckedExceptionsAnalyzer
                             unhandled.UnionWith(thenResult2.UnhandledExceptions);
 
                             return new FlowWithExceptionsResult(
+                                ifStmt,
                                 thenResult2.EndReachable,
                                 unhandled.ToImmutableHashSet());
                         }
@@ -506,12 +535,13 @@ partial class CheckedExceptionsAnalyzer
                                 unhandled.UnionWith(elseResult.UnhandledExceptions);
 
                                 return new FlowWithExceptionsResult(
+                                    ifStmt,
                                     elseResult.EndReachable,
                                     unhandled.ToImmutableHashSet());
                             }
 
                             // No else → condition false means it just falls through
-                            return new FlowWithExceptionsResult(true, unhandled.ToImmutableHashSet());
+                            return new FlowWithExceptionsResult(ifStmt, true, unhandled.ToImmutableHashSet());
                         }
                     }
 
@@ -544,7 +574,7 @@ partial class CheckedExceptionsAnalyzer
                             continuation = true;
                     }
 
-                    return new FlowWithExceptionsResult(continuation, unhandled.ToImmutableHashSet());
+                    return new FlowWithExceptionsResult(ifStmt, continuation, unhandled.ToImmutableHashSet());
                 }
 
             case WhileStatementSyntax whileStmt:
@@ -567,13 +597,14 @@ partial class CheckedExceptionsAnalyzer
                             unhandled.UnionWith(thenResult2.UnhandledExceptions);
 
                             return new FlowWithExceptionsResult(
+                                whileStmt,
                                 thenResult2.EndReachable,
                                 unhandled.ToImmutableHashSet());
                         }
                         else
                         {
                             // No else → condition false means it just falls through
-                            return new FlowWithExceptionsResult(true, unhandled.ToImmutableHashSet());
+                            return new FlowWithExceptionsResult(whileStmt, true, unhandled.ToImmutableHashSet());
                         }
                     }
 
@@ -585,7 +616,7 @@ partial class CheckedExceptionsAnalyzer
                     }
 
                     // otherwise assume reachable
-                    return new FlowWithExceptionsResult(continuation, unhandled.ToImmutableHashSet());
+                    return new FlowWithExceptionsResult(whileStmt, continuation, unhandled.ToImmutableHashSet());
                 }
 
             case DoStatementSyntax doStmt:
@@ -595,7 +626,7 @@ partial class CheckedExceptionsAnalyzer
 
                     unhandled.UnionWith(CollectExceptionsFromExpression(context.SyntaxContext, doStmt.Condition, context.Settings, semanticModel));
 
-                    return new FlowWithExceptionsResult(true, unhandled.ToImmutableHashSet());
+                    return new FlowWithExceptionsResult(doStmt, true, unhandled.ToImmutableHashSet());
                 }
 
             case ForStatementSyntax forStmt:
@@ -612,7 +643,7 @@ partial class CheckedExceptionsAnalyzer
                     var bodyResult = AnalyzeStatementWithExceptions(new ControlFlowContext(context, forStmt.Statement));
                     unhandled.UnionWith(bodyResult.UnhandledExceptions);
 
-                    return new FlowWithExceptionsResult(true, unhandled.ToImmutableHashSet());
+                    return new FlowWithExceptionsResult(forStmt, true, unhandled.ToImmutableHashSet());
                 }
 
             case ForEachStatementSyntax foreachStmt:
@@ -622,7 +653,7 @@ partial class CheckedExceptionsAnalyzer
                     var bodyResult = AnalyzeStatementWithExceptions(new ControlFlowContext(context, foreachStmt.Statement));
                     unhandled.UnionWith(bodyResult.UnhandledExceptions);
 
-                    return new FlowWithExceptionsResult(true, unhandled.ToImmutableHashSet());
+                    return new FlowWithExceptionsResult(foreachStmt, true, unhandled.ToImmutableHashSet());
                 }
 
             case SwitchStatementSyntax switchStmt:
@@ -647,7 +678,7 @@ partial class CheckedExceptionsAnalyzer
                         }
                     }
 
-                    return new FlowWithExceptionsResult(continuation, unhandled.ToImmutableHashSet());
+                    return new FlowWithExceptionsResult(switchStmt, continuation, unhandled.ToImmutableHashSet());
                 }
 
             case UsingStatementSyntax usingStmt:
@@ -667,7 +698,7 @@ partial class CheckedExceptionsAnalyzer
                     var bodyResult = AnalyzeStatementWithExceptions(new ControlFlowContext(context, usingStmt.Statement));
                     unhandled.UnionWith(bodyResult.UnhandledExceptions);
 
-                    return new FlowWithExceptionsResult(bodyResult.EndReachable, unhandled.ToImmutableHashSet());
+                    return new FlowWithExceptionsResult(usingStmt, bodyResult.EndReachable, unhandled.ToImmutableHashSet());
                 }
 
             case LockStatementSyntax lockStmt:
@@ -677,14 +708,14 @@ partial class CheckedExceptionsAnalyzer
                     var bodyResult = AnalyzeStatementWithExceptions(new ControlFlowContext(context, lockStmt.Statement));
                     unhandled.UnionWith(bodyResult.UnhandledExceptions);
 
-                    return new FlowWithExceptionsResult(bodyResult.EndReachable, unhandled.ToImmutableHashSet());
+                    return new FlowWithExceptionsResult(lockStmt, bodyResult.EndReachable, unhandled.ToImmutableHashSet());
                 }
 
             case BreakStatementSyntax:
             case ContinueStatementSyntax:
                 {
                     // Terminates current block
-                    return new FlowWithExceptionsResult(false, unhandled.ToImmutableHashSet());
+                    return new FlowWithExceptionsResult(statement, false, unhandled.ToImmutableHashSet());
                 }
 
             case ReturnStatementSyntax returnStmt:
@@ -693,7 +724,7 @@ partial class CheckedExceptionsAnalyzer
                     {
                         unhandled.UnionWith(CollectExceptionsFromExpression(context.SyntaxContext, returnStmt.Expression, context.Settings, semanticModel));
                     }
-                    return new FlowWithExceptionsResult(endReachable: false, containsReturn: true, unhandledExceptions: unhandled.ToImmutableHashSet());
+                    return new FlowWithExceptionsResult(returnStmt, endReachable: false, containsReturn: true, unhandledExceptions: unhandled.ToImmutableHashSet());
                 }
 
             case LocalDeclarationStatementSyntax localDecl
@@ -703,7 +734,7 @@ partial class CheckedExceptionsAnalyzer
                or ObjectCreationExpressionSyntax
                or ImplicitObjectCreationExpressionSyntax):
                 unhandled.UnionWith(CollectExceptionsFromStatement(context.SyntaxContext, statement, context.Settings));
-                return new FlowWithExceptionsResult(true, unhandled.ToImmutableHashSet());
+                return new FlowWithExceptionsResult(localDecl, true, unhandled.ToImmutableHashSet());
 
             case ExpressionStatementSyntax exprStmt
     when exprStmt.Expression.DescendantNodesAndSelf()
@@ -712,7 +743,7 @@ partial class CheckedExceptionsAnalyzer
                or ObjectCreationExpressionSyntax
                or ImplicitObjectCreationExpressionSyntax):
                 unhandled.UnionWith(CollectExceptionsFromStatement(context.SyntaxContext, statement, context.Settings));
-                return new FlowWithExceptionsResult(true, unhandled.ToImmutableHashSet());
+                return new FlowWithExceptionsResult(exprStmt, true, unhandled.ToImmutableHashSet());
 
             default:
                 var flow = semanticModel.AnalyzeControlFlow(statement);
@@ -721,6 +752,7 @@ partial class CheckedExceptionsAnalyzer
 
                 // Fallback: assume it falls through
                 return new FlowWithExceptionsResult(
+                    statement,
                     flow.Succeeded ? flow.EndPointIsReachable : true,
                     unhandled.ToImmutableHashSet());
         }
@@ -740,17 +772,23 @@ partial class CheckedExceptionsAnalyzer
 
         var exceptionsLeftToHandle = new HashSet<INamedTypeSymbol>(tryResult.UnhandledExceptions);
 
+        var previouslyCaughtExceptionTypes = new HashSet<INamedTypeSymbol>();
+
         // === Analyze each catch ===
         foreach (var catchClause in tryStmt.Catches)
         {
             var catchResult = AnalyzeCatchClause(
                 new ControlFlowContext(
-                       context, catchClause, triedExceptions, isUnreachable: context.IsUnreachable),
+                       context, catchClause, triedExceptions, exceptionsLeftToHandle, [.. previouslyCaughtExceptionTypes], isUnreachable: context.IsUnreachable),
                        new HashSet<INamedTypeSymbol>(tryResult.UnhandledExceptions),
                        exceptionsLeftToHandle);
 
+            if (catchResult.CaughtExceptionType is not null)
+                previouslyCaughtExceptionTypes.Add(catchResult.CaughtExceptionType);
+
             continuationPossible |= catchResult.EndReachable;
             containsReturn |= catchResult.ContainsReturn;
+
             triedExceptions.UnionWith(catchResult.UnhandledExceptions);
         }
 
@@ -777,6 +815,7 @@ partial class CheckedExceptionsAnalyzer
         }
 
         return new FlowWithExceptionsResult(
+            tryStmt,
             continuationPossible,
             containsReturn,
             triedExceptions.ToImmutableHashSet());
@@ -784,7 +823,7 @@ partial class CheckedExceptionsAnalyzer
 
     private FlowWithExceptionsResult AnalyzeCatchClause(
         ControlFlowContext context,
-        IReadOnlyCollection<INamedTypeSymbol> unhandledInTry,
+        IReadOnlyCollection<INamedTypeSymbol> exceptionsInTry,
         HashSet<INamedTypeSymbol> exceptionsLeftToHandle)
     {
         var catchClause = (CatchClauseSyntax)context.Node;
@@ -792,6 +831,8 @@ partial class CheckedExceptionsAnalyzer
 
         bool continuationPossible = false;
         bool containsReturn = false;
+
+        INamedTypeSymbol? caughtExceptionType = null;
 
         // --- catch-all ---
         if (catchClause.Declaration?.Type == null)
@@ -829,26 +870,51 @@ partial class CheckedExceptionsAnalyzer
         else
         {
             // --- typed catch ---
-            var caught = GetCaughtException(catchClause, context.SemanticModel);
+            caughtExceptionType = GetCaughtException(catchClause, context.SemanticModel);
             bool handlesAny = false;
 
-            if (caught != null)
+            if (caughtExceptionType != null)
             {
-                handlesAny = unhandledInTry.Any(ex => IsExceptionCaught(ex, caught));
-                if (!handlesAny)
-                    ReportRedundantTypedCatchClause(context.SyntaxContext, catchClause, caught);
+                // Is this type ever thrown in the try?
+                handlesAny = exceptionsInTry.Any(ex => IsExceptionCaught(ex, caughtExceptionType));
 
-                // NEW: shadowed by earlier catch
-                bool alreadyHandledByEarlier = !exceptionsLeftToHandle.Any(ex => IsExceptionCaught(ex, caught));
-                if (alreadyHandledByEarlier)
+                if (!handlesAny)
                 {
+                    // Case 1: Never thrown at all → redundant
+                    ReportRedundantTypedCatchClause(context.SyntaxContext, catchClause, caughtExceptionType);
+
                     context.ReportUnreachableCodeHidden(catchClause.GetLocation());
+                }
+                else
+                {
+                    // Case 2 + 3: Could be thrown, but has it already been handled?
+                    bool alreadyHandledByEarlier = !exceptionsLeftToHandle.Any(ex => IsExceptionCaught(ex, caughtExceptionType));
+
+                    if (alreadyHandledByEarlier)
+                    {
+                        // 🔎 Distinguish overshadowed vs no-remaining-exceptions
+                        if (!IsOvershadowedByEarlier(caughtExceptionType, context))
+                        {
+                            var previouslyCaughtMatchingExceptions = context.PreviouslyCaughtExceptionTypes
+                                .Where(ex => IsExceptionCaught(ex, caughtExceptionType));
+
+                            // Case 3: broad catch after all specifics already covered
+                            ReportCatchHandlesNoRemainingExceptions(context.SyntaxContext, catchClause, previouslyCaughtMatchingExceptions);
+                        }
+
+                        // INFO: Overshadowing is already reported by C# as CS0160
+
+                        // This catch clause doesn't handle anything. Exclude from analysis.
+                        handlesAny = false;
+
+                        context.ReportUnreachableCodeHidden(catchClause.GetLocation());
+                    }
                 }
 
                 if (handlesAny)
                 {
-                    triedExceptions.RemoveWhere(ex => IsExceptionCaught(ex, caught));
-                    exceptionsLeftToHandle.RemoveWhere(ex => IsExceptionCaught(ex, caught));
+                    triedExceptions.RemoveWhere(ex => IsExceptionCaught(ex, caughtExceptionType));
+                    exceptionsLeftToHandle.RemoveWhere(ex => IsExceptionCaught(ex, caughtExceptionType));
                 }
             }
 
@@ -858,7 +924,7 @@ partial class CheckedExceptionsAnalyzer
                     new ControlFlowContext(
                     context,
                     catchBlock,
-                    caught != null ? [caught] : null,
+                    caughtExceptionType != null ? [caughtExceptionType] : null,
                     isUnreachable: !handlesAny));
 
                 if (handlesAny)
@@ -872,17 +938,23 @@ partial class CheckedExceptionsAnalyzer
         }
 
         return new FlowWithExceptionsResult(
+            catchClause,
             continuationPossible,
             containsReturn,
-            triedExceptions.ToImmutableHashSet());
+            unhandledExceptions: triedExceptions.ToImmutableHashSet(),
+            caughtExceptionType: caughtExceptionType is not null ? caughtExceptionType : context.Compilation.GetTypeByMetadataName("System.Exception"));
     }
 
-    private static void ReportRedundantTypedCatchClause(SyntaxNodeAnalysisContext context, CatchClauseSyntax catchClause, INamedTypeSymbol caughtType)
+    private static bool IsOvershadowedByEarlier(INamedTypeSymbol caught, ControlFlowContext context)
     {
-        context.ReportDiagnostic(Diagnostic.Create(
-            RuleRedundantTypedCatchClause,
-            catchClause.Declaration.Type.GetLocation(),
-            caughtType.Name));
+        foreach (var prev in context.PreviouslyCaughtExceptionTypes)
+        {
+            // If the current catch type (caught) is assignable to a previous type (prev),
+            // then it is overshadowed.
+            if (IsExceptionCaught(caught, prev))
+                return true;
+        }
+        return false;
     }
 
     private Location? GetThrowsAttributeLocation(
@@ -929,29 +1001,62 @@ partial class CheckedExceptionsAnalyzer
 
 sealed class FlowWithExceptionsResult
 {
+    /// <summary>
+    /// The recently analyzed node
+    /// </summary>
+    /// <value></value>
+    public SyntaxNode Node { get; }
+
+    // TODO: In a future version, include the nodes where there was a return.
+
+    /// <summary>
+    /// End is not reachable
+    /// </summary>
+    /// <value></value>
     public bool EndReachable { get; }
+
+    /// <summary>
+    /// A return has been made
+    /// </summary>
+    /// <value></value>
     public bool ContainsReturn { get; } // or more general: HasNormalTermination
+
+    /// <summary>
+    /// The unhandled exceptions propagated by the block. If it's a catch clause, these are exception types remaining.
+    /// </summary>
     public ImmutableHashSet<INamedTypeSymbol> UnhandledExceptions { get; }
 
+    /// <summary>
+    /// Exception type caught by a catch clause
+    /// </summary>
+    public INamedTypeSymbol? CaughtExceptionType { get; }
+
     public FlowWithExceptionsResult(
+        SyntaxNode node,
         bool endReachable,
         bool containsReturn,
-        ImmutableHashSet<INamedTypeSymbol> unhandledExceptions)
+        ImmutableHashSet<INamedTypeSymbol> unhandledExceptions,
+        INamedTypeSymbol? caughtExceptionType = null)
     {
+        Node = node;
         EndReachable = endReachable;
         ContainsReturn = containsReturn;
         UnhandledExceptions = unhandledExceptions;
+        CaughtExceptionType = caughtExceptionType;
     }
 
     public FlowWithExceptionsResult(
+        SyntaxNode node,
         bool endReachable,
-        ImmutableHashSet<INamedTypeSymbol> unhandledExceptions)
+        ImmutableHashSet<INamedTypeSymbol> unhandledExceptions,
+        INamedTypeSymbol? caughtExceptionType = null)
     {
         EndReachable = endReachable;
         ContainsReturn = false;
         UnhandledExceptions = unhandledExceptions;
+        CaughtExceptionType = caughtExceptionType;
     }
 
-    public static FlowWithExceptionsResult Unreachable =>
-        new(false, false, ImmutableHashSet<INamedTypeSymbol>.Empty);
+    public static FlowWithExceptionsResult Unreachable(SyntaxNode node) =>
+        new(node, false, false, ImmutableHashSet<INamedTypeSymbol>.Empty);
 }

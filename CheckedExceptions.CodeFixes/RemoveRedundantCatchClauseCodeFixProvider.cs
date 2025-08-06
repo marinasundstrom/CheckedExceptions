@@ -19,7 +19,7 @@ public class RemoveRedundantCatchClauseCodeFixProvider : CodeFixProvider
     private const string TitleRemoveRedundantCatchClause = "Remove redundant catch clause";
 
     public sealed override ImmutableArray<string> FixableDiagnosticIds =>
-        [CheckedExceptionsAnalyzer.DiagnosticIdRedundantTypedCatchClause, CheckedExceptionsAnalyzer.DiagnosticIdRedundantCatchAllClause];
+        [CheckedExceptionsAnalyzer.DiagnosticIdRedundantTypedCatchClause, CheckedExceptionsAnalyzer.DiagnosticIdRedundantCatchAllClause, CheckedExceptionsAnalyzer.DiagnosticIdCatchHandlesNoRemainingExceptions];
 
     public sealed override FixAllProvider GetFixAllProvider() =>
         WellKnownFixAllProviders.BatchFixer;
