@@ -59,6 +59,9 @@ public class AddCatchClauseForRethrownExceptionCodeFixProvider : CodeFixProvider
             return; // ❌ not inside runtime flow of a try
         }
 
+        if (catchClause.Declaration is not null)
+            return;
+
         // We need the closest statement
         if (throwSite is ExpressionSyntax)
         {
