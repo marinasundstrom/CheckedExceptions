@@ -8,12 +8,13 @@ This document describes the available **code fixes** and which diagnostics they 
 
 | Diagnostic ID | Description                           | Available Fixes                                                                                 |
 | ------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| **THROW001**  | Unhandled exception type              | 🔧 Add throws declaration<br>🧯 Surround with try/catch<br>➕ Add catch clause to surrounding try |
+| **THROW001**  | Unhandled exception type              | 🔧 Add throws declaration<br>🧯 Surround with try/catch<br>➕ Add catch clause to surrounding try<br>➕ Introduce catch clause |
 | **THROW004**  | Redundant typed catch clause          | 🧹 Remove redundant catch clause                                                                 |
 | **THROW005**  | Redundant exception declaration       | 🗑️ Remove redundant throws declaration                                                          |
 | **THROW007**  | Missing throws from base/interface    | 🔧 Add throws declaration from base member                                                       |
 | **THROW011**  | Missing throws from XML documentation | 🔧 Add throws declaration from XML doc                                                           |
 | **THROW013**  | Redundant typed catch-all clause      | 🧹 Remove redundant catch clause    
+| **THROW014**  | Catch clause has no remaining exceptions to handle      | 🧹 Remove redundant catch clause
 
 ---
 
@@ -226,12 +227,69 @@ public void Bar(int arg) { /* ... */ }
 
 ---
 
+## ➕ `Introduce catch clauses` (for rethrown exceptions)
+
+**Applies to:**
+
+* `THROW001` – *Unhandled exception type*
+
+Prepends `catch` clause for a rethrown exception type in catch all.
+
+```csharp
+// Before
+try
+{
+    // THROW001: Unhandled exception type 'InvalidOperationException'
+    Foo();
+    // THROW001: Unhandled exception type 'ArgumentException'
+    Bar(2);
+}
+catch
+{
+    // THROW001: Unhandled exception type 'InvalidOperationException'
+    // THROW001: Unhandled exception type 'ArgumentException'
+    throw;
+}
+
+[Throws(typeof(InvalidOperationException))]
+public void Foo() { /* ... */ }
+
+[Throws(typeof(ArgumentException))]
+public void Bar(int arg) { /* ... */ }
+
+// After
+try
+{
+    Foo();
+    Bar(2);
+}
+catch (InvalidOperationException invalidOperationException)
+{
+}
+catch (ArgumentException argumentException)
+{
+}
+catch // This is left intentionally
+{
+    throw;
+}
+
+[Throws(typeof(InvalidOperationException))]
+public void Foo() { /* ... */ }
+
+[Throws(typeof(ArgumentException))]
+public void Bar(int arg) { /* ... */ }
+```
+
+---
+
 ## 🧹 `Remove redundant catch clause`
 
 **Applies to:**
 
 * `THROW004` – *Redundant typed catch clause*
 * `THROW013` – *Redundant catch-all clause*
+* `THROW014` – *Catch clause has no remaining exceptions to handle*
 
 Removes a redundant `catch` clause for an exception type that is **not thrown** in the current `try` block.
 

@@ -207,7 +207,7 @@ The analyzer offers the following automated code fixes:
 
 * 🧹 **Remove redundant catch clause**
   Removes a catch clause for an exception type that is never thrown.
-  *(Fixes `THROW009`)*
+  *(Fixes `THROW009`, `THROW013`, `THROW014`)*
 
 * 🔧 **Add `[Throws]` declaration from base member**
   Ensures overridden or implemented members declare the same exceptions as their base/interface.
