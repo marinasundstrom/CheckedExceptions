@@ -33,6 +33,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     public const string DiagnosticIdXmlDocButNoThrows = "THROW011";
     public const string DiagnosticIdRedundantExceptionDeclaration = "THROW012";
     public const string DiagnosticIdRedundantCatchAllClause = "THROW013";
+    public const string DiagnosticIdCatchHandlesNoRemainingExceptions = "THROW014";
     public const string DiagnosticIdRuleUnreachableCode = "THROW020";
     public const string DiagnosticIdRuleUnreachableCodeHidden = "IDE001";
 
@@ -81,7 +82,8 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         "Contract",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "Detects multiple exception declarations for the same exception type on a single member, which is redundant.");
+        description: "Detects multiple exception declarations for the same exception type on a single member, which is redundant.",
+        customTags: [WellKnownDiagnosticTags.Unnecessary]);
 
     private static readonly DiagnosticDescriptor RuleMissingThrowsFromBaseMember = new(
         DiagnosticIdMissingThrowsFromBaseMember,
@@ -108,7 +110,8 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         category: "Contract",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "Detects redundant [Throws] declarations where a more general exception type already covers the specific exception.");
+        description: "Detects redundant [Throws] declarations where a more general exception type already covers the specific exception.",
+        customTags: [WellKnownDiagnosticTags.Unnecessary]);
 
     private static readonly DiagnosticDescriptor RuleRedundantTypedCatchClause = new(
         DiagnosticIdRedundantTypedCatchClause,
@@ -157,7 +160,19 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         category: "Contract",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "Detects exception types declared with [Throws] that are never thrown in the method or property body, making the declaration redundant.");
+        description: "Detects exception types declared with [Throws] that are never thrown in the method or property body, making the declaration redundant.",
+        customTags: [WellKnownDiagnosticTags.Unnecessary]);
+
+    private static readonly DiagnosticDescriptor RuleCatchHandlesNoRemainingExceptions = new(
+        DiagnosticIdCatchHandlesNoRemainingExceptions,
+        title: "Catch clause has no remaining exceptions to handle",
+        messageFormat: "All matching exceptions for this type are already caught by previous clauses ({0})",
+        category: "Control flow",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "Reports catch clauses that are syntactically valid but will never be executed, "
+                + "because all matching exceptions have already been caught by previous clauses.",
+        customTags: [WellKnownDiagnosticTags.Unnecessary]);
 
     private static readonly DiagnosticDescriptor RuleUnreachableCode = new(
         DiagnosticIdRuleUnreachableCode,
@@ -180,7 +195,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         customTags: [WellKnownDiagnosticTags.Unnecessary]);
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
-        [RuleUnhandledException, RuleIgnoredException, RuleGeneralThrows, RuleGeneralThrow, RuleDuplicateDeclarations, RuleMissingThrowsOnBaseMember, RuleMissingThrowsFromBaseMember, RuleDuplicateThrowsByHierarchy, RuleRedundantTypedCatchClause, RuleRedundantCatchAllClause, RuleThrowsDeclarationNotValidOnFullProperty, RuleXmlDocButNoThrows, RuleRedundantExceptionDeclaration, RuleUnreachableCode, RuleUnreachableCodeHidden];
+        [RuleUnhandledException, RuleIgnoredException, RuleGeneralThrows, RuleGeneralThrow, RuleDuplicateDeclarations, RuleMissingThrowsOnBaseMember, RuleMissingThrowsFromBaseMember, RuleDuplicateThrowsByHierarchy, RuleRedundantTypedCatchClause, RuleRedundantCatchAllClause, RuleThrowsDeclarationNotValidOnFullProperty, RuleXmlDocButNoThrows, RuleRedundantExceptionDeclaration, RuleCatchHandlesNoRemainingExceptions, RuleUnreachableCode, RuleUnreachableCodeHidden];
 
     public override void Initialize(AnalysisContext context)
     {
@@ -1027,7 +1042,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             exceptionType.InheritsFrom(catchType));
     }
 
-    private bool IsExceptionCaught(INamedTypeSymbol exceptionType, INamedTypeSymbol? catchType)
+    private static bool IsExceptionCaught(INamedTypeSymbol exceptionType, INamedTypeSymbol? catchType)
     {
         if (catchType is null)
         {
