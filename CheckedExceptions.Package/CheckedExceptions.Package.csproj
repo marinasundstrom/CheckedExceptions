@@ -10,7 +10,7 @@
 
   <PropertyGroup>
     <PackageId>Sundstrom.CheckedExceptions</PackageId>
-    <PackageVersion>1.2.3.0</PackageVersion>
+    <PackageVersion>1.9.9-dev$([System.DateTime]::UtcNow.ToString("yyyyMMddHHmmss"))</PackageVersion>
     <Authors>Marina Sundström</Authors>
     <PackageLicenseUrl>
       https://github.com/marinasundstrom/CheckedExceptions/blob/main/LICENSE</PackageLicenseUrl>

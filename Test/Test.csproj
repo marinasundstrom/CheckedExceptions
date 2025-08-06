@@ -8,18 +8,25 @@
     <!-- <WarningsAsErrors>THROW001</WarningsAsErrors> -->
   </PropertyGroup>
 
+  <PropertyGroup>
+    <ManagePackageVersionsCentrally>false</ManagePackageVersionsCentrally>
+  </PropertyGroup>
+
   <!-- <PropertyGroup>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup> -->
 
-  <!-- <ItemGroup>
-    <PackageReference Include="Sundstrom.CheckedExceptions" Version="*" />
-  </ItemGroup> -->
-
   <ItemGroup>
+    <PackageReference Include="Sundstrom.CheckedExceptions" Version="1.9.9-*">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <!-- <ItemGroup>
     <ProjectReference Include="..\CheckedExceptions\CheckedExceptions.csproj"
       OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />
-  </ItemGroup>
+  </ItemGroup> -->
 
   <ItemGroup>
     <AdditionalFiles Include="CheckedExceptions.settings.json" />
