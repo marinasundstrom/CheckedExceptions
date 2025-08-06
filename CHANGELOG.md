@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - PR [#233](https://github.com/marinasundstrom/CheckedExceptions/pull/233) Handle valid catches with no exceptions remaining
+- PR [#237](https://github.com/marinasundstrom/CheckedExceptions/pull/237) Code fix should add declaration to local function
 
 ## [1.9.8] - 2025-08-06
 
