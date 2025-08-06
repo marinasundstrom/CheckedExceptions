@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- PR [#239](https://github.com/marinasundstrom/CheckedExceptions/pull/239) Add codefix for turning catch-all rethrow into catch clauses
+
 ### Fixed
 
 - PR [#233](https://github.com/marinasundstrom/CheckedExceptions/pull/233) Handle valid catches with no exceptions remaining
