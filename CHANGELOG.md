@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+
+- PR [#233](https://github.com/marinasundstrom/CheckedExceptions/pull/233) Handle valid catches with no exceptions remaining
+
 ## [1.9.8] - 2025-08-06
 
 ### Fixed
