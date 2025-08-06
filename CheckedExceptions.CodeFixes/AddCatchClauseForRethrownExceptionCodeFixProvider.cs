@@ -15,13 +15,13 @@ namespace Sundstrom.CheckedExceptions;
 [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(AddCatchClauseForRethrownExceptionCodeFixProvider)), Shared]
 public class AddCatchClauseForRethrownExceptionCodeFixProvider : CodeFixProvider
 {
-    private const string TitleAddTryCatch = "Add catch clause";
+    private const string TitleAddTryCatch = "Introduce catch clause";
 
     public sealed override ImmutableArray<string> FixableDiagnosticIds =>
         [CheckedExceptionsAnalyzer.DiagnosticIdUnhandled];
 
-    public sealed override FixAllProvider GetFixAllProvider() =>
-        WellKnownFixAllProviders.BatchFixer;
+    //public sealed override FixAllProvider GetFixAllProvider() =>
+    //    WellKnownFixAllProviders.BatchFixer;
 
     public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
     {
