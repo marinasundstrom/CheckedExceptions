@@ -54,8 +54,8 @@ public class AddThrowsDeclarationFromBaseMemberCodeFixProvider : CodeFixProvider
         }
         else
         {
-            targetNode = (SyntaxNode?)node.FirstAncestorOrSelf<BaseMethodDeclarationSyntax>()
-                ?? node.FirstAncestorOrSelf<LocalFunctionStatementSyntax>();
+            targetNode = (SyntaxNode?)node.FirstAncestorOrSelf<LocalFunctionStatementSyntax>()
+                ?? node.FirstAncestorOrSelf<BaseMethodDeclarationSyntax>();
         }
 
         if (targetNode is null)
