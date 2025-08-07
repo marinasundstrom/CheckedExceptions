@@ -319,19 +319,42 @@ public class SurroundWithTryCatchCodeFixProvider : CodeFixProvider
                 .Where(s => s is not LocalFunctionStatementSyntax)
                 .ToList();
 
-            var tryBlock = Block(statementsToWrap).WithAdditionalAnnotations(Formatter.Annotation);
-            var count = statementsToWrap.First().Ancestors().OfType<TryStatementSyntax>().Count();
-            var catchClauses = CreateCatchClauses(exceptionTypeNames, count);
-
-            var tryCatchStatement = TryStatement()
-                .WithBlock(tryBlock)
-                .WithCatches(List(catchClauses))
-                .WithAdditionalAnnotations(Formatter.Annotation);
+            TryStatementSyntax tryCatchStatement = CreateTryStatement(exceptionTypeNames, statementsToWrap);
 
             newRoot = root.ReplaceNodes(
                 statementsToWrap,
                 (original, _) => original == statementsToWrap.First() ? tryCatchStatement : null!
             );
+        }
+        else if (statement.Parent is IfStatementSyntax ifStatement)
+        {
+            TryStatementSyntax tryCatchStatement = CreateTryStatement(exceptionTypeNames, [statement]);
+            var newIfStatement = ifStatement.WithStatement(Block(tryCatchStatement));
+            newRoot = root.ReplaceNode(ifStatement, newIfStatement);
+        }
+        else if (statement.Parent is WhileStatementSyntax whileStatement)
+        {
+            TryStatementSyntax tryCatchStatement = CreateTryStatement(exceptionTypeNames, [statement]);
+            var newWhileStatement = whileStatement.WithStatement(Block(tryCatchStatement));
+            newRoot = root.ReplaceNode(whileStatement, newWhileStatement);
+        }
+        else if (statement.Parent is DoStatementSyntax doStatement)
+        {
+            TryStatementSyntax tryCatchStatement = CreateTryStatement(exceptionTypeNames, [statement]);
+            var newDoStatement = doStatement.WithStatement(Block(tryCatchStatement));
+            newRoot = root.ReplaceNode(doStatement, newDoStatement);
+        }
+        else if (statement.Parent is ForStatementSyntax forStatement)
+        {
+            TryStatementSyntax tryCatchStatement = CreateTryStatement(exceptionTypeNames, [statement]);
+            var newForStatement = forStatement.WithStatement(Block(tryCatchStatement));
+            newRoot = root.ReplaceNode(newForStatement, newForStatement);
+        }
+        else if (statement.Parent is ForEachStatementSyntax forEachStatement)
+        {
+            TryStatementSyntax tryCatchStatement = CreateTryStatement(exceptionTypeNames, [statement]);
+            var newForEachStatement = forEachStatement.WithStatement(Block(tryCatchStatement));
+            newRoot = root.ReplaceNode(forEachStatement, newForEachStatement);
         }
         else if (statement.Parent is GlobalStatementSyntax globalStatement &&
                  root is CompilationUnitSyntax compilationUnit)
@@ -392,6 +415,20 @@ public class SurroundWithTryCatchCodeFixProvider : CodeFixProvider
         }
 
         return document.WithSyntaxRoot(newRoot);
+    }
+
+    private static TryStatementSyntax CreateTryStatement(IEnumerable<string> exceptionTypeNames, List<StatementSyntax> statementsToWrap)
+    {
+        var tryBlock = Block(statementsToWrap).WithAdditionalAnnotations(Formatter.Annotation);
+        var count = statementsToWrap.First().Ancestors().OfType<TryStatementSyntax>().Count();
+        var catchClauses = CreateCatchClauses(exceptionTypeNames, count);
+
+        var tryCatchStatement = TryStatement()
+            .WithBlock(tryBlock)
+            .WithCatches(List(catchClauses))
+            .WithAdditionalAnnotations(Formatter.Annotation);
+
+        return tryCatchStatement;
     }
 
     private static (int start, int end) FindTransitiveClosure(
