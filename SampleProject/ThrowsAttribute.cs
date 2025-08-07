@@ -1,3 +1,5 @@
+namespace System;
+
 [AttributeUsage(AttributeTargets.Method | AttributeTargets.Constructor | AttributeTargets.Delegate | AttributeTargets.Property, AllowMultiple = true)]
 public class ThrowsAttribute : Attribute
 {
