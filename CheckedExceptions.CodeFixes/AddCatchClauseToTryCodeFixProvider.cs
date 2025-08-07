@@ -95,20 +95,8 @@ public class AddCatchClauseToTryCodeFixProvider : CodeFixProvider
 
         var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
 
-        var parentBlock = statement.Parent as BlockSyntax;
-        if (parentBlock is null)
-            return document; // Cannot proceed if the parent is not a block
-
-        var statements = parentBlock.Statements;
-        var targetIndex = statements.IndexOf(statement);
-
-        if (targetIndex is -1)
-            return document; // Statement not found in the parent block
-
         // Check if the statement is already inside a try-catch block
         var existingTryStatement = statement.Ancestors().OfType<TryStatementSyntax>().FirstOrDefault();
-
-        var existingCatchClause = statement.Ancestors().OfType<CatchClauseSyntax>().FirstOrDefault();
 
         if (existingTryStatement is not null)
         {
