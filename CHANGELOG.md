@@ -8,6 +8,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+- PR [#247](https://github.com/marinasundstrom/CheckedExceptions/pull/247) Fix codefixes 
+  - Fix "Add clause to existing try/catch" doesn't work [#244](https://github.com/marinasundstrom/CheckedExceptions/issues/244)
+  - Fix "Surround with try/catch" doesn't work on statement in If Statement [#246](https://github.com/marinasundstrom/CheckedExceptions/issues/246)
+ 
+
 ## [1.9.9] - 2025-08-06
 
 ### Added
