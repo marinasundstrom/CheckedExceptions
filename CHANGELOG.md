@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- PR [#248](https://github.com/marinasundstrom/CheckedExceptions/pull/248) Code fix removes "catch call" when redundant
+
+### Fixed
+
 - PR [#247](https://github.com/marinasundstrom/CheckedExceptions/pull/247) Fix codefixes 
   - Fix "Add clause to existing try/catch" doesn't work [#244](https://github.com/marinasundstrom/CheckedExceptions/issues/244)
   - Fix "Surround with try/catch" doesn't work on statement in If Statement [#246](https://github.com/marinasundstrom/CheckedExceptions/issues/246)
