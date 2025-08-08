@@ -20,7 +20,7 @@ public class AddCatchClauseToTryCodeFixProvider : CodeFixProvider
         [CheckedExceptionsAnalyzer.DiagnosticIdUnhandled];
 
     public sealed override FixAllProvider GetFixAllProvider() =>
-        WellKnownFixAllProviders.BatchFixer;
+        null!;
 
     public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
     {

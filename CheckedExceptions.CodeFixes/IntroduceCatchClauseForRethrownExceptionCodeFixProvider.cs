@@ -20,8 +20,8 @@ public class IntroduceCatchClauseForRethrownExceptionCodeFixProvider : CodeFixPr
     public sealed override ImmutableArray<string> FixableDiagnosticIds =>
         [CheckedExceptionsAnalyzer.DiagnosticIdUnhandled];
 
-    //public sealed override FixAllProvider GetFixAllProvider() =>
-    //    WellKnownFixAllProviders.BatchFixer;
+    public sealed override FixAllProvider GetFixAllProvider() =>
+        WellKnownFixAllProviders.BatchFixer;
 
     public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
     {

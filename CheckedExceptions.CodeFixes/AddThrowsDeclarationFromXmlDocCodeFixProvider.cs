@@ -25,7 +25,7 @@ public class AddThrowsDeclarationFromXmlDocCodeFixProvider : CodeFixProvider
         [CheckedExceptionsAnalyzer.DiagnosticIdXmlDocButNoThrows];
 
     public sealed override FixAllProvider GetFixAllProvider() =>
-        null!; //WellKnownFixAllProviders.BatchFixer;
+        WellKnownFixAllProviders.BatchFixer;
 
     public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
     {
