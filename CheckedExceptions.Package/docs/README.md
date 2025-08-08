@@ -32,6 +32,7 @@ If a method might throw an exception, the caller must either:
 💡 Analyzer warnings by default — can be elevated to errors<br />
 📄 Supports .NET and third-party libraries via XML documentation<br />
 🛠 Includes code fixes to help you quickly handle or declare exceptions<br />
+➕ Supports .NET Standard 2.1<br />
 
 ---
 
@@ -150,8 +151,15 @@ Add `CheckedExceptions.settings.json`:
   // If true, control flow analysis, with redundancy checks, is disabled (default: false).
   "disableControlFlowAnalysis": false,
 
-    // If true, basic redundancy checks are available when control flow analysis is disabled (default: false).
-  "enableLegacyRedundancyChecks": false
+  // If true, basic redundancy checks are available when control flow analysis is disabled (default: false).
+  "enableLegacyRedundancyChecks": false,
+
+  // If true, the analayzer will not warn about declaring base type Exception with [Throws] (default: false).
+  "disableBaseExceptionDeclaredDiagnostic": false,
+
+  // If true, the analayzer will not warn about throwing base type Exception (default: false).
+  // Enable if you use another analyzer reporting a similar diagnostic.
+  "disableBaseExceptionThrownDiagnostic": false
 }
 ```
 
@@ -172,7 +180,7 @@ Register in `.csproj`:
 
 | ID         | Message                                                                 |
 |------------|-------------------------------------------------------------------------|
-| `THROW001` | ❗ Unhandled exception: must be caught or declared                       |
+| `THROW001` | ❗ Unhandled exception: must be caught or declared                      |
 | `THROW002` | ℹ️ Ignored exception may cause runtime issues                           |
 | `THROW003` | 🚫 Avoid declaring exception type `System.Exception`                    |
 | `THROW004` | 🚫 Avoid throwing exception base type `System.Exception`                |
@@ -180,12 +188,13 @@ Register in `.csproj`:
 | `THROW006` | 🧬 Incompatible Throws declaration (not declared on base member)        |
 | `THROW007` | 🧬 Missing Throws declaration for base member's exception               |
 | `THROW008` | 📦 Exception already handled by declaration of super type in `[Throws]` |
-| `THROW009` | 🧹 Redundant catch typed clause                                          |
+| `THROW009` | 🧹 Redundant catch typed clause                                         |
 | `THROW010` | ⚠️ `[Throws]` is not valid on full property declarations                |
 | `THROW011` | 📄 Exception in XML docs is not declared with `[Throws]`                |
 | `THROW012` | 🧹 Redundant exception declaration (declared but never thrown)          |
 | `THROW013` | 🧹 Redundant catch-all clause (no remaining exceptions to catch)        |
-| `THROW020` | 🛑 Unreachable code detected                                             |
+| `THROW014` | 🧹 Catch clause has no remaining exceptions to handle                   |
+| `THROW020` | 🛑 Unreachable code detected                                            |
 | `IDE001`   | 🙈 Unreachable code (hidden diagnostic for editor greying)              |
 
 ## 🛠 Code Fixes
@@ -206,7 +215,7 @@ The analyzer offers the following automated code fixes:
 
 * 🧹 **Remove redundant catch clause**
   Removes a catch clause for an exception type that is never thrown.
-  *(Fixes `THROW009`)*
+  *(Fixes `THROW009`, `THROW013`, `THROW014`)*
 
 * 🔧 **Add `[Throws]` declaration from base member**
   Ensures overridden or implemented members declare the same exceptions as their base/interface.
@@ -215,6 +224,10 @@ The analyzer offers the following automated code fixes:
 * 🔧 **Add `[Throws]` declaration from XML doc**
   Converts `<exception>` XML documentation into `[Throws]` attributes.
   *(Fixes `THROW011`)*
+
+* ➕ **Introduce catch clauses from rethrow in catch-all**
+  Appends new `catch` clauses before "catch all".
+  *(Fixes `THROW001`)*
 
 ---
 

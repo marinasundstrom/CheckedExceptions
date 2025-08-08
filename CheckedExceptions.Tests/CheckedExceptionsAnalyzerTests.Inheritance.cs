@@ -32,7 +32,7 @@ partial class CheckedExceptionsAnalyzerTests
 
         await Verifier.VerifyAnalyzerAsync(test, s =>
         {
-            s.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdGeneralThrows);
+            s.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdGeneralThrowDeclared);
         });
     }
 
@@ -204,7 +204,7 @@ partial class CheckedExceptionsAnalyzerTests
 
         await Verifier.VerifyAnalyzerAsync(test, s =>
         {
-            s.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdGeneralThrows);
+            s.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdGeneralThrowDeclared);
         });
     }
 
@@ -238,7 +238,7 @@ partial class CheckedExceptionsAnalyzerTests
 
         await Verifier.VerifyAnalyzerAsync(test, s =>
         {
-            s.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdGeneralThrows);
+            s.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdGeneralThrowDeclared);
         });
     }
 }

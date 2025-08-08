@@ -8,5 +8,8 @@
         "System.TimeoutException": "Always"
     },
     "disableXmlDocInterop": false,
-    "disableControlFlowAnalysis": false
+    "disableControlFlowAnalysis": false,
+    "enableLegacyRedundancyChecks": false,
+    "disableBaseExceptionDeclaredDiagnostic": false,
+    "disableBaseExceptionThrownDiagnostic": false
 }

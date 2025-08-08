@@ -22,7 +22,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     // Diagnostic IDs
     public const string DiagnosticIdUnhandled = "THROW001";
     public const string DiagnosticIdIgnoredException = "THROW002";
-    public const string DiagnosticIdGeneralThrows = "THROW003";
+    public const string DiagnosticIdGeneralThrowDeclared = "THROW003";
     public const string DiagnosticIdGeneralThrow = "THROW004";
     public const string DiagnosticIdDuplicateDeclarations = "THROW005";
     public const string DiagnosticIdMissingThrowsOnBaseMember = "THROW006";
@@ -37,7 +37,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     public const string DiagnosticIdRuleUnreachableCode = "THROW020";
     public const string DiagnosticIdRuleUnreachableCodeHidden = "IDE001";
 
-    public static IEnumerable<string> AllDiagnosticsIds = [DiagnosticIdUnhandled, DiagnosticIdGeneralThrows, DiagnosticIdGeneralThrow, DiagnosticIdDuplicateDeclarations, DiagnosticIdRuleUnreachableCode, DiagnosticIdRuleUnreachableCodeHidden];
+    public static IEnumerable<string> AllDiagnosticsIds = [DiagnosticIdUnhandled, DiagnosticIdGeneralThrowDeclared, DiagnosticIdGeneralThrow, DiagnosticIdDuplicateDeclarations, DiagnosticIdRuleUnreachableCode, DiagnosticIdRuleUnreachableCodeHidden];
 
     private static readonly DiagnosticDescriptor RuleUnhandledException = new(
         DiagnosticIdUnhandled,
@@ -66,8 +66,8 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         isEnabledByDefault: true,
         description: "Discourages throwing the base System.Exception type directly, encouraging clearer and more actionable error semantics.");
 
-    private static readonly DiagnosticDescriptor RuleGeneralThrows = new DiagnosticDescriptor(
-        DiagnosticIdGeneralThrows,
+    private static readonly DiagnosticDescriptor RuleGeneralThrowDeclared = new DiagnosticDescriptor(
+        DiagnosticIdGeneralThrowDeclared,
         "Avoid declaring exception type 'System.Exception'",
         "Avoid declaring exception type 'System.Exception'; use a more specific exception type",
         "Usage",
@@ -195,7 +195,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         customTags: [WellKnownDiagnosticTags.Unnecessary]);
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
-        [RuleUnhandledException, RuleIgnoredException, RuleGeneralThrows, RuleGeneralThrow, RuleDuplicateDeclarations, RuleMissingThrowsOnBaseMember, RuleMissingThrowsFromBaseMember, RuleDuplicateThrowsByHierarchy, RuleRedundantTypedCatchClause, RuleRedundantCatchAllClause, RuleThrowsDeclarationNotValidOnFullProperty, RuleXmlDocButNoThrows, RuleRedundantExceptionDeclaration, RuleCatchHandlesNoRemainingExceptions, RuleUnreachableCode, RuleUnreachableCodeHidden];
+        [RuleUnhandledException, RuleIgnoredException, RuleGeneralThrowDeclared, RuleGeneralThrow, RuleDuplicateDeclarations, RuleMissingThrowsOnBaseMember, RuleMissingThrowsFromBaseMember, RuleDuplicateThrowsByHierarchy, RuleRedundantTypedCatchClause, RuleRedundantCatchAllClause, RuleThrowsDeclarationNotValidOnFullProperty, RuleXmlDocButNoThrows, RuleRedundantExceptionDeclaration, RuleCatchHandlesNoRemainingExceptions, RuleUnreachableCode, RuleUnreachableCodeHidden];
 
     public override void Initialize(AnalysisContext context)
     {
@@ -1654,10 +1654,13 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             }
         }
 
-        // Check for general exceptions
-        if (node is not InvocationExpressionSyntax && IsGeneralException(exceptionType))
+        if (settings.BaseExceptionThrownDiagnosticEnabled)
         {
-            reportDiagnostic(Diagnostic.Create(RuleGeneralThrow, GetSignificantLocation(node)));
+            // Check for general exceptions
+            if (node is not InvocationExpressionSyntax && IsGeneralException(exceptionType))
+            {
+                reportDiagnostic(Diagnostic.Create(RuleGeneralThrow, GetSignificantLocation(node)));
+            }
         }
 
         // Check if the exception is declared via [Throws]

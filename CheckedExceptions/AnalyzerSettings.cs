@@ -16,6 +16,18 @@ public partial class AnalyzerSettings
     [JsonPropertyName("enableLegacyRedundancyChecks")]
     public bool EnableLegacyRedundancyChecks { get; set; } = false;
 
+    [JsonPropertyName("disableBaseExceptionDeclaredDiagnostic")]
+    public bool DisableBaseExceptionDeclaredDiagnostic { get; set; } = false;
+
+    [JsonIgnore]
+    internal bool BaseExceptionDeclaredDiagnosticEnabled => !DisableBaseExceptionDeclaredDiagnostic;
+
+    [JsonPropertyName("disableBaseExceptionThrownDiagnostic")]
+    public bool DisableBaseExceptionThrownDiagnostic { get; set; } = false;
+
+    [JsonIgnore]
+    internal bool BaseExceptionThrownDiagnosticEnabled => !DisableBaseExceptionThrownDiagnostic;
+
     [JsonIgnore]
     internal bool IsControlFlowAnalysisEnabled => !DisableControlFlowAnalysis;
 

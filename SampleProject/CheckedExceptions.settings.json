@@ -6,5 +6,7 @@
         "System.TimeoutException": "Always"
     },
     "disableXmlDocInterop": false,
-    "disableControlFlowAnalysis": false
+    "disableControlFlowAnalysis": false,
+    "disableBaseExceptionDeclaredDiagnostic": false,
+    "disableBaseExceptionThrownDiagnostic": false
 }

@@ -152,7 +152,14 @@ Add `CheckedExceptions.settings.json`:
   "disableControlFlowAnalysis": false,
 
   // If true, basic redundancy checks are available when control flow analysis is disabled (default: false).
-  "enableLegacyRedundancyChecks": false
+  "enableLegacyRedundancyChecks": false,
+
+  // If true, the analayzer will not warn about declaring base type Exception with [Throws] (default: false).
+  "disableBaseExceptionDeclaredDiagnostic": false,
+
+  // If true, the analayzer will not warn about throwing base type Exception (default: false).
+  // Enable if you use another analyzer reporting a similar diagnostic.
+  "disableBaseExceptionThrownDiagnostic": false
 }
 ```
 
