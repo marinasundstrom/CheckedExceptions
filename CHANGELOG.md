@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [2.0.0] - 2025-08-08
+
 ### Added
 
 - PR [#248](https://github.com/marinasundstrom/CheckedExceptions/pull/248) Code fix removes "catch call" when redundant
