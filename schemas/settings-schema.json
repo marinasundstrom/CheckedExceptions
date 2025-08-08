@@ -17,6 +17,16 @@
       "default": false,
       "description": "Indicates whether redundancy checks are available when control flow analysis is disabled."
     },
+    "disableBaseExceptionDeclaredDiagnostic": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indicates whether the analyzer should not warn when declaring base type 'Exception'."
+    },
+    "disableBaseExceptionThrownDiagnostic": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indicates whether the analyzer should not warn when throwing base type 'Exception'."
+    },
     "ignoredExceptions": {
       "type": "array",
       "items": {

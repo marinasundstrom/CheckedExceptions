@@ -7,5 +7,7 @@
     },
     "disableXmlDocInterop": false,
     "disableControlFlowAnalysis": false,
-    "enableLegacyRedundancyChecks": false
+    "enableLegacyRedundancyChecks": false,
+    "disableBaseExceptionDeclaredDiagnostic": false,
+    "disableBaseExceptionThrownDiagnostic": false
 }

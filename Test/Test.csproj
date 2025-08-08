@@ -17,7 +17,7 @@
   </PropertyGroup> -->
 
   <ItemGroup>
-    <PackageReference Include="Sundstrom.CheckedExceptions" Version="1.9.9-dev*">
+    <PackageReference Include="Sundstrom.CheckedExceptions" Version="1.9.9-dev20250808115523">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>

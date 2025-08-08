@@ -10,7 +10,7 @@ partial class CheckedExceptionsAnalyzer
 {
     #region  Methods
 
-    private static void CheckForGeneralExceptionThrowDeclarations(
+    private void CheckForGeneralExceptionThrowDeclarations(
         ImmutableArray<AttributeData> throwsAttributes,
         SymbolAnalysisContext context)
     {
@@ -33,12 +33,17 @@ partial class CheckedExceptionsAnalyzer
                     if (type is null)
                         continue;
 
-                    if (type.Name == exceptionName && type.ContainingNamespace?.ToDisplayString() == "System")
+                    var settings = GetAnalyzerSettings(context.Options);
+
+                    if (settings.BaseExceptionDeclaredDiagnosticEnabled)
                     {
-                        context.ReportDiagnostic(Diagnostic.Create(
-                            RuleGeneralThrows,
-                            typeOfExpr.Type.GetLocation(), // ✅ precise location
-                            type.Name));
+                        if (type.Name == exceptionName && type.ContainingNamespace?.ToDisplayString() == "System")
+                        {
+                            context.ReportDiagnostic(Diagnostic.Create(
+                                RuleGeneralThrowDeclared,
+                                typeOfExpr.Type.GetLocation(), // ✅ precise location
+                                type.Name));
+                        }
                     }
                 }
             }
@@ -70,13 +75,18 @@ partial class CheckedExceptionsAnalyzer
                     if (type is null)
                         continue;
 
-                    if (type.Name == generalExceptionName &&
-                        type.ContainingNamespace?.ToDisplayString() == generalExceptionNamespace)
+                    var settings = GetAnalyzerSettings(context.Options);
+
+                    if (settings.BaseExceptionDeclaredDiagnosticEnabled)
                     {
-                        context.ReportDiagnostic(Diagnostic.Create(
-                            RuleGeneralThrows,
-                            typeOfExpr.Type.GetLocation(), // ✅ report precisely on typeof(Exception)
-                            type.Name));
+                        if (type.Name == generalExceptionName &&
+                        type.ContainingNamespace?.ToDisplayString() == generalExceptionNamespace)
+                        {
+                            context.ReportDiagnostic(Diagnostic.Create(
+                                RuleGeneralThrowDeclared,
+                                typeOfExpr.Type.GetLocation(), // ✅ report precisely on typeof(Exception)
+                                type.Name));
+                        }
                     }
                 }
             }

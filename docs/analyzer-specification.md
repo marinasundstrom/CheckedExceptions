@@ -434,3 +434,19 @@ When enabled, the analyzer performs **basic redundancy checks** without relying 
 It provides:
 
 * Detection of redundant catch clauses (`THROW009`, `THROW013`)
+
+### Disable warnings for base type `Exception`
+
+These options control whether to warn about the usage of base type `Exception`.
+
+```json
+{
+    // [Throw(typeof(Exception))] won't give warning
+    "disableBaseExceptionDeclaredDiagnostic": true,
+
+    // "throw new Exception()" won't give warning
+    "disableBaseExceptionThrownDiagnostic": true
+}
+```
+
+> If another analyzer is used, it might warn about the use of base type `Exceptions` instead.
