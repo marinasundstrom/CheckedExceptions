@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - PR [#248](https://github.com/marinasundstrom/CheckedExceptions/pull/248) Code fix removes "catch call" when redundant
+- PR [#251](https://github.com/marinasundstrom/CheckedExceptions/pull/251) Add option to disable diagnostics for base type Exception
 
 ### Fixed
 
