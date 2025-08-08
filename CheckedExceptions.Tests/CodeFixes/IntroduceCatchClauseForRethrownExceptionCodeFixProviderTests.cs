@@ -5,9 +5,9 @@ using System.Threading.Tasks;
 using Xunit;
 using Xunit.Abstractions;
 
-using Verifier = CSharpCodeFixVerifier<CheckedExceptionsAnalyzer, AddCatchClauseForRethrownExceptionCodeFixProvider, Microsoft.CodeAnalysis.Testing.DefaultVerifier>;
+using Verifier = CSharpCodeFixVerifier<CheckedExceptionsAnalyzer, IntroduceCatchClauseForRethrownExceptionCodeFixProvider, Microsoft.CodeAnalysis.Testing.DefaultVerifier>;
 
-public class AddCatchClauseForRethrownExceptionCodeFixProviderTests
+public class IntroduceCatchClauseForRethrownExceptionCodeFixProviderTests
 {
     [Fact]
     public async Task CatchAll_FixApplied()

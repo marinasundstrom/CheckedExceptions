@@ -12,8 +12,8 @@ using static CatchClauseUtils;
 
 namespace Sundstrom.CheckedExceptions;
 
-[ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(AddCatchClauseForRethrownExceptionCodeFixProvider)), Shared]
-public class AddCatchClauseForRethrownExceptionCodeFixProvider : CodeFixProvider
+[ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(IntroduceCatchClauseForRethrownExceptionCodeFixProvider)), Shared]
+public class IntroduceCatchClauseForRethrownExceptionCodeFixProvider : CodeFixProvider
 {
     private const string TitleAddTryCatch = "Introduce catch clause";
 
