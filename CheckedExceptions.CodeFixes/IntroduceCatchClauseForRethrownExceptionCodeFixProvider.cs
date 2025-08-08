@@ -130,8 +130,19 @@ public class IntroduceCatchClauseForRethrownExceptionCodeFixProvider : CodeFixPr
 
             var catchClausesToAdd = CreateCatchClauses(newExceptionTypes, existingTryStatement.Catches.Count);
 
-            var newTry = existingTryStatement.WithCatches(existingTryStatement.Catches.InsertRange(existingTryStatement.Catches.Count - 1, catchClausesToAdd))
-                .WithAdditionalAnnotations(Formatter.Annotation);
+            TryStatementSyntax newTry;
+
+            if (statement.Parent is BlockSyntax block && block.Statements.Count == 1)
+            {
+                var catches = existingTryStatement.Catches.RemoveAt(existingTryStatement.Catches.Count - 1);
+                newTry = existingTryStatement.WithCatches(catches.AddRange(catchClausesToAdd))
+                                  .WithAdditionalAnnotations(Formatter.Annotation);
+            }
+            else
+            {
+                newTry = existingTryStatement.WithCatches(existingTryStatement.Catches.InsertRange(existingTryStatement.Catches.Count - 1, catchClausesToAdd))
+                    .WithAdditionalAnnotations(Formatter.Annotation);
+            }
 
             if (newTry.Finally?.IsMissing ?? false)
             {

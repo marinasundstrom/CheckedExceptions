@@ -10,7 +10,7 @@ using Verifier = CSharpCodeFixVerifier<CheckedExceptionsAnalyzer, IntroduceCatch
 public class IntroduceCatchClauseForRethrownExceptionCodeFixProviderTests
 {
     [Fact]
-    public async Task CatchAll_FixApplied()
+    public async Task CatchAll_NoOtherCode_FixApplied_CatchAllRemoved()
     {
         var testCode = /* lang=c#-test */  """
 using System;
@@ -56,8 +56,77 @@ namespace TestNamespace
             catch (InvalidOperationException invalidOperationException)
             {
             }
+        }
+
+        [Throws(typeof(InvalidOperationException))]
+        public void MethodThatThrows()
+        {
+            throw new InvalidOperationException();
+        }
+    }
+}
+""";
+
+        var expectedDiagnostic = Verifier.UnhandledException("InvalidOperationException")
+            .WithSpan(15, 17, 15, 23);
+
+        await Verifier.VerifyCodeFixAsync(testCode, [expectedDiagnostic], fixedCode, setup: o =>
+        {
+            o.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdRedundantCatchAllClause);
+        });
+    }
+
+    [Fact]
+    public async Task CatchAll_WithCode_FixApplied_CatchAllRemains()
+    {
+        var testCode = /* lang=c#-test */  """
+using System;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        public void Foo2()
+        {
+            try
+            {
+                MethodThatThrows();
+            }
             catch
             {
+                var x = 2;
+                throw;
+            }
+        }
+
+        [Throws(typeof(InvalidOperationException))]
+        public void MethodThatThrows()
+        {
+            throw new InvalidOperationException();
+        }
+    }
+}
+""";
+
+        var fixedCode = /* lang=c#-test */  """
+using System;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        public void Foo2()
+        {
+            try
+            {
+                MethodThatThrows();
+            }
+            catch (InvalidOperationException invalidOperationException)
+            {
+            }
+            catch
+            {
+                var x = 2;
                 throw;
             }
         }
@@ -72,7 +141,7 @@ namespace TestNamespace
 """;
 
         var expectedDiagnostic = Verifier.UnhandledException("InvalidOperationException")
-            .WithSpan(15, 17, 15, 23);
+            .WithSpan(16, 17, 16, 23);
 
         await Verifier.VerifyCodeFixAsync(testCode, [expectedDiagnostic], fixedCode, setup: o =>
         {
