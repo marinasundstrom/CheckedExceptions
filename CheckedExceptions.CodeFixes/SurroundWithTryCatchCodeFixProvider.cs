@@ -332,6 +332,12 @@ public class SurroundWithTryCatchCodeFixProvider : CodeFixProvider
             var newIfStatement = ifStatement.WithStatement(Block(tryCatchStatement));
             newRoot = root.ReplaceNode(ifStatement, newIfStatement);
         }
+        else if (statement.Parent is ElseClauseSyntax elseClause)
+        {
+            TryStatementSyntax tryCatchStatement = CreateTryStatement(exceptionTypeNames, [statement]);
+            var newElseClause = elseClause.WithStatement(Block(tryCatchStatement));
+            newRoot = root.ReplaceNode(elseClause, newElseClause);
+        }
         else if (statement.Parent is WhileStatementSyntax whileStatement)
         {
             TryStatementSyntax tryCatchStatement = CreateTryStatement(exceptionTypeNames, [statement]);
