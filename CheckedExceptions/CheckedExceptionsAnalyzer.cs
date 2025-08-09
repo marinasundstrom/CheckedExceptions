@@ -811,8 +811,25 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         var exceptions = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
 
         // Collect exceptions from throw statements
+        /*
         var throwStatements = statement.DescendantNodesAndSelf().OfType<ThrowStatementSyntax>();
         foreach (var throwStatement in throwStatements)
+        {
+            if (throwStatement.Expression is not null)
+            {
+                var exceptionType = semanticModel.GetTypeInfo(throwStatement.Expression).Type as INamedTypeSymbol;
+                if (exceptionType is not null)
+                {
+                    if (ShouldIncludeException(exceptionType, throwStatement, settings))
+                    {
+                        exceptions.Add(exceptionType);
+                    }
+                }
+            }
+        }
+        */
+
+        if (statement is ThrowStatementSyntax throwStatement)
         {
             if (throwStatement.Expression is not null)
             {
@@ -862,29 +879,49 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         var invocationExpressions = expression.DescendantNodesAndSelf().OfType<InvocationExpressionSyntax>();
         foreach (var invocation in invocationExpressions)
         {
+            // Handle Lambda
+
             var methodSymbol = semanticModel.GetSymbolInfo(invocation).Symbol as IMethodSymbol;
             if (methodSymbol is not null)
             {
-                var exceptionTypes = GetExceptionTypes(methodSymbol);
-
-                if (settings.IsXmlInteropEnabled)
+                // Handle delegate invokes by getting the target method symbol
+                if (methodSymbol.MethodKind == MethodKind.DelegateInvoke)
                 {
-                    // Get exceptions from XML documentation
-                    var xmlExceptionTypes = GetExceptionTypesFromDocumentationCommentXml(semanticModel.Compilation, methodSymbol);
+                    var targetMethodSymbol = GetTargetMethodSymbol(context, invocation) ?? methodSymbol;
 
-                    xmlExceptionTypes = ProcessNullable(context, invocation, methodSymbol, xmlExceptionTypes);
+                    var exceptionTypes = GetExceptionTypes(targetMethodSymbol);
 
-                    if (xmlExceptionTypes.Any())
+                    foreach (var exceptionType in exceptionTypes)
                     {
-                        exceptionTypes.AddRange(xmlExceptionTypes.Select(x => x.ExceptionType));
+                        if (ShouldIncludeException(exceptionType, invocation, settings))
+                        {
+                            exceptions.Add(exceptionType);
+                        }
                     }
                 }
-
-                foreach (var exceptionType in exceptionTypes)
+                else
                 {
-                    if (ShouldIncludeException(exceptionType, invocation, settings))
+                    var exceptionTypes = GetExceptionTypes(methodSymbol);
+
+                    if (settings.IsXmlInteropEnabled)
                     {
-                        exceptions.Add(exceptionType);
+                        // Get exceptions from XML documentation
+                        var xmlExceptionTypes = GetExceptionTypesFromDocumentationCommentXml(semanticModel.Compilation, methodSymbol);
+
+                        xmlExceptionTypes = ProcessNullable(context, invocation, methodSymbol, xmlExceptionTypes);
+
+                        if (xmlExceptionTypes.Any())
+                        {
+                            exceptionTypes.AddRange(xmlExceptionTypes.Select(x => x.ExceptionType));
+                        }
+                    }
+
+                    foreach (var exceptionType in exceptionTypes)
+                    {
+                        if (ShouldIncludeException(exceptionType, invocation, settings))
+                        {
+                            exceptions.Add(exceptionType);
+                        }
                     }
                 }
             }

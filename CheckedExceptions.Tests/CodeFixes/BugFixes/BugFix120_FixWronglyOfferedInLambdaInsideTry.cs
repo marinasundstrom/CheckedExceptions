@@ -61,7 +61,10 @@ namespace TestNamespace
              .WithSpan(13, 21, 13, 59);
 
         // Expect fix to be registered and applied
-        await Verifier.VerifyCodeFixAsync(testCode, [expectedDiagnostic], expected, expectedIncrementalIterations: 0);
+        await Verifier.VerifyCodeFixAsync(testCode, [expectedDiagnostic], expected, expectedIncrementalIterations: 0, setup: options =>
+        {
+            options.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdRedundantCatchAllClause);
+        });
     }
 
     [Fact]
@@ -136,6 +139,9 @@ namespace TestNamespace
             .WithSpan(17, 25, 17, 63);
 
         // Expect no fix to be registered
-        await Verifier.VerifyCodeFixAsync(testCode, [expectedDiagnostic], expected);
+        await Verifier.VerifyCodeFixAsync(testCode, [expectedDiagnostic], expected, setup: options =>
+        {
+            options.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdRedundantCatchAllClause);
+        });
     }
 }
