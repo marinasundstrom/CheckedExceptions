@@ -810,25 +810,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
         var exceptions = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
 
-        // Collect exceptions from throw statements
-        /*
-        var throwStatements = statement.DescendantNodesAndSelf().OfType<ThrowStatementSyntax>();
-        foreach (var throwStatement in throwStatements)
-        {
-            if (throwStatement.Expression is not null)
-            {
-                var exceptionType = semanticModel.GetTypeInfo(throwStatement.Expression).Type as INamedTypeSymbol;
-                if (exceptionType is not null)
-                {
-                    if (ShouldIncludeException(exceptionType, throwStatement, settings))
-                    {
-                        exceptions.Add(exceptionType);
-                    }
-                }
-            }
-        }
-        */
-
+        // Collect exception from throw statement
         if (statement is ThrowStatementSyntax throwStatement)
         {
             if (throwStatement.Expression is not null)
