@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - PR [#254](https://github.com/marinasundstrom/CheckedExceptions/pull/254) Handle codefix in surrounding else clause with statement
+- PR [#255](https://github.com/marinasundstrom/CheckedExceptions/pull/255) Fix handling of lambdas in control flow analysis
 
 ## [2.0.0] - 2025-08-08
 
