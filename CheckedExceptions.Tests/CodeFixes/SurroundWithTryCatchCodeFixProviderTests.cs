@@ -689,4 +689,105 @@ namespace TestNamespace
 
         await Verifier.VerifyCodeFixAsync(testCode, [expectedDiagnostic], fixedCode, setup: t => t.CompilerDiagnostics = CompilerDiagnostics.None);
     }
+
+    [Fact]
+    public async Task IfStatement_PromoteStatementToBlock()
+    {
+        var testCode = /* lang=c#-test */  """
+            #nullable enable
+            using System;
+
+            class Program
+            {
+                public void Foo32()
+                {
+                    if (true)
+                        throw new InvalidCastException();
+
+                }
+            }
+            """;
+
+        var fixedCode = /* lang=c#-test */  """
+            #nullable enable
+            using System;
+
+            class Program
+            {
+                public void Foo32()
+                {
+                    if (true)
+                    {
+                        try
+                        {
+                            throw new InvalidCastException();
+                        }
+                        catch (InvalidCastException invalidCastException)
+                        {
+                        }
+                    }
+                }
+            }
+            """;
+
+        var expectedDiagnostic = Verifier.UnhandledException("InvalidCastException")
+            .WithSpan(9, 13, 9, 46);
+
+        await Verifier.VerifyCodeFixAsync(testCode, [expectedDiagnostic], fixedCode, setup: opt =>
+        {
+            opt.CompilerDiagnostics = CompilerDiagnostics.None;
+        });
+    }
+
+    [Fact]
+    public async Task IfStatement_ElseClause_PromoteStatementToBlock()
+    {
+        var testCode = /* lang=c#-test */  """
+            #nullable enable
+            using System;
+
+            class Program
+            {
+                public void Foo32()
+                {
+                    if (true)
+                        var x = 2;
+                    else
+                        throw new InvalidCastException();
+                }
+            }
+            """;
+
+        var fixedCode = /* lang=c#-test */  """
+            #nullable enable
+            using System;
+
+            class Program
+            {
+                public void Foo32()
+                {
+                    if (true)
+                        var x = 2;
+                    else
+                    {
+                        try
+                        {
+                            throw new InvalidCastException();
+                        }
+                        catch (InvalidCastException invalidCastException)
+                        {
+                        }
+                    }
+                }
+            }
+            """;
+
+        var expectedDiagnostic = Verifier.UnhandledException("InvalidCastException")
+            .WithSpan(11, 13, 11, 46);
+
+        await Verifier.VerifyCodeFixAsync(testCode, [expectedDiagnostic], fixedCode, setup: opt =>
+        {
+            opt.CompilerDiagnostics = CompilerDiagnostics.None;
+        });
+    }
 }
