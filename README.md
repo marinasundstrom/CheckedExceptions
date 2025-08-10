@@ -148,6 +148,9 @@ Add `CheckedExceptions.settings.json`:
   // If true, exceptions will not be read from XML documentation (default: false).
   "disableXmlDocInterop": false,
 
+  // If true, analysis on LINQ constructs will be disabled (default: false).
+  "disableLinqSupport": false,
+
   // If true, control flow analysis, with redundancy checks, is disabled (default: false).
   "disableControlFlowAnalysis": false,
 

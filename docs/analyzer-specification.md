@@ -450,3 +450,24 @@ These options control whether to warn about the usage of base type `Exception`.
 ```
 
 > If another analyzer is used, it might warn about the use of base type `Exceptions` instead.
+
+
+### Disable LINQ support
+
+This option control whether all analysis on LINQ constructors should be disabled.
+
+```json
+{
+    "disableLinqSupport": true,
+}
+```
+
+Most notably, terminator operators (such as `First`) will not indicate the exceptions it propagates:
+
+```csharp
+IEnumerable<int> items = [1, 42, 3];
+var query = items.Where([Throws(typeof(FormatException), typeof(OverflowException))] (x) => x == int.Parse("10"));
+
+// First will not indicate exceptions
+var r = query.First();
+```
