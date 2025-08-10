@@ -37,7 +37,32 @@ public partial class LinqTest
         }, executable: true);
     }
 
+    [Fact]
+    public async Task Test2()
+    {
+        var test = /* lang=c#-test */ """
+            #nullable enable
+            using System;
+            using System.Collections.Generic;
+            using System.Linq;
 
-        await Verifier.VerifyAnalyzerAsync(test, [expected, expected2]);
+            IEnumerable<int> items = [];
+            var query = items.Where([Throws(typeof(FormatException), typeof(OverflowException))] (x) => x == int.Parse("10"));
+            foreach (var item in query) 
+            {
+
+            }
+            """;
+
+        var expected = Verifier.UnhandledException("FormatException")
+            .WithSpan(8, 22, 8, 27);
+
+        var expected2 = Verifier.UnhandledException("OverflowException")
+            .WithSpan(8, 22, 8, 27);
+
+        await Verifier.VerifyAnalyzerAsync(test, setup: o =>
+        {
+            o.ExpectedDiagnostics.AddRange(expected, expected2);
+        }, executable: true);
     }
 }

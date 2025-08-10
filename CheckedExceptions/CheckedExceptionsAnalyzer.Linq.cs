@@ -223,6 +223,122 @@ partial class CheckedExceptionsAnalyzer
 
         return false;
     }
+
+    private void CollectEnumerationExceptions(
+    IOperation collection,
+    HashSet<INamedTypeSymbol> exceptionTypes,
+    SemanticModel semanticModel,
+    CancellationToken ct)
+    {
+        // Walk upstream through the LINQ chain, harvesting [Throws] on deferred operators.
+        CollectDeferredChainExceptions_ForEnumeration(collection, exceptionTypes, semanticModel.Compilation, semanticModel, ct);
+    }
+
+    private static void CollectDeferredChainExceptions_ForEnumeration(
+        IOperation source,
+        HashSet<INamedTypeSymbol> exceptionTypes,
+        Compilation compilation,
+        SemanticModel semanticModel,
+        CancellationToken ct)
+    {
+        var current = source;
+
+        while (current is not null)
+        {
+            switch (current)
+            {
+                case IInvocationOperation inv when IsLinqExtension(inv.TargetMethod):
+                    {
+                        var name = inv.TargetMethod.Name;
+
+                        // On enumeration, we care about exceptions contributed by *deferred* ops.
+                        if (LinqKnowledge.DeferredOps.Contains(name) || !LinqKnowledge.TerminalOps.Contains(name))
+                        {
+                            CollectThrowsFromFunctionalArguments(inv, exceptionTypes); // lambdas, method groups
+                            current = GetLinqSourceOperation(inv);
+                            continue;
+                        }
+
+                        // If someone put a terminal op directly in foreach (rare), add its built-ins too.
+                        if (LinqKnowledge.TerminalOps.Contains(name))
+                        {
+                            if (LinqKnowledge.BuiltIns.TryGetValue(name, out var builtInFactory))
+                                foreach (var t in builtInFactory(compilation)) if (t is not null) exceptionTypes.Add(t);
+
+                            current = GetLinqSourceOperation(inv);
+                            continue;
+                        }
+
+                        // Unknown op: still inspect functional args and continue upstream.
+                        CollectThrowsFromFunctionalArguments(inv, exceptionTypes);
+                        current = GetLinqSourceOperation(inv);
+                        continue;
+                    }
+
+                case ILocalReferenceOperation lref:
+                    {
+                        // Hop into "var query = <initializer>;"
+                        var local = lref.Local;
+                        foreach (var sr in local.DeclaringSyntaxReferences)
+                        {
+                            var node = sr.GetSyntax(ct);
+                            if (node is VariableDeclaratorSyntax v && v.Initializer?.Value is { } initExpr)
+                            {
+                                var initOp = semanticModel.GetOperation(initExpr, ct);
+                                if (initOp is not null) { current = initOp; goto ContinueWhile; }
+                            }
+                        }
+                        return;
+                    }
+
+                case IConversionOperation conv: current = conv.Operand; continue;
+                case IParenthesizedOperation paren: current = paren.Operand; continue;
+                case IConditionalAccessOperation cond: current = cond.Operation; continue;
+
+                // Optional: handle field/property initializers similarly to locals if you want deeper coverage
+
+                default:
+                    return;
+            }
+
+        ContinueWhile:;
+        }
+    }
+
+    private static void CollectThrowsFromFunctionalArguments(
+    IInvocationOperation op,
+    HashSet<INamedTypeSymbol> exceptionTypes)
+    {
+        foreach (var arg in op.Arguments)
+        {
+            switch (arg.Value)
+            {
+                case IAnonymousFunctionOperation lambda:
+                    CollectThrowsFromSymbol(lambda.Symbol, exceptionTypes);
+                    break;
+
+                case IDelegateCreationOperation del:
+                    if (del.Target is IAnonymousFunctionOperation anon)
+                        CollectThrowsFromSymbol(anon.Symbol, exceptionTypes);
+                    else if (del.Target is IMethodReferenceOperation mref1)
+                        CollectThrowsFromSymbol(mref1.Method, exceptionTypes);
+                    break;
+
+                case IMethodReferenceOperation mref2:
+                    CollectThrowsFromSymbol(mref2.Method, exceptionTypes);
+                    break;
+            }
+        }
+    }
+
+    private static void CollectThrowsFromSymbol(ISymbol? sym, HashSet<INamedTypeSymbol> exceptionTypes)
+    {
+        if (sym is null) return;
+
+        foreach (var attr in sym.GetAttributes())
+            foreach (var t in GetExceptionTypesFromThrowsAttribute(attr))
+                exceptionTypes.Add(t);
+    }
 }
 
 internal static class LinqKnowledge
@@ -230,12 +346,13 @@ internal static class LinqKnowledge
     // Minimal sets — extend as you go.
     public static readonly HashSet<string> DeferredOps = new(StringComparer.Ordinal)
     {
-        "Where", "Select", "SelectMany",
-        "Take", "Skip", "TakeWhile", "SkipWhile",
-        "OrderBy", "OrderByDescending", "ThenBy", "ThenByDescending",
-        "GroupBy", "Join", "GroupJoin",
-        "Distinct", "Concat", "Union", "Intersect", "Except",
-        "Reverse", "Zip", "DefaultIfEmpty"
+        "Where","Select","SelectMany",
+        "Take","Skip","TakeWhile","SkipWhile",
+        "OrderBy","OrderByDescending","ThenBy","ThenByDescending",
+        "GroupBy","Join","GroupJoin",
+        "Distinct","Concat","Union","Intersect","Except",
+        "Reverse","Zip","DefaultIfEmpty",
+        "Cast","OfType","AsEnumerable"
     };
 
     public static readonly HashSet<string> TerminalOps = new(StringComparer.Ordinal)
