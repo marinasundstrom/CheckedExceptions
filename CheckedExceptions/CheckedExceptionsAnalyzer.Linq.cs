@@ -17,18 +17,21 @@ partial class CheckedExceptionsAnalyzer
         SemanticModel semanticModel,
         CancellationToken ct = default)
     {
-        if (semanticModel.GetOperation(invocationSyntax, ct) is not IInvocationOperation termOp)
-            return;
+        if (semanticModel.GetOperation(invocationSyntax, ct) is not IInvocationOperation termOp) return;
+        if (!IsLinqExtension(termOp.TargetMethod)) return;
 
-        if (!IsLinqExtension(termOp.TargetMethod))
-            return;
+        var name = termOp.TargetMethod.Name;
+        if (!LinqKnowledge.TerminalOps.Contains(name)) return;
 
-        if (!LinqKnowledge.TerminalOps.Contains(termOp.TargetMethod.Name))
-            return;
+        // NEW: harvest predicate/selector on this terminal op
+        CollectThrowsFromFunctionalArguments(termOp, exceptionTypes);
 
-        if (LinqKnowledge.BuiltIns.TryGetValue(termOp.TargetMethod.Name, out var builtInFactory))
-            foreach (var t in builtInFactory(semanticModel.Compilation)) if (t is not null) exceptionTypes.Add(t);
+        // Existing: add built-ins for the terminal
+        if (LinqKnowledge.BuiltIns.TryGetValue(name, out var builtInFactory))
+            foreach (var t in builtInFactory(semanticModel.Compilation, termOp.TargetMethod))
+                if (t is not null) exceptionTypes.Add(t);
 
+        // Backtrack upstream
         var source = GetLinqSourceOperation(termOp);
         if (source is null) return;
 
@@ -77,22 +80,27 @@ partial class CheckedExceptionsAnalyzer
 
                     if (LinqKnowledge.DeferredOps.Contains(name))
                     {
-                        CollectThrowsFromLambdaArguments(inv, exceptionTypes);
+                        // harvest lambdas/method groups on deferred op
+                        CollectThrowsFromFunctionalArguments(inv, exceptionTypes);
                         current = GetLinqSourceOperation(inv);
                         continue;
                     }
 
                     if (LinqKnowledge.TerminalOps.Contains(name))
                     {
+                        // NEW: harvest lambdas/method groups on terminal op too
+                        CollectThrowsFromFunctionalArguments(inv, exceptionTypes);
+
                         if (LinqKnowledge.BuiltIns.TryGetValue(name, out var builtInFactory))
-                            foreach (var t in builtInFactory(compilation)) if (t is not null) exceptionTypes.Add(t);
+                            foreach (var t in builtInFactory(compilation, inv.TargetMethod))
+                                if (t is not null) exceptionTypes.Add(t);
 
                         current = GetLinqSourceOperation(inv);
                         continue;
                     }
 
-                    // Unknown LINQ op: still harvest lambdas
-                    CollectThrowsFromLambdaArguments(inv, exceptionTypes);
+                    // Unknown op: still inspect functional args
+                    CollectThrowsFromFunctionalArguments(inv, exceptionTypes);
                     current = GetLinqSourceOperation(inv);
                     continue;
 
@@ -263,7 +271,8 @@ partial class CheckedExceptionsAnalyzer
                         if (LinqKnowledge.TerminalOps.Contains(name))
                         {
                             if (LinqKnowledge.BuiltIns.TryGetValue(name, out var builtInFactory))
-                                foreach (var t in builtInFactory(compilation)) if (t is not null) exceptionTypes.Add(t);
+                                foreach (var t in builtInFactory(compilation, inv.TargetMethod))
+                                    if (t is not null) exceptionTypes.Add(t);
 
                             current = GetLinqSourceOperation(inv);
                             continue;
@@ -368,16 +377,113 @@ internal static class LinqKnowledge
     };
 
     // Built-in exceptions for terminal ops (add more as needed).
-    public static ImmutableDictionary<string, Func<Compilation, IEnumerable<INamedTypeSymbol>>> BuiltIns
-        = new Dictionary<string, Func<Compilation, IEnumerable<INamedTypeSymbol>>>(StringComparer.Ordinal)
+    public static ImmutableDictionary<string, Func<Compilation, IMethodSymbol, IEnumerable<INamedTypeSymbol>>> BuiltIns
+        = new Dictionary<string, Func<Compilation, IMethodSymbol, IEnumerable<INamedTypeSymbol>>>(StringComparer.Ordinal)
         {
-            ["First"] = c => [Get(c, "System.InvalidOperationException")],
-            ["Single"] = c => [Get(c, "System.InvalidOperationException")],
-            ["ElementAt"] = c => [Get(c, "System.ArgumentOutOfRangeException")],
-            ["ToDictionary"] = c => [Get(c, "System.ArgumentException")], // duplicate keys
-            // Note: FirstOrDefault/SingleOrDefault/ElementAtOrDefault generally don't throw "empty" exceptions.
+            // Empty-sequence semantics
+            ["First"] = (c, m) => Types(c, "System.InvalidOperationException"),
+            ["Last"] = (c, m) => Types(c, "System.InvalidOperationException"),
+            ["Single"] = (c, m) => Types(c, "System.InvalidOperationException"),
+            ["FirstOrDefault"] = (c, m) => Array.Empty<INamedTypeSymbol>(),                   // no throw on empty
+            ["LastOrDefault"] = (c, m) => Array.Empty<INamedTypeSymbol>(),                   // no throw on empty
+            ["SingleOrDefault"] = (c, m) => Types(c, "System.InvalidOperationException"),      // >1 element
+
+            // Indexing
+            ["ElementAt"] = (c, m) => Types(c, "System.ArgumentOutOfRangeException"),
+            ["ElementAtOrDefault"] = (c, m) => Array.Empty<INamedTypeSymbol>(),
+
+            // Aggregates: empty sequence behavior depends on overloads / nullability
+            ["Min"] = (c, m) => ReturnsNonNullableValue(m) ? Types(c, "System.InvalidOperationException") : [],
+            ["Max"] = (c, m) => ReturnsNonNullableValue(m) ? Types(c, "System.InvalidOperationException") : [],
+            ["Average"] = (c, m) => ReturnsNonNullableValue(m) ? Types(c, "System.InvalidOperationException") : Enumerable.Empty<INamedTypeSymbol>()
+                                                           // + decimal overflow below
+                                                           .Concat(IsDecimalAverage(m) ? Types(c, "System.OverflowException") : []),
+            // Sum: only decimal variants can overflow (decimal arithmetic is checked)
+            ["Sum"] = (c, m) => IsDecimalSum(m) ? Types(c, "System.OverflowException") : [],
+
+            // Dictionary materialization during enumeration (duplicate keys)
+            ["ToDictionary"] = (c, m) => Types(c, "System.ArgumentException"),
+
+            // Lookup allows duplicate keys → no built-in throw on enumeration
+            ["ToLookup"] = (c, m) => Array.Empty<INamedTypeSymbol>(),
+
+            // Aggregate: without seed throws on empty; with seed doesn’t
+            ["Aggregate"] = (c, m) => AggregateThrowsOnEmpty(m) ? Types(c, "System.InvalidOperationException") : [],
+
+            // The rest are generally fine on empty / no built-ins at enumeration time:
+            ["Any"] = (c, m) => [],
+            ["All"] = (c, m) => [],
+            ["Contains"] = (c, m) => [],
+            ["Count"] = (c, m) => [],
+            ["LongCount"] = (c, m) => [],
+            ["SequenceEqual"] = (c, m) => [],
+            ["ToArray"] = (c, m) => [],
+            ["ToList"] = (c, m) => [],
         }.ToImmutableDictionary();
 
-    private static INamedTypeSymbol? Get(Compilation c, string metadataName)
-        => c.GetTypeByMetadataName(metadataName);
+    private static IEnumerable<INamedTypeSymbol> Types(Compilation c, params string[] metadata)
+        => metadata.Select(n => c.GetTypeByMetadataName(n)).Where(t => t is not null)!;
+
+    private static bool ReturnsNonNullableValue(IMethodSymbol m)
+    {
+        // Min/Max/Average over non-nullable value types throw on empty
+        var rt = m.ReturnType;
+        return rt.IsValueType && !IsNullable(rt);
+    }
+
+    private static bool IsNullable(ITypeSymbol t)
+        => t.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T;
+
+    private static bool IsDecimal(ITypeSymbol t)
+        => t.SpecialType == SpecialType.System_Decimal;
+
+    // Average has overloads returning decimal/decimal?, double/double?, float/float?
+    // We only care to add OverflowException for decimal returning variants.
+    private static bool IsDecimalAverage(IMethodSymbol m)
+        => IsDecimal(m.ReturnType);
+
+    // Sum has many overloads; decimal variants can throw OverflowException.
+    private static bool IsDecimalSum(IMethodSymbol m)
+    {
+        // Sum(IEnumerable<decimal>) returns decimal
+        // Sum(IEnumerable<decimal?>) returns decimal?
+        if (m.Parameters.Length == 1)
+            return IsEnumerableOf(m.Parameters[0].Type, IsDecimal);
+
+        // Sum<TSource>(IEnumerable<TSource>, Func<TSource, decimal>) etc.
+        if (m.Parameters.Length >= 2)
+            return ReturnsDecimalSelector(m.Parameters[1].Type);
+        return false;
+    }
+
+    private static bool IsEnumerableOf(ITypeSymbol type, Func<ITypeSymbol, bool> isT)
+    {
+        if (type is INamedTypeSymbol nt && nt.IsGenericType)
+        {
+            var def = nt.ConstructedFrom;
+            if (def.ToDisplayString() == "System.Collections.Generic.IEnumerable<T>")
+                return isT(nt.TypeArguments[0]) || (IsNullable(nt.TypeArguments[0]) && isT(((INamedTypeSymbol)nt.TypeArguments[0]).TypeArguments[0]));
+        }
+        return false;
+    }
+
+    private static bool ReturnsDecimalSelector(ITypeSymbol selectorType)
+    {
+        // Func<TSource, decimal> or Func<TSource, decimal?>
+        if (selectorType is INamedTypeSymbol f && f.DelegateInvokeMethod is { } invoke)
+            return IsDecimal(invoke.ReturnType) || (IsNullable(invoke.ReturnType) && IsDecimal(((INamedTypeSymbol)invoke.ReturnType).TypeArguments[0]));
+        return false;
+    }
+
+    private static bool AggregateThrowsOnEmpty(IMethodSymbol m)
+    {
+        // Aggregate<TSource>(IEnumerable<TSource>, Func<TSource,TSource,TSource>)  // no seed → throws on empty
+        // Any overload where the first parameter after the source is NOT a seed implies "no seed"
+        // Seed overloads: Aggregate<TSource,TAccumulate>(IEnumerable<TSource>, TAccumulate, Func<...>, ...)
+        if (!m.IsExtensionMethod || m.Parameters.Length < 2) return false;
+
+        var second = m.Parameters[1];
+        // Heuristic: if second parameter is a delegate (Func<...>) => no seed overload, throws on empty.
+        return second.Type.TypeKind == TypeKind.Delegate;
+    }
 }
