@@ -12,6 +12,7 @@ public partial class LinqTest
     public async Task Test()
     {
         var test = /* lang=c#-test */ """
+            #nullable enable
             using System;
             using System.Collections.Generic;
             using System.Linq;
@@ -21,12 +22,21 @@ public partial class LinqTest
             var r = query.First();
             """;
 
-        var expected = Verifier.UnhandledException("InvalidOperationException")
-            .WithSpan(16, 9, 16, 21);
+        var expected = Verifier.UnhandledException("FormatException")
+            .WithSpan(8, 15, 8, 22);
 
-        var expected2 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdXmlDocButNoThrows)
-            .WithArguments("InvalidOperationException")
-            .WithSpan(9, 17, 9, 27);
+        var expected2 = Verifier.UnhandledException("OverflowException")
+            .WithSpan(8, 15, 8, 22);
+
+        var expected3 = Verifier.UnhandledException("InvalidOperationException")
+            .WithSpan(8, 15, 8, 22);
+
+        await Verifier.VerifyAnalyzerAsync(test, setup: o =>
+        {
+            o.ExpectedDiagnostics.AddRange(expected, expected2, expected3);
+        }, executable: true);
+    }
+
 
         await Verifier.VerifyAnalyzerAsync(test, [expected, expected2]);
     }
