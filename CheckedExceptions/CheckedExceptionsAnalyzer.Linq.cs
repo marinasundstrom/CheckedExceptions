@@ -17,18 +17,21 @@ partial class CheckedExceptionsAnalyzer
         SemanticModel semanticModel,
         CancellationToken ct = default)
     {
-        if (semanticModel.GetOperation(invocationSyntax, ct) is not IInvocationOperation termOp)
-            return;
+        if (semanticModel.GetOperation(invocationSyntax, ct) is not IInvocationOperation termOp) return;
+        if (!IsLinqExtension(termOp.TargetMethod)) return;
 
-        if (!IsLinqExtension(termOp.TargetMethod))
-            return;
+        var name = termOp.TargetMethod.Name;
+        if (!LinqKnowledge.TerminalOps.Contains(name)) return;
 
-        if (!LinqKnowledge.TerminalOps.Contains(termOp.TargetMethod.Name))
-            return;
+        // NEW: harvest predicate/selector on this terminal op
+        CollectThrowsFromFunctionalArguments(termOp, exceptionTypes, semanticModel, ct);
 
-        if (LinqKnowledge.BuiltIns.TryGetValue(termOp.TargetMethod.Name, out var builtInFactory))
-            foreach (var t in builtInFactory(semanticModel.Compilation)) if (t is not null) exceptionTypes.Add(t);
+        // Existing: add built-ins for the terminal
+        if (LinqKnowledge.BuiltIns.TryGetValue(name, out var builtInFactory))
+            foreach (var t in builtInFactory(semanticModel.Compilation, termOp.TargetMethod))
+                if (t is not null) exceptionTypes.Add(t);
 
+        // Backtrack upstream
         var source = GetLinqSourceOperation(termOp);
         if (source is null) return;
 
@@ -51,11 +54,8 @@ partial class CheckedExceptionsAnalyzer
 
     private static IOperation? GetLinqSourceOperation(IInvocationOperation op)
     {
-        // For extension methods, Instance is null; the source is the 1st argument.
-        // For instance methods (rare in LINQ), Instance is the source.
         if (op.TargetMethod.IsExtensionMethod)
-            return op.Arguments.Length > 0 ? op.Arguments[0].Value : null;
-
+            return op.Instance ?? (op.Arguments.Length > 0 ? op.Arguments[0].Value : null);
         return op.Instance;
     }
 
@@ -77,22 +77,33 @@ partial class CheckedExceptionsAnalyzer
 
                     if (LinqKnowledge.DeferredOps.Contains(name))
                     {
-                        CollectThrowsFromLambdaArguments(inv, exceptionTypes);
+                        // 1) harvest lambdas/method groups on deferred op
+                        CollectThrowsFromFunctionalArguments(inv, exceptionTypes, semanticModel, default);
+
+                        // 2) add intrinsic deferred-op exceptions (e.g., Cast<T>)
+                        if (LinqKnowledge.DeferredBuiltIns.TryGetValue(name, out var defFactory))
+                            foreach (var t in defFactory(compilation, inv))
+                                if (t is not null) exceptionTypes.Add(t);
+
                         current = GetLinqSourceOperation(inv);
                         continue;
                     }
 
                     if (LinqKnowledge.TerminalOps.Contains(name))
                     {
+                        // NEW: harvest lambdas/method groups on terminal op too
+                        CollectThrowsFromFunctionalArguments(inv, exceptionTypes, semanticModel, default);
+
                         if (LinqKnowledge.BuiltIns.TryGetValue(name, out var builtInFactory))
-                            foreach (var t in builtInFactory(compilation)) if (t is not null) exceptionTypes.Add(t);
+                            foreach (var t in builtInFactory(compilation, inv.TargetMethod))
+                                if (t is not null) exceptionTypes.Add(t);
 
                         current = GetLinqSourceOperation(inv);
                         continue;
                     }
 
-                    // Unknown LINQ op: still harvest lambdas
-                    CollectThrowsFromLambdaArguments(inv, exceptionTypes);
+                    // Unknown op: still inspect functional args
+                    CollectThrowsFromFunctionalArguments(inv, exceptionTypes, semanticModel, default);
                     current = GetLinqSourceOperation(inv);
                     continue;
 
@@ -254,7 +265,12 @@ partial class CheckedExceptionsAnalyzer
                         // On enumeration, we care about exceptions contributed by *deferred* ops.
                         if (LinqKnowledge.DeferredOps.Contains(name) || !LinqKnowledge.TerminalOps.Contains(name))
                         {
-                            CollectThrowsFromFunctionalArguments(inv, exceptionTypes); // lambdas, method groups
+                            CollectThrowsFromFunctionalArguments(inv, exceptionTypes, semanticModel, ct);
+
+                            if (LinqKnowledge.DeferredBuiltIns.TryGetValue(name, out var defFactory))
+                                foreach (var t in defFactory(compilation, inv))
+                                    if (t is not null) exceptionTypes.Add(t);
+
                             current = GetLinqSourceOperation(inv);
                             continue;
                         }
@@ -263,14 +279,15 @@ partial class CheckedExceptionsAnalyzer
                         if (LinqKnowledge.TerminalOps.Contains(name))
                         {
                             if (LinqKnowledge.BuiltIns.TryGetValue(name, out var builtInFactory))
-                                foreach (var t in builtInFactory(compilation)) if (t is not null) exceptionTypes.Add(t);
+                                foreach (var t in builtInFactory(compilation, inv.TargetMethod))
+                                    if (t is not null) exceptionTypes.Add(t);
 
                             current = GetLinqSourceOperation(inv);
                             continue;
                         }
 
                         // Unknown op: still inspect functional args and continue upstream.
-                        CollectThrowsFromFunctionalArguments(inv, exceptionTypes);
+                        CollectThrowsFromFunctionalArguments(inv, exceptionTypes, semanticModel, ct);
                         current = GetLinqSourceOperation(inv);
                         continue;
                     }
@@ -306,8 +323,10 @@ partial class CheckedExceptionsAnalyzer
     }
 
     private static void CollectThrowsFromFunctionalArguments(
-    IInvocationOperation op,
-    HashSet<INamedTypeSymbol> exceptionTypes)
+      IInvocationOperation op,
+      HashSet<INamedTypeSymbol> exceptionTypes,
+      SemanticModel? semanticModel = null,
+      CancellationToken ct = default)
     {
         foreach (var arg in op.Arguments)
         {
@@ -327,8 +346,63 @@ partial class CheckedExceptionsAnalyzer
                 case IMethodReferenceOperation mref2:
                     CollectThrowsFromSymbol(mref2.Method, exceptionTypes);
                     break;
+
+                case ILocalReferenceOperation lref when semanticModel is not null:
+                    FollowDelegateLocal(lref, exceptionTypes, semanticModel, ct);
+                    break;
+
+                case IParameterReferenceOperation pref when semanticModel is not null:
+                    FollowDelegateParameter(pref, exceptionTypes, semanticModel, ct);
+                    break;
             }
         }
+    }
+
+    private static void FollowDelegateLocal(
+        ILocalReferenceOperation lref,
+        HashSet<INamedTypeSymbol> exceptionTypes,
+        SemanticModel semanticModel,
+        CancellationToken ct,
+        HashSet<ISymbol>? visited = null)
+    {
+        visited ??= new(SymbolEqualityComparer.Default);
+        if (!visited.Add(lref.Local))
+            return;
+
+        foreach (var sr in lref.Local.DeclaringSyntaxReferences)
+        {
+            var node = sr.GetSyntax(ct);
+            if (node is VariableDeclaratorSyntax v && v.Initializer?.Value is { } initExpr)
+            {
+                var initOp = semanticModel.GetOperation(initExpr, ct);
+                if (initOp is null) continue;
+
+                if (initOp is IAnonymousFunctionOperation lambda)
+                    CollectThrowsFromSymbol(lambda.Symbol, exceptionTypes);
+                else if (initOp is IMethodReferenceOperation mref)
+                    CollectThrowsFromSymbol(mref.Method, exceptionTypes);
+                else if (initOp is IDelegateCreationOperation del)
+                {
+                    if (del.Target is IAnonymousFunctionOperation anon)
+                        CollectThrowsFromSymbol(anon.Symbol, exceptionTypes);
+                    else if (del.Target is IMethodReferenceOperation mref2)
+                        CollectThrowsFromSymbol(mref2.Method, exceptionTypes);
+                }
+                else if (initOp is ILocalReferenceOperation innerLocal)
+                    FollowDelegateLocal(innerLocal, exceptionTypes, semanticModel, ct, visited);
+            }
+        }
+    }
+
+    private static void FollowDelegateParameter(
+        IParameterReferenceOperation pref,
+        HashSet<INamedTypeSymbol> exceptionTypes,
+        SemanticModel semanticModel,
+        CancellationToken ct)
+    {
+        // If you want, you can look up method invocations in the current scope and see 
+        // what is being passed to this parameter. That’s more like interprocedural.
+        // For now: skip or use AdditionalFiles metadata for known parameters.
     }
 
     private static void CollectThrowsFromSymbol(ISymbol? sym, HashSet<INamedTypeSymbol> exceptionTypes)
@@ -368,16 +442,219 @@ internal static class LinqKnowledge
     };
 
     // Built-in exceptions for terminal ops (add more as needed).
-    public static ImmutableDictionary<string, Func<Compilation, IEnumerable<INamedTypeSymbol>>> BuiltIns
-        = new Dictionary<string, Func<Compilation, IEnumerable<INamedTypeSymbol>>>(StringComparer.Ordinal)
+    public static ImmutableDictionary<string, Func<Compilation, IMethodSymbol, IEnumerable<INamedTypeSymbol>>> BuiltIns
+        = new Dictionary<string, Func<Compilation, IMethodSymbol, IEnumerable<INamedTypeSymbol>>>(StringComparer.Ordinal)
         {
-            ["First"] = c => [Get(c, "System.InvalidOperationException")],
-            ["Single"] = c => [Get(c, "System.InvalidOperationException")],
-            ["ElementAt"] = c => [Get(c, "System.ArgumentOutOfRangeException")],
-            ["ToDictionary"] = c => [Get(c, "System.ArgumentException")], // duplicate keys
-            // Note: FirstOrDefault/SingleOrDefault/ElementAtOrDefault generally don't throw "empty" exceptions.
+            // Empty-sequence semantics
+            ["First"] = (c, m) => Types(c, "System.InvalidOperationException"),
+            ["Last"] = (c, m) => Types(c, "System.InvalidOperationException"),
+            ["Single"] = (c, m) => Types(c, "System.InvalidOperationException"),
+            ["FirstOrDefault"] = (c, m) => Array.Empty<INamedTypeSymbol>(),                   // no throw on empty
+            ["LastOrDefault"] = (c, m) => Array.Empty<INamedTypeSymbol>(),                   // no throw on empty
+            ["SingleOrDefault"] = (c, m) => Types(c, "System.InvalidOperationException"),      // >1 element
+
+            // Indexing
+            ["ElementAt"] = (c, m) => Types(c, "System.ArgumentOutOfRangeException"),
+            ["ElementAtOrDefault"] = (c, m) => Array.Empty<INamedTypeSymbol>(),
+
+            // Aggregates: empty sequence behavior depends on overloads / nullability
+            ["Min"] = (c, m) => ReturnsNonNullableValue(m) ? Types(c, "System.InvalidOperationException") : [],
+            ["Max"] = (c, m) => ReturnsNonNullableValue(m) ? Types(c, "System.InvalidOperationException") : [],
+            ["Average"] = (c, m) => ReturnsNonNullableValue(m) ? Types(c, "System.InvalidOperationException") : Enumerable.Empty<INamedTypeSymbol>()
+                                                           // + decimal overflow below
+                                                           .Concat(IsDecimalAverage(m) ? Types(c, "System.OverflowException") : []),
+            // Sum: only decimal variants can overflow (decimal arithmetic is checked)
+            ["Sum"] = (c, m) => IsDecimalSum(m) ? Types(c, "System.OverflowException") : [],
+
+            // Dictionary materialization during enumeration (duplicate keys)
+            ["ToDictionary"] = (c, m) => Types(c, "System.ArgumentException"),
+
+            // Lookup allows duplicate keys → no built-in throw on enumeration
+            ["ToLookup"] = (c, m) => Array.Empty<INamedTypeSymbol>(),
+
+            // Aggregate: without seed throws on empty; with seed doesn’t
+            ["Aggregate"] = (c, m) => AggregateThrowsOnEmpty(m) ? Types(c, "System.InvalidOperationException") : [],
+
+            // The rest are generally fine on empty / no built-ins at enumeration time:
+            ["Any"] = (c, m) => [],
+            ["All"] = (c, m) => [],
+            ["Contains"] = (c, m) => [],
+            ["Count"] = (c, m) => [],
+            ["LongCount"] = (c, m) => [],
+            ["SequenceEqual"] = (c, m) => [],
+            ["ToArray"] = (c, m) => [],
+            ["ToList"] = (c, m) => [],
         }.ToImmutableDictionary();
 
-    private static INamedTypeSymbol? Get(Compilation c, string metadataName)
-        => c.GetTypeByMetadataName(metadataName);
+    public static ImmutableDictionary<string, Func<Compilation, IInvocationOperation, IEnumerable<INamedTypeSymbol>>> DeferredBuiltIns
+            = new Dictionary<string, Func<Compilation, IInvocationOperation, IEnumerable<INamedTypeSymbol>>>(StringComparer.Ordinal)
+            {
+                // Cast<T>() will throw InvalidCastException during enumeration if an element can't be cast
+                ["Cast"] = (comp, inv) =>
+                {
+                    // T in Cast<T>()
+                    if (inv.TargetMethod.TypeArguments.Length != 1)
+                        return Array.Empty<INamedTypeSymbol>();
+                    var targetT = inv.TargetMethod.TypeArguments[0];
+
+                    var semanticModel = comp.GetSemanticModel(inv.Syntax.SyntaxTree);
+
+                    // try to recover S
+                    var srcElem = ResolveSourceElementType(inv, /* you have it in the caller */ semanticModel, default);
+
+                    // unknown => be pessimistic (may throw during enumeration)
+                    if (srcElem is null)
+                        return Types(comp, "System.InvalidCastException");
+
+                    var conv = comp.ClassifyCommonConversion(srcElem, targetT);
+
+                    // Safe cases: identity or any implicit conversion (ref upcast, boxing, etc.)
+                    return (conv.IsIdentity || conv.IsImplicit)
+                        ? Array.Empty<INamedTypeSymbol>()
+                        : Types(comp, "System.InvalidCastException");
+                }
+
+                // You can add others later if you decide to model them (most deferred ops don't throw intrinsically)
+            }.ToImmutableDictionary();
+
+    private static ITypeSymbol? ResolveSourceElementType(
+        IInvocationOperation castInvocation,   // the Cast<T>() invocation
+        SemanticModel semanticModel,
+        CancellationToken ct)
+    {
+        // 1) where does Cast<T> read from? (receiver for reduced, arg[0] otherwise)
+        var srcOp = castInvocation.Instance ?? (castInvocation.Arguments.Length > 0
+            ? castInvocation.Arguments[0].Value
+            : null);
+
+        return GetElemFromOp(srcOp);
+
+        ITypeSymbol? GetElemFromOp(IOperation? op)
+        {
+            if (op is null) return null;
+
+            // a) If the op's type already exposes IEnumerable<T>, use it
+            var elem = GetEnumerableElementType(op.Type);
+            if (elem is not null) return elem;
+
+            // b) Peel implicit conversions like "(IEnumerable) xs"
+            if (op is IConversionOperation conv)
+                return GetElemFromOp(conv.Operand);
+
+            // c) Follow locals to their initializer
+            if (op is ILocalReferenceOperation lref)
+            {
+                foreach (var sr in lref.Local.DeclaringSyntaxReferences)
+                {
+                    var node = sr.GetSyntax(ct);
+                    if (node is VariableDeclaratorSyntax v && v.Initializer?.Value is { } initExpr)
+                    {
+                        var initOp = semanticModel.GetOperation(initExpr, ct);
+                        var fromInit = GetElemFromOp(initOp);
+                        if (fromInit is not null) return fromInit;
+                    }
+                }
+            }
+
+            // d) If it’s another invocation (Where/Select/etc.), its Type is usually IEnumerable<T>
+            if (op is IInvocationOperation inv)
+            {
+                var fromInv = GetEnumerableElementType(inv.Type);
+                if (fromInv is not null) return fromInv;
+
+                // also try its receiver
+                var fromRecv = GetElemFromOp(inv.Instance);
+                if (fromRecv is not null) return fromRecv;
+            }
+
+            // e) Parenthesized/conditional access wrappers
+            if (op is IParenthesizedOperation paren) return GetElemFromOp(paren.Operand);
+            if (op is IConditionalAccessOperation cond) return GetElemFromOp(cond.Operation);
+
+            // f) we’re out of luck
+            return null;
+        }
+    }
+
+    private static ITypeSymbol? GetEnumerableElementType(ITypeSymbol? t)
+    {
+        if (t is null) return null;
+        if (t is IArrayTypeSymbol arr) return arr.ElementType;
+
+        IEnumerable<INamedTypeSymbol> ifaces = t.AllInterfaces;
+        if (t is INamedTypeSymbol self) ifaces = ifaces.Prepend(self);
+
+        foreach (var i in ifaces)
+            if (i.IsGenericType &&
+                i.ConstructedFrom.SpecialType == SpecialType.System_Collections_Generic_IEnumerable_T)
+                return i.TypeArguments[0];
+
+        return null;
+    }
+
+    private static IEnumerable<INamedTypeSymbol> Types(Compilation c, params string[] metadata)
+        => metadata.Select(n => c.GetTypeByMetadataName(n)).Where(t => t is not null)!;
+
+    private static bool ReturnsNonNullableValue(IMethodSymbol m)
+    {
+        // Min/Max/Average over non-nullable value types throw on empty
+        var rt = m.ReturnType;
+        return rt.IsValueType && !IsNullable(rt);
+    }
+
+    private static bool IsNullable(ITypeSymbol t)
+        => t.OriginalDefinition.SpecialType == SpecialType.System_Nullable_T;
+
+    private static bool IsDecimal(ITypeSymbol t)
+        => t.SpecialType == SpecialType.System_Decimal;
+
+    // Average has overloads returning decimal/decimal?, double/double?, float/float?
+    // We only care to add OverflowException for decimal returning variants.
+    private static bool IsDecimalAverage(IMethodSymbol m)
+        => IsDecimal(m.ReturnType);
+
+    // Sum has many overloads; decimal variants can throw OverflowException.
+    private static bool IsDecimalSum(IMethodSymbol m)
+    {
+        // Sum(IEnumerable<decimal>) returns decimal
+        // Sum(IEnumerable<decimal?>) returns decimal?
+        if (m.Parameters.Length == 1)
+            return IsEnumerableOf(m.Parameters[0].Type, IsDecimal);
+
+        // Sum<TSource>(IEnumerable<TSource>, Func<TSource, decimal>) etc.
+        if (m.Parameters.Length >= 2)
+            return ReturnsDecimalSelector(m.Parameters[1].Type);
+        return false;
+    }
+
+    private static bool IsEnumerableOf(ITypeSymbol type, Func<ITypeSymbol, bool> isT)
+    {
+        if (type is INamedTypeSymbol nt && nt.IsGenericType)
+        {
+            var def = nt.ConstructedFrom;
+            if (def.ToDisplayString() == "System.Collections.Generic.IEnumerable<T>")
+                return isT(nt.TypeArguments[0]) || (IsNullable(nt.TypeArguments[0]) && isT(((INamedTypeSymbol)nt.TypeArguments[0]).TypeArguments[0]));
+        }
+        return false;
+    }
+
+    private static bool ReturnsDecimalSelector(ITypeSymbol selectorType)
+    {
+        // Func<TSource, decimal> or Func<TSource, decimal?>
+        if (selectorType is INamedTypeSymbol f && f.DelegateInvokeMethod is { } invoke)
+            return IsDecimal(invoke.ReturnType) || (IsNullable(invoke.ReturnType) && IsDecimal(((INamedTypeSymbol)invoke.ReturnType).TypeArguments[0]));
+        return false;
+    }
+
+    private static bool AggregateThrowsOnEmpty(IMethodSymbol m)
+    {
+        // Aggregate<TSource>(IEnumerable<TSource>, Func<TSource,TSource,TSource>)  // no seed → throws on empty
+        // Any overload where the first parameter after the source is NOT a seed implies "no seed"
+        // Seed overloads: Aggregate<TSource,TAccumulate>(IEnumerable<TSource>, TAccumulate, Func<...>, ...)
+        if (!m.IsExtensionMethod || m.Parameters.Length < 2) return false;
+
+        var second = m.Parameters[1];
+        // Heuristic: if second parameter is a delegate (Func<...>) => no seed overload, throws on empty.
+        return second.Type.TypeKind == TypeKind.Delegate;
+    }
 }

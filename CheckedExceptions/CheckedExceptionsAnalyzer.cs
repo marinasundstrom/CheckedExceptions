@@ -1516,7 +1516,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         {
             if (settings.IsLinqSupportEnabled)
             {
-                CollectLinqExceptions(invocation, exceptionTypes, context.SemanticModel, context.CancellationToken);
+                AnalyzeLinqOperation(context, methodSymbol, exceptionTypes, invocation);
             }
         }
 
@@ -1526,6 +1526,24 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         {
             AnalyzeExceptionThrowingNode(context, node, exceptionType, settings);
         }
+    }
+
+    private void AnalyzeLinqOperation(SyntaxNodeAnalysisContext context, IMethodSymbol methodSymbol, HashSet<INamedTypeSymbol> exceptionTypes, InvocationExpressionSyntax invocation)
+    {
+        if (IsLinqExtension(methodSymbol))
+        {
+            var name = methodSymbol.Name;
+
+            if (name == "Cast")
+            {
+                // Remove InvalidOperationException from XML — it’s not actually thrown here
+                var invalidCastExc = context.Compilation.GetTypeByMetadataName("System.InvalidCastException");
+                if (invalidCastExc != null)
+                    exceptionTypes.RemoveWhere(e => SymbolEqualityComparer.Default.Equals(e, invalidCastExc));
+            }
+        }
+
+        CollectLinqExceptions(invocation, exceptionTypes, context.SemanticModel, context.CancellationToken);
     }
 
     static INamedTypeSymbol? argumentNullExceptionTypeSymbol;
