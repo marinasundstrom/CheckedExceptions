@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- PR [#259](https://github.com/marinasundstrom/CheckedExceptions/pull/259) More LINQ support
+
 ## [2.0.2] - 2025-08-10
 
 ### Added
