@@ -80,8 +80,14 @@ partial class CheckedExceptionsAnalyzer
 
                     if (LinqKnowledge.DeferredOps.Contains(name))
                     {
-                        // harvest lambdas/method groups on deferred op
+                        // 1) harvest lambdas/method groups on deferred op
                         CollectThrowsFromFunctionalArguments(inv, exceptionTypes);
+
+                        // 2) add intrinsic deferred-op exceptions (e.g., Cast<T>)
+                        if (LinqKnowledge.DeferredBuiltIns.TryGetValue(name, out var defFactory))
+                            foreach (var t in defFactory(compilation, inv.TargetMethod))
+                                if (t is not null) exceptionTypes.Add(t);
+
                         current = GetLinqSourceOperation(inv);
                         continue;
                     }
@@ -262,7 +268,12 @@ partial class CheckedExceptionsAnalyzer
                         // On enumeration, we care about exceptions contributed by *deferred* ops.
                         if (LinqKnowledge.DeferredOps.Contains(name) || !LinqKnowledge.TerminalOps.Contains(name))
                         {
-                            CollectThrowsFromFunctionalArguments(inv, exceptionTypes); // lambdas, method groups
+                            CollectThrowsFromFunctionalArguments(inv, exceptionTypes);
+
+                            if (LinqKnowledge.DeferredBuiltIns.TryGetValue(name, out var defFactory))
+                                foreach (var t in defFactory(compilation, inv.TargetMethod))
+                                    if (t is not null) exceptionTypes.Add(t);
+
                             current = GetLinqSourceOperation(inv);
                             continue;
                         }
@@ -419,6 +430,15 @@ internal static class LinqKnowledge
             ["SequenceEqual"] = (c, m) => [],
             ["ToArray"] = (c, m) => [],
             ["ToList"] = (c, m) => [],
+        }.ToImmutableDictionary();
+
+    public static ImmutableDictionary<string, Func<Compilation, IMethodSymbol, IEnumerable<INamedTypeSymbol>>> DeferredBuiltIns
+        = new Dictionary<string, Func<Compilation, IMethodSymbol, IEnumerable<INamedTypeSymbol>>>(StringComparer.Ordinal)
+        {
+            // Cast<T>() will throw InvalidCastException during enumeration if an element can't be cast
+            ["Cast"] = (c, m) => Types(c, "System.InvalidCastException"),
+
+            // You can add others later if you decide to model them (most deferred ops don't throw intrinsically)
         }.ToImmutableDictionary();
 
     private static IEnumerable<INamedTypeSymbol> Types(Compilation c, params string[] metadata)
