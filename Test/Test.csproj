@@ -16,17 +16,19 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup> -->
 
-  <ItemGroup>
-    <PackageReference Include="Sundstrom.CheckedExceptions" Version="2.0.2">
+  <!-- <ItemGroup>
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
     </PackageReference>
-  </ItemGroup>
-
-  <!-- <ItemGroup>
-    <ProjectReference Include="..\CheckedExceptions\CheckedExceptions.csproj"
-      OutputItemType="Analyzer" ReferenceOutputAssembly="false" PrivateAssets="all" />
   </ItemGroup> -->
+
+  <ItemGroup>
+    <ProjectReference Include="..\CheckedExceptions\CheckedExceptions.csproj"
+      PrivateAssets="all"
+      ReferenceOutputAssembly="true"
+      OutputItemType="Analyzer"
+      SetTargetFramework="TargetFramework=netstandard2.0" />
+  </ItemGroup>
 
   <ItemGroup>
     <AdditionalFiles Include="CheckedExceptions.settings.json" />
