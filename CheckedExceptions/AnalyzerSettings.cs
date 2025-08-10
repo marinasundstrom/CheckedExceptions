@@ -10,6 +10,12 @@ public partial class AnalyzerSettings
     [JsonIgnore]
     internal bool IsXmlInteropEnabled => !DisableXmlDocInterop;
 
+    [JsonPropertyName("disableLinqSupport")]
+    public bool DisableLinqSupport { get; set; } = false;
+
+    [JsonIgnore]
+    internal bool IsLinqSupportEnabled => !DisableLinqSupport;
+
     [JsonPropertyName("disableControlFlowAnalysis")]
     public bool DisableControlFlowAnalysis { get; set; } = false;
 

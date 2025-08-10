@@ -234,6 +234,10 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         var forEachSyntax = (ForEachStatementSyntax)context.Node;
 
         var settings = GetAnalyzerSettings(context.Options);
+
+        if (!settings.IsLinqSupportEnabled)
+            return;
+
         var semanticModel = context.SemanticModel;
 
         var op = semanticModel.GetOperation(forEachSyntax);
@@ -1510,7 +1514,10 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
         if (node is InvocationExpressionSyntax invocation)
         {
-            CollectLinqExceptions(invocation, exceptionTypes, context.SemanticModel, context.CancellationToken);
+            if (settings.IsLinqSupportEnabled)
+            {
+                CollectLinqExceptions(invocation, exceptionTypes, context.SemanticModel, context.CancellationToken);
+            }
         }
 
         exceptionTypes = new HashSet<INamedTypeSymbol>(ProcessNullable(context, node, methodSymbol, exceptionTypes), SymbolEqualityComparer.Default);

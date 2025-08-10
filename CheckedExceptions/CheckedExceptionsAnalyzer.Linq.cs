@@ -225,10 +225,10 @@ partial class CheckedExceptionsAnalyzer
     }
 
     private void CollectEnumerationExceptions(
-    IOperation collection,
-    HashSet<INamedTypeSymbol> exceptionTypes,
-    SemanticModel semanticModel,
-    CancellationToken ct)
+        IOperation collection,
+        HashSet<INamedTypeSymbol> exceptionTypes,
+        SemanticModel semanticModel,
+        CancellationToken ct)
     {
         // Walk upstream through the LINQ chain, harvesting [Throws] on deferred operators.
         CollectDeferredChainExceptions_ForEnumeration(collection, exceptionTypes, semanticModel.Compilation, semanticModel, ct);
