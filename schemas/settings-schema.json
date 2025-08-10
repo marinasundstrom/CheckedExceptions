@@ -7,6 +7,11 @@
       "default": false,
       "description": "Indicates whether XML documentation interoperability is disabled."
     },
+    "disableLinqSupport": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indicates whether LINQ support is disabled."
+    },
     "disableControlFlowAnalysis": {
       "type": "boolean",
       "default": false,

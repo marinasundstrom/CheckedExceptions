@@ -13,6 +13,7 @@ using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.CodeAnalysis.Operations;
 
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
@@ -225,6 +226,38 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         context.RegisterSyntaxNodeAction(AnalyzeTryStatement, SyntaxKind.TryStatement);
         context.RegisterSyntaxNodeAction(AnalyzePropertyDeclaration, SyntaxKind.PropertyDeclaration);
         context.RegisterSyntaxNodeAction(AnalyzeCastExpression, SyntaxKind.CastExpression);
+        context.RegisterSyntaxNodeAction(AnalyzeForeachStatement, SyntaxKind.ForEachStatement);
+    }
+
+    private void AnalyzeForeachStatement(SyntaxNodeAnalysisContext context)
+    {
+        var forEachSyntax = (ForEachStatementSyntax)context.Node;
+
+        var settings = GetAnalyzerSettings(context.Options);
+
+        if (!settings.IsLinqSupportEnabled)
+            return;
+
+        var semanticModel = context.SemanticModel;
+
+        var op = semanticModel.GetOperation(forEachSyntax);
+        if (op is not IForEachLoopOperation forEachOp)
+            return;
+
+        // Collect exceptions that will surface when enumeration happens
+        var exceptionTypes = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
+
+        CollectEnumerationExceptions(forEachOp.Collection, exceptionTypes, semanticModel, context.CancellationToken);
+
+        // Your existing nullability post-processing
+        exceptionTypes = new HashSet<INamedTypeSymbol>(
+            ProcessNullable(context, forEachSyntax.Expression, null, exceptionTypes),
+            SymbolEqualityComparer.Default);
+
+        foreach (var t in exceptionTypes.Distinct(SymbolEqualityComparer.Default))
+        {
+            AnalyzeExceptionThrowingNode(context, forEachSyntax.Expression, (INamedTypeSymbol?)t, settings);
+        }
     }
 
     private void AnalyzeCastExpression(SyntaxNodeAnalysisContext context)
@@ -1463,7 +1496,8 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         if (methodSymbol is null)
             return;
 
-        List<INamedTypeSymbol> exceptionTypes = GetExceptionTypes(methodSymbol);
+        var exceptionTypes = new HashSet<INamedTypeSymbol>(
+            GetExceptionTypes(methodSymbol), SymbolEqualityComparer.Default);
 
         if (settings.IsXmlInteropEnabled)
         {
@@ -1478,7 +1512,15 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             }
         }
 
-        exceptionTypes = ProcessNullable(context, node, methodSymbol, exceptionTypes).ToList();
+        if (node is InvocationExpressionSyntax invocation)
+        {
+            if (settings.IsLinqSupportEnabled)
+            {
+                CollectLinqExceptions(invocation, exceptionTypes, context.SemanticModel, context.CancellationToken);
+            }
+        }
+
+        exceptionTypes = new HashSet<INamedTypeSymbol>(ProcessNullable(context, node, methodSymbol, exceptionTypes), SymbolEqualityComparer.Default);
 
         foreach (var exceptionType in exceptionTypes.Distinct(SymbolEqualityComparer.Default).OfType<INamedTypeSymbol>())
         {
