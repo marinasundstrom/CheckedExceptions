@@ -1463,7 +1463,8 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         if (methodSymbol is null)
             return;
 
-        List<INamedTypeSymbol> exceptionTypes = GetExceptionTypes(methodSymbol);
+        var exceptionTypes = new HashSet<INamedTypeSymbol>(
+            GetExceptionTypes(methodSymbol), SymbolEqualityComparer.Default);
 
         if (settings.IsXmlInteropEnabled)
         {
@@ -1478,7 +1479,12 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             }
         }
 
-        exceptionTypes = ProcessNullable(context, node, methodSymbol, exceptionTypes).ToList();
+        if (node is InvocationExpressionSyntax invocation)
+        {
+            CollectLinqExceptions(invocation, exceptionTypes, context.SemanticModel, context.CancellationToken);
+        }
+
+        exceptionTypes = new HashSet<INamedTypeSymbol>(ProcessNullable(context, node, methodSymbol, exceptionTypes), SymbolEqualityComparer.Default);
 
         foreach (var exceptionType in exceptionTypes.Distinct(SymbolEqualityComparer.Default).OfType<INamedTypeSymbol>())
         {
