@@ -54,11 +54,8 @@ partial class CheckedExceptionsAnalyzer
 
     private static IOperation? GetLinqSourceOperation(IInvocationOperation op)
     {
-        // For extension methods, Instance is null; the source is the 1st argument.
-        // For instance methods (rare in LINQ), Instance is the source.
         if (op.TargetMethod.IsExtensionMethod)
-            return op.Arguments.Length > 0 ? op.Arguments[0].Value : null;
-
+            return op.Instance ?? (op.Arguments.Length > 0 ? op.Arguments[0].Value : null);
         return op.Instance;
     }
 
@@ -85,7 +82,7 @@ partial class CheckedExceptionsAnalyzer
 
                         // 2) add intrinsic deferred-op exceptions (e.g., Cast<T>)
                         if (LinqKnowledge.DeferredBuiltIns.TryGetValue(name, out var defFactory))
-                            foreach (var t in defFactory(compilation, inv.TargetMethod))
+                            foreach (var t in defFactory(compilation, inv))
                                 if (t is not null) exceptionTypes.Add(t);
 
                         current = GetLinqSourceOperation(inv);
@@ -271,7 +268,7 @@ partial class CheckedExceptionsAnalyzer
                             CollectThrowsFromFunctionalArguments(inv, exceptionTypes, semanticModel, ct);
 
                             if (LinqKnowledge.DeferredBuiltIns.TryGetValue(name, out var defFactory))
-                                foreach (var t in defFactory(compilation, inv.TargetMethod))
+                                foreach (var t in defFactory(compilation, inv))
                                     if (t is not null) exceptionTypes.Add(t);
 
                             current = GetLinqSourceOperation(inv);
@@ -489,14 +486,111 @@ internal static class LinqKnowledge
             ["ToList"] = (c, m) => [],
         }.ToImmutableDictionary();
 
-    public static ImmutableDictionary<string, Func<Compilation, IMethodSymbol, IEnumerable<INamedTypeSymbol>>> DeferredBuiltIns
-        = new Dictionary<string, Func<Compilation, IMethodSymbol, IEnumerable<INamedTypeSymbol>>>(StringComparer.Ordinal)
-        {
-            // Cast<T>() will throw InvalidCastException during enumeration if an element can't be cast
-            ["Cast"] = (c, m) => Types(c, "System.InvalidCastException"),
+    public static ImmutableDictionary<string, Func<Compilation, IInvocationOperation, IEnumerable<INamedTypeSymbol>>> DeferredBuiltIns
+            = new Dictionary<string, Func<Compilation, IInvocationOperation, IEnumerable<INamedTypeSymbol>>>(StringComparer.Ordinal)
+            {
+                // Cast<T>() will throw InvalidCastException during enumeration if an element can't be cast
+                ["Cast"] = (comp, inv) =>
+                {
+                    // T in Cast<T>()
+                    if (inv.TargetMethod.TypeArguments.Length != 1)
+                        return Array.Empty<INamedTypeSymbol>();
+                    var targetT = inv.TargetMethod.TypeArguments[0];
 
-            // You can add others later if you decide to model them (most deferred ops don't throw intrinsically)
-        }.ToImmutableDictionary();
+                    var semanticModel = comp.GetSemanticModel(inv.Syntax.SyntaxTree);
+
+                    // try to recover S
+                    var srcElem = ResolveSourceElementType(inv, /* you have it in the caller */ semanticModel, default);
+
+                    // unknown => be pessimistic (may throw during enumeration)
+                    if (srcElem is null)
+                        return Types(comp, "System.InvalidCastException");
+
+                    var conv = comp.ClassifyCommonConversion(srcElem, targetT);
+
+                    // Safe cases: identity or any implicit conversion (ref upcast, boxing, etc.)
+                    return (conv.IsIdentity || conv.IsImplicit)
+                        ? Array.Empty<INamedTypeSymbol>()
+                        : Types(comp, "System.InvalidCastException");
+                }
+
+                // You can add others later if you decide to model them (most deferred ops don't throw intrinsically)
+            }.ToImmutableDictionary();
+
+    private static ITypeSymbol? ResolveSourceElementType(
+        IInvocationOperation castInvocation,   // the Cast<T>() invocation
+        SemanticModel semanticModel,
+        CancellationToken ct)
+    {
+        // 1) where does Cast<T> read from? (receiver for reduced, arg[0] otherwise)
+        var srcOp = castInvocation.Instance ?? (castInvocation.Arguments.Length > 0
+            ? castInvocation.Arguments[0].Value
+            : null);
+
+        return GetElemFromOp(srcOp);
+
+        ITypeSymbol? GetElemFromOp(IOperation? op)
+        {
+            if (op is null) return null;
+
+            // a) If the op's type already exposes IEnumerable<T>, use it
+            var elem = GetEnumerableElementType(op.Type);
+            if (elem is not null) return elem;
+
+            // b) Peel implicit conversions like "(IEnumerable) xs"
+            if (op is IConversionOperation conv)
+                return GetElemFromOp(conv.Operand);
+
+            // c) Follow locals to their initializer
+            if (op is ILocalReferenceOperation lref)
+            {
+                foreach (var sr in lref.Local.DeclaringSyntaxReferences)
+                {
+                    var node = sr.GetSyntax(ct);
+                    if (node is VariableDeclaratorSyntax v && v.Initializer?.Value is { } initExpr)
+                    {
+                        var initOp = semanticModel.GetOperation(initExpr, ct);
+                        var fromInit = GetElemFromOp(initOp);
+                        if (fromInit is not null) return fromInit;
+                    }
+                }
+            }
+
+            // d) If it’s another invocation (Where/Select/etc.), its Type is usually IEnumerable<T>
+            if (op is IInvocationOperation inv)
+            {
+                var fromInv = GetEnumerableElementType(inv.Type);
+                if (fromInv is not null) return fromInv;
+
+                // also try its receiver
+                var fromRecv = GetElemFromOp(inv.Instance);
+                if (fromRecv is not null) return fromRecv;
+            }
+
+            // e) Parenthesized/conditional access wrappers
+            if (op is IParenthesizedOperation paren) return GetElemFromOp(paren.Operand);
+            if (op is IConditionalAccessOperation cond) return GetElemFromOp(cond.Operation);
+
+            // f) we’re out of luck
+            return null;
+        }
+    }
+
+    private static ITypeSymbol? GetEnumerableElementType(ITypeSymbol? t)
+    {
+        if (t is null) return null;
+        if (t is IArrayTypeSymbol arr) return arr.ElementType;
+
+        IEnumerable<INamedTypeSymbol> ifaces = t.AllInterfaces;
+        if (t is INamedTypeSymbol self) ifaces = ifaces.Prepend(self);
+
+        foreach (var i in ifaces)
+            if (i.IsGenericType &&
+                i.ConstructedFrom.SpecialType == SpecialType.System_Collections_Generic_IEnumerable_T)
+                return i.TypeArguments[0];
+
+        return null;
+    }
 
     private static IEnumerable<INamedTypeSymbol> Types(Compilation c, params string[] metadata)
         => metadata.Select(n => c.GetTypeByMetadataName(n)).Where(t => t is not null)!;

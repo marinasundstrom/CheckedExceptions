@@ -5,7 +5,6 @@ public class LinqTest
 {
     public void Test1()
     {
-
         IEnumerable<int> items = [];
         var query = items.Where([Throws(typeof(FormatException), typeof(OverflowException))] (x) => x == int.Parse("10"));
         var x = query;
@@ -23,6 +22,8 @@ public class LinqTest
         NewMethod1();
 
         NewMethod();
+
+        NewMethod0();
     }
 
     private static void NewMethod2()
@@ -54,7 +55,7 @@ public class LinqTest
 
     private static void NewMethod0()
     {
-        IEnumerable<int> xs2 = [];
+        IEnumerable<object> xs2 = [];
         var q0 = xs2
             .Where([Throws(typeof(FormatException), typeof(OverflowException))] (x) => x != null)
             .Cast<int>();
