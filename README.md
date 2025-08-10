@@ -300,9 +300,17 @@ This is due to a **technical limitation**: the XML documentation files for .NET 
 
 **Answer:**
 
-There’s no special support for LINQ at the moment. Since LINQ queries are typically deferred and represented as expression trees or objects, it’s difficult to determine where and when exceptions will actually be thrown.
+There is initial support for LINQ query operators.
 
-We may explore better support in the future, but for now, these cases are considered out of scope.
+```csharp
+List<string> values = new() { "10", "20", "abc", "30" };
+
+var tens = values
+    .Where([Throws(typeof(FormatException), typeof(OverflowException))] s => int.Parse(s) % 10 == 0)
+    .ToArray(); // THROW001: unhandled FormatException, OverflowException
+```
+
+Read about it [here](docs/linq-support.md).
 
 ---
 

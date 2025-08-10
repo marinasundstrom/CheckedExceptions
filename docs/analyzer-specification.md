@@ -454,7 +454,7 @@ These options control whether to warn about the usage of base type `Exception`.
 
 ### Disable LINQ support
 
-This option control whether all analysis on LINQ constructors should be disabled.
+This option controls whether all analysis on LINQ constructs should be disabled.
 
 ```json
 {
@@ -462,7 +462,7 @@ This option control whether all analysis on LINQ constructors should be disabled
 }
 ```
 
-Most notably, terminator operators (such as `First`) will not indicate the exceptions it propagates:
+Most notably, terminator operators (such as `First`) will not indicate the exceptions they propagate:
 
 ```csharp
 IEnumerable<int> items = [1, 42, 3];
