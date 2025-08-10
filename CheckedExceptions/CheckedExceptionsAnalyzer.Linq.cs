@@ -24,7 +24,7 @@ partial class CheckedExceptionsAnalyzer
         if (!LinqKnowledge.TerminalOps.Contains(name)) return;
 
         // NEW: harvest predicate/selector on this terminal op
-        CollectThrowsFromFunctionalArguments(termOp, exceptionTypes);
+        CollectThrowsFromFunctionalArguments(termOp, exceptionTypes, semanticModel, ct);
 
         // Existing: add built-ins for the terminal
         if (LinqKnowledge.BuiltIns.TryGetValue(name, out var builtInFactory))
@@ -81,7 +81,7 @@ partial class CheckedExceptionsAnalyzer
                     if (LinqKnowledge.DeferredOps.Contains(name))
                     {
                         // 1) harvest lambdas/method groups on deferred op
-                        CollectThrowsFromFunctionalArguments(inv, exceptionTypes);
+                        CollectThrowsFromFunctionalArguments(inv, exceptionTypes, semanticModel, default);
 
                         // 2) add intrinsic deferred-op exceptions (e.g., Cast<T>)
                         if (LinqKnowledge.DeferredBuiltIns.TryGetValue(name, out var defFactory))
@@ -95,7 +95,7 @@ partial class CheckedExceptionsAnalyzer
                     if (LinqKnowledge.TerminalOps.Contains(name))
                     {
                         // NEW: harvest lambdas/method groups on terminal op too
-                        CollectThrowsFromFunctionalArguments(inv, exceptionTypes);
+                        CollectThrowsFromFunctionalArguments(inv, exceptionTypes, semanticModel, default);
 
                         if (LinqKnowledge.BuiltIns.TryGetValue(name, out var builtInFactory))
                             foreach (var t in builtInFactory(compilation, inv.TargetMethod))
@@ -106,7 +106,7 @@ partial class CheckedExceptionsAnalyzer
                     }
 
                     // Unknown op: still inspect functional args
-                    CollectThrowsFromFunctionalArguments(inv, exceptionTypes);
+                    CollectThrowsFromFunctionalArguments(inv, exceptionTypes, semanticModel, default);
                     current = GetLinqSourceOperation(inv);
                     continue;
 
@@ -268,7 +268,7 @@ partial class CheckedExceptionsAnalyzer
                         // On enumeration, we care about exceptions contributed by *deferred* ops.
                         if (LinqKnowledge.DeferredOps.Contains(name) || !LinqKnowledge.TerminalOps.Contains(name))
                         {
-                            CollectThrowsFromFunctionalArguments(inv, exceptionTypes);
+                            CollectThrowsFromFunctionalArguments(inv, exceptionTypes, semanticModel, ct);
 
                             if (LinqKnowledge.DeferredBuiltIns.TryGetValue(name, out var defFactory))
                                 foreach (var t in defFactory(compilation, inv.TargetMethod))
@@ -290,7 +290,7 @@ partial class CheckedExceptionsAnalyzer
                         }
 
                         // Unknown op: still inspect functional args and continue upstream.
-                        CollectThrowsFromFunctionalArguments(inv, exceptionTypes);
+                        CollectThrowsFromFunctionalArguments(inv, exceptionTypes, semanticModel, ct);
                         current = GetLinqSourceOperation(inv);
                         continue;
                     }
@@ -326,8 +326,10 @@ partial class CheckedExceptionsAnalyzer
     }
 
     private static void CollectThrowsFromFunctionalArguments(
-    IInvocationOperation op,
-    HashSet<INamedTypeSymbol> exceptionTypes)
+      IInvocationOperation op,
+      HashSet<INamedTypeSymbol> exceptionTypes,
+      SemanticModel? semanticModel = null,
+      CancellationToken ct = default)
     {
         foreach (var arg in op.Arguments)
         {
@@ -347,8 +349,63 @@ partial class CheckedExceptionsAnalyzer
                 case IMethodReferenceOperation mref2:
                     CollectThrowsFromSymbol(mref2.Method, exceptionTypes);
                     break;
+
+                case ILocalReferenceOperation lref when semanticModel is not null:
+                    FollowDelegateLocal(lref, exceptionTypes, semanticModel, ct);
+                    break;
+
+                case IParameterReferenceOperation pref when semanticModel is not null:
+                    FollowDelegateParameter(pref, exceptionTypes, semanticModel, ct);
+                    break;
             }
         }
+    }
+
+    private static void FollowDelegateLocal(
+        ILocalReferenceOperation lref,
+        HashSet<INamedTypeSymbol> exceptionTypes,
+        SemanticModel semanticModel,
+        CancellationToken ct,
+        HashSet<ISymbol>? visited = null)
+    {
+        visited ??= new(SymbolEqualityComparer.Default);
+        if (!visited.Add(lref.Local))
+            return;
+
+        foreach (var sr in lref.Local.DeclaringSyntaxReferences)
+        {
+            var node = sr.GetSyntax(ct);
+            if (node is VariableDeclaratorSyntax v && v.Initializer?.Value is { } initExpr)
+            {
+                var initOp = semanticModel.GetOperation(initExpr, ct);
+                if (initOp is null) continue;
+
+                if (initOp is IAnonymousFunctionOperation lambda)
+                    CollectThrowsFromSymbol(lambda.Symbol, exceptionTypes);
+                else if (initOp is IMethodReferenceOperation mref)
+                    CollectThrowsFromSymbol(mref.Method, exceptionTypes);
+                else if (initOp is IDelegateCreationOperation del)
+                {
+                    if (del.Target is IAnonymousFunctionOperation anon)
+                        CollectThrowsFromSymbol(anon.Symbol, exceptionTypes);
+                    else if (del.Target is IMethodReferenceOperation mref2)
+                        CollectThrowsFromSymbol(mref2.Method, exceptionTypes);
+                }
+                else if (initOp is ILocalReferenceOperation innerLocal)
+                    FollowDelegateLocal(innerLocal, exceptionTypes, semanticModel, ct, visited);
+            }
+        }
+    }
+
+    private static void FollowDelegateParameter(
+        IParameterReferenceOperation pref,
+        HashSet<INamedTypeSymbol> exceptionTypes,
+        SemanticModel semanticModel,
+        CancellationToken ct)
+    {
+        // If you want, you can look up method invocations in the current scope and see 
+        // what is being passed to this parameter. That’s more like interprocedural.
+        // For now: skip or use AdditionalFiles metadata for known parameters.
     }
 
     private static void CollectThrowsFromSymbol(ISymbol? sym, HashSet<INamedTypeSymbol> exceptionTypes)
