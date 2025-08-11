@@ -10,7 +10,7 @@ partial class CheckedExceptionsAnalyzer
 {
     #region  Method
 
-    private void CheckForDuplicateThrowsDeclarations(
+    private static void CheckForDuplicateThrowsDeclarations(
         SymbolAnalysisContext context,
         ImmutableArray<AttributeData> throwsAttributes)
     {
@@ -56,7 +56,7 @@ partial class CheckedExceptionsAnalyzer
     /// </summary>
     /// <param name="throwsAttributes">The collection of ThrowsAttribute syntax nodes.</param>
     /// <param name="context">The analysis context.</param>
-    private void CheckForDuplicateThrowsDeclarations(
+    private static void CheckForDuplicateThrowsDeclarations(
         IEnumerable<AttributeSyntax> throwsAttributes,
         SyntaxNodeAnalysisContext context)
     {

@@ -12,7 +12,7 @@ partial class CheckedExceptionsAnalyzer
     private static readonly ConcurrentDictionary<string, string?> XmlDocPathsCache = new();
     private static readonly ConcurrentDictionary<string, ConcurrentDictionary<string, XElement>?> XmlDocPathsAndMembers = new();
 
-    private string? GetXmlDocumentationPath(Compilation compilation, IAssemblySymbol assemblySymbol)
+    private static string? GetXmlDocumentationPath(Compilation compilation, IAssemblySymbol assemblySymbol)
     {
         var assemblyName = assemblySymbol.Name;
         var assemblyPath = assemblySymbol.Locations.FirstOrDefault()?.SourceTree?.FilePath;
@@ -154,7 +154,7 @@ partial class CheckedExceptionsAnalyzer
     /// <summary>
     /// Retrieves exception types declared in XML documentation.
     /// </summary>
-    private IEnumerable<ExceptionInfo> GetExceptionTypesFromDocumentationCommentXml(Compilation compilation, ISymbol symbol)
+    private static IEnumerable<ExceptionInfo> GetExceptionTypesFromDocumentationCommentXml(Compilation compilation, ISymbol symbol)
     {
         XElement? docCommentXml = GetDocumentationCommentXmlForSymbol(compilation, symbol);
 
@@ -167,9 +167,9 @@ partial class CheckedExceptionsAnalyzer
         return GetExceptionTypesFromDocumentationCommentXml(compilation, docCommentXml).ToList();
     }
 
-    readonly bool loadFromProject = true;
+    readonly static bool loadFromProject = true;
 
-    private XElement? GetDocumentationCommentXmlForSymbol(Compilation compilation, ISymbol symbol)
+    private static XElement? GetDocumentationCommentXmlForSymbol(Compilation compilation, ISymbol symbol)
     {
         // Retrieve comment from project in solution that is being built
         var docCommentXmlString = symbol.GetDocumentationCommentXml();
@@ -197,7 +197,7 @@ partial class CheckedExceptionsAnalyzer
         return docCommentXml;
     }
 
-    public XElement? GetXmlDocumentation(Compilation compilation, ISymbol symbol)
+    public static XElement? GetXmlDocumentation(Compilation compilation, ISymbol symbol)
     {
         var path = GetXmlDocumentationPath(compilation, symbol.ContainingAssembly);
         if (path is not null)

@@ -2,7 +2,6 @@
 using System.Collections.Immutable;
 
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Operations;
@@ -11,7 +10,7 @@ namespace Sundstrom.CheckedExceptions;
 
 partial class CheckedExceptionsAnalyzer
 {
-    private void CollectLinqExceptions(
+    private static void CollectLinqExceptions(
         InvocationExpressionSyntax invocationSyntax,
         HashSet<INamedTypeSymbol> exceptionTypes,
         SemanticModel semanticModel,
@@ -135,25 +134,6 @@ partial class CheckedExceptionsAnalyzer
             }
 
         continueWhile:;
-        }
-    }
-
-    private static void CollectThrowsFromLambdaArguments(
-      IInvocationOperation op,
-      HashSet<INamedTypeSymbol> exceptionTypes)
-    {
-        foreach (var arg in op.Arguments)
-        {
-            var lambda = ExtractAnonymousFunction(arg.Value);
-            if (lambda?.Symbol is not { } sym) continue;
-
-            foreach (var attr in sym.GetAttributes())
-            {
-                foreach (var t in GetExceptionTypesFromThrowsAttribute(attr))
-                {
-                    exceptionTypes.Add(t);
-                }
-            }
         }
     }
 
@@ -405,11 +385,11 @@ partial class CheckedExceptionsAnalyzer
         // For now: skip or use AdditionalFiles metadata for known parameters.
     }
 
-    private static void CollectThrowsFromSymbol(ISymbol? sym, HashSet<INamedTypeSymbol> exceptionTypes)
+    private static void CollectThrowsFromSymbol(ISymbol? symbol, HashSet<INamedTypeSymbol> exceptionTypes)
     {
-        if (sym is null) return;
+        if (symbol is null) return;
 
-        foreach (var attr in sym.GetAttributes())
+        foreach (var attr in symbol.GetAttributes())
             foreach (var t in GetExceptionTypesFromThrowsAttribute(attr))
                 exceptionTypes.Add(t);
     }

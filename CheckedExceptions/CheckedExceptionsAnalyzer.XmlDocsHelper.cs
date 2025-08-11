@@ -1,6 +1,4 @@
-using System.Collections.Concurrent;
 using System.Collections.Immutable;
-using System.Xml;
 using System.Xml.Linq;
 
 using Microsoft.CodeAnalysis;
@@ -12,7 +10,7 @@ namespace Sundstrom.CheckedExceptions;
 
 partial class CheckedExceptionsAnalyzer
 {
-    private void CheckXmlDocsForUndeclaredExceptions(
+    private static void CheckXmlDocsForUndeclaredExceptions(
         IEnumerable<AttributeData> throwsAttributes,
         SymbolAnalysisContext context)
     {
@@ -26,7 +24,7 @@ partial class CheckedExceptionsAnalyzer
         CheckXmlDocsForUndeclaredExceptionsCore(declaredExceptions, methodSymbol, compilation, context.ReportDiagnostic);
     }
 
-    private void CheckXmlDocsForUndeclaredExceptions_Method(
+    private static void CheckXmlDocsForUndeclaredExceptions_Method(
         IEnumerable<AttributeSyntax> throwsAttributes,
         SyntaxNodeAnalysisContext context)
     {
@@ -46,9 +44,9 @@ partial class CheckedExceptionsAnalyzer
         CheckXmlDocsForUndeclaredExceptionsCore(declaredExceptions, methodSymbol!, compilation, context.ReportDiagnostic);
     }
 
-    private void CheckXmlDocsForUndeclaredExceptions_Property(
-    IEnumerable<AttributeSyntax> throwsAttributes,
-    SyntaxNodeAnalysisContext context)
+    private static void CheckXmlDocsForUndeclaredExceptions_Property(
+        IEnumerable<AttributeSyntax> throwsAttributes,
+        SyntaxNodeAnalysisContext context)
     {
         var semanticModel = context.SemanticModel;
         var propertySymbol = semanticModel.GetDeclaredSymbol(context.Node) as IPropertySymbol;
@@ -66,7 +64,7 @@ partial class CheckedExceptionsAnalyzer
         CheckXmlDocsForUndeclaredExceptionsCore(declaredExceptions, propertySymbol!, compilation, context.ReportDiagnostic);
     }
 
-    private void CheckXmlDocsForUndeclaredExceptions_ExpressionBodiedProperty(
+    private static void CheckXmlDocsForUndeclaredExceptions_ExpressionBodiedProperty(
         IEnumerable<AttributeSyntax> throwsAttributes,
         SyntaxNodeAnalysisContext context)
     {
@@ -89,7 +87,7 @@ partial class CheckedExceptionsAnalyzer
         CheckXmlDocsForUndeclaredExceptionsCore(declaredExceptions, propertySymbol!, compilation, context.ReportDiagnostic);
     }
 
-    private void CheckXmlDocsForUndeclaredExceptionsCore(IEnumerable<ISymbol?> exceptionTypes, ISymbol symbol, Compilation compilation, Action<Diagnostic> reportDiagnostic)
+    private static void CheckXmlDocsForUndeclaredExceptionsCore(IEnumerable<ISymbol?> exceptionTypes, ISymbol symbol, Compilation compilation, Action<Diagnostic> reportDiagnostic)
     {
         // Parse <exception cref="..."/>
         var xmlDocumentedExceptions = GetExceptionTypesFromDocumentationCommentXml_Syntax(compilation, symbol).ToList();
@@ -187,7 +185,7 @@ partial class CheckedExceptionsAnalyzer
         }
     }
 
-    private IEnumerable<ExceptionInfo> GetExceptionTypesFromDocumentationCommentXml_Syntax(
+    private static IEnumerable<ExceptionInfo> GetExceptionTypesFromDocumentationCommentXml_Syntax(
         Compilation compilation,
         ISymbol symbol,
         CancellationToken cancellationToken = default)

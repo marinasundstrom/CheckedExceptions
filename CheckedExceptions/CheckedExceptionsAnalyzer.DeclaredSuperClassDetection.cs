@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using System.Net.NetworkInformation;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -9,7 +8,7 @@ namespace Sundstrom.CheckedExceptions;
 
 partial class CheckedExceptionsAnalyzer
 {
-    private void CheckForRedundantThrowsDeclarationsHandledByDeclaredSuperClass(
+    private static void CheckForRedundantThrowsDeclarationsHandledByDeclaredSuperClass(
         SymbolAnalysisContext context,
         ImmutableArray<AttributeData> throwsAttributes)
     {
@@ -73,7 +72,7 @@ partial class CheckedExceptionsAnalyzer
         }
     }
 
-    private void CheckForRedundantThrowsHandledByDeclaredSuperClass(
+    private static void CheckForRedundantThrowsHandledByDeclaredSuperClass(
      IEnumerable<AttributeSyntax> throwsAttributes,
      SyntaxNodeAnalysisContext context)
     {

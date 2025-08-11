@@ -12,7 +12,7 @@ partial class CheckedExceptionsAnalyzer
     /// <summary>
     /// From method symbol
     /// </summary>
-    private void AnalyzeControlFlow(
+    private static void AnalyzeControlFlow(
         SymbolAnalysisContext context,
         ImmutableArray<AttributeData> throwsAttributes)
     {
@@ -33,7 +33,12 @@ partial class CheckedExceptionsAnalyzer
         }
 
         // Collect all actually escaping exceptions
-        var actual = CollectThrownExceptions(methodSymbol, context.Compilation, context.ReportDiagnostic, context.Options);
+
+        var node = methodSymbol.DeclaringSyntaxReferences.Select(x => x.GetSyntax()).FirstOrDefault();
+
+        var semanticModel = context.Compilation.GetSemanticModel(node.SyntaxTree);
+
+        var actual = CollectThrownExceptions(methodSymbol, context.Compilation, semanticModel, context.ReportDiagnostic, context.Options);
 
         // declared - actual = redundant
         foreach (var declaredType in declared)
@@ -73,7 +78,7 @@ partial class CheckedExceptionsAnalyzer
     /// <summary>
     /// For local functions and lambda syntaxes
     /// </summary>
-    private void AnalyzeControlFlow(
+    private static void AnalyzeControlFlow(
         IEnumerable<AttributeSyntax> throwsAttributes,
         SyntaxNodeAnalysisContext context)
     {
@@ -99,7 +104,7 @@ partial class CheckedExceptionsAnalyzer
             .ToImmutableHashSet(SymbolEqualityComparer.Default);
 
         // Collect all actually escaping exceptions
-        var actual = CollectThrownExceptions(methodSymbol, semanticModel.Compilation, context.ReportDiagnostic, context.Options);
+        var actual = CollectThrownExceptions(methodSymbol, semanticModel.Compilation, semanticModel, context.ReportDiagnostic, context.Options);
 
         // declared - actual = redundant
         foreach (var declaredType in declared)
@@ -116,7 +121,7 @@ partial class CheckedExceptionsAnalyzer
         }
     }
 
-    private void AnalyzeControlFlow_ExpressionBodiedProperty(
+    private static void AnalyzeControlFlow_ExpressionBodiedProperty(
         IEnumerable<AttributeSyntax> throwsAttributes,
         SyntaxNodeAnalysisContext context)
     {
@@ -138,7 +143,7 @@ partial class CheckedExceptionsAnalyzer
             .ToImmutableHashSet(SymbolEqualityComparer.Default);
 
         // Collect all actually escaping exceptions
-        var actual = CollectThrownExceptions(node, semanticModel.Compilation, context.ReportDiagnostic, context.Options);
+        var actual = CollectThrownExceptions(node, semanticModel.Compilation, semanticModel, context.ReportDiagnostic, context.Options);
 
         // declared - actual = redundant
         foreach (var declaredType in declared)
@@ -155,9 +160,10 @@ partial class CheckedExceptionsAnalyzer
         }
     }
 
-    private ImmutableHashSet<INamedTypeSymbol> CollectThrownExceptions(
+    private static ImmutableHashSet<INamedTypeSymbol> CollectThrownExceptions(
         IMethodSymbol method,
         Compilation compilation,
+        SemanticModel semanticModel,
         Action<Diagnostic> reportDiagnostic,
         AnalyzerOptions analyzerOptions)
     {
@@ -167,12 +173,13 @@ partial class CheckedExceptionsAnalyzer
 
         var syntax = syntaxRef.GetSyntax();
 
-        return CollectThrownExceptions(syntax, compilation, reportDiagnostic, analyzerOptions);
+        return CollectThrownExceptions(syntax, compilation, semanticModel, reportDiagnostic, analyzerOptions);
     }
 
-    private ImmutableHashSet<INamedTypeSymbol> CollectThrownExceptions(
+    private static ImmutableHashSet<INamedTypeSymbol> CollectThrownExceptions(
          SyntaxNode node,
          Compilation compilation,
+         SemanticModel semanticModel,
          Action<Diagnostic> reportDiagnostic,
          AnalyzerOptions analyzerOptions)
     {
@@ -214,8 +221,6 @@ partial class CheckedExceptionsAnalyzer
                 }
                 break;
         }
-
-        var semanticModel = compilation.GetSemanticModel(node.SyntaxTree);
 
         var context = new SyntaxNodeAnalysisContext(
             node,
@@ -339,7 +344,7 @@ partial class CheckedExceptionsAnalyzer
         }
     }
 
-    private FlowWithExceptionsResult AnalyzeBlockWithExceptions(
+    private static FlowWithExceptionsResult AnalyzeBlockWithExceptions(
       ControlFlowContext context)
     {
         var semanticModel = context.SemanticModel;
@@ -427,7 +432,7 @@ partial class CheckedExceptionsAnalyzer
             string.Join(", ", exceptionTypeNames)));
     }
 
-    private void ReportUnreachableCodeHidden(ControlFlowContext context, IEnumerable<StatementSyntax> statements, StatementSyntax statement)
+    private static void ReportUnreachableCodeHidden(ControlFlowContext context, IEnumerable<StatementSyntax> statements, StatementSyntax statement)
     {
         var statementIndex = statements.TakeWhile(x => x != statement).Count();
 
@@ -468,7 +473,7 @@ partial class CheckedExceptionsAnalyzer
         }
     }
 
-    private FlowWithExceptionsResult AnalyzeStatementWithExceptions(
+    private static FlowWithExceptionsResult AnalyzeStatementWithExceptions(
         ControlFlowContext context)
     {
         var semanticModel = context.SemanticModel;
@@ -758,7 +763,7 @@ partial class CheckedExceptionsAnalyzer
         }
     }
 
-    private FlowWithExceptionsResult AnalyzeTryStatement(ControlFlowContext context)
+    private static FlowWithExceptionsResult AnalyzeTryStatement(ControlFlowContext context)
     {
         var tryStmt = (TryStatementSyntax)context.Node;
         var triedExceptions = context.TriedExceptions ?? [];
@@ -821,7 +826,7 @@ partial class CheckedExceptionsAnalyzer
             triedExceptions.ToImmutableHashSet());
     }
 
-    private FlowWithExceptionsResult AnalyzeCatchClause(
+    private static FlowWithExceptionsResult AnalyzeCatchClause(
         ControlFlowContext context,
         IReadOnlyCollection<INamedTypeSymbol> exceptionsInTry,
         HashSet<INamedTypeSymbol> exceptionsLeftToHandle)
@@ -957,7 +962,7 @@ partial class CheckedExceptionsAnalyzer
         return false;
     }
 
-    private Location? GetThrowsAttributeLocation(
+    private static Location? GetThrowsAttributeLocation(
       ISymbol symbol,
       INamedTypeSymbol declaredType,
       Compilation compilation)
