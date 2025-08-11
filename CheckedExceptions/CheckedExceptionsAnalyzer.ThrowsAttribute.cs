@@ -9,10 +9,10 @@ partial class CheckedExceptionsAnalyzer
 {
     private static List<AttributeData> GetThrowsAttributes(ISymbol symbol)
     {
-        return GetThrowsAttributes(symbol.GetAttributes());
+        return FilterThrowsAttributes(symbol.GetAttributes());
     }
 
-    private static List<AttributeData> GetThrowsAttributes(IEnumerable<AttributeData> attributes)
+    private static List<AttributeData> FilterThrowsAttributes(IEnumerable<AttributeData> attributes)
     {
         return attributes
                     .Where(attr => attr.AttributeClass?.Name is "ThrowsAttribute")
