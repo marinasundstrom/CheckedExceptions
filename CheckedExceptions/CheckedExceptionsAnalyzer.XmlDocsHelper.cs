@@ -92,7 +92,7 @@ partial class CheckedExceptionsAnalyzer
         // Parse <exception cref="..."/>
         var xmlDocumentedExceptions = GetExceptionTypesFromDocumentationCommentXml_Syntax(compilation, symbol).ToList();
 
-        if (xmlDocumentedExceptions.Count() == 0)
+        if (xmlDocumentedExceptions.Count() is 0)
             return;
 
         if (symbol is IPropertySymbol propertySymbol)
@@ -201,7 +201,7 @@ partial class CheckedExceptionsAnalyzer
     {
         // Find the syntax node for the method
         var syntaxRef = symbol.DeclaringSyntaxReferences.FirstOrDefault();
-        if (syntaxRef == null)
+        if (syntaxRef is null)
             return null;
 
         var syntaxNode = syntaxRef.GetSyntax(cancellationToken);
@@ -214,7 +214,7 @@ partial class CheckedExceptionsAnalyzer
                         t.IsKind(SyntaxKind.MultiLineDocumentationCommentTrivia))
             .ToList();
 
-        if (trivia.Count == 0)
+        if (trivia.Count is 0)
             return null;
 
         var xmlText = string.Concat(trivia.Select(t => t.ToFullString().Replace("///", string.Empty).Trim()));

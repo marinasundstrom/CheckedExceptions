@@ -104,7 +104,7 @@ public partial class LinqTest
 
             IEnumerable<object> items = [];
             var query = items
-                .Where([Throws(typeof(FormatException), typeof(OverflowException))] (x) => x != null)
+                .Where([Throws(typeof(FormatException), typeof(OverflowException))] (x) => x is not null)
                 .Cast<string>();
 
             foreach (var item in query) { }

@@ -17,7 +17,7 @@ IEnumerable<string> values = [ "10", "x", "20" ];
 
 var allEven = values
     .Where(v => v.Length > 0)
-    .All([Throws(typeof(FormatException), typeof(OverflowException))] (v) => int.Parse(v) % 2 == 0);
+    .All([Throws(typeof(FormatException), typeof(OverflowException))] (v) => int.Parse(v) % 2 is 0);
 
 // Reported on All(...):
 // THROW001: Unhandled exception type 'FormatException'

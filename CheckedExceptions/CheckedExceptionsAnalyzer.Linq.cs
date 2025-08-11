@@ -473,7 +473,7 @@ internal static class LinqKnowledge
                 ["Cast"] = (comp, inv) =>
                 {
                     // T in Cast<T>()
-                    if (inv.TargetMethod.TypeArguments.Length != 1)
+                    if (inv.TargetMethod.TypeArguments.Length is not 1)
                         return Array.Empty<INamedTypeSymbol>();
                     var targetT = inv.TargetMethod.TypeArguments[0];
 
@@ -598,7 +598,7 @@ internal static class LinqKnowledge
     {
         // Sum(IEnumerable<decimal>) returns decimal
         // Sum(IEnumerable<decimal?>) returns decimal?
-        if (m.Parameters.Length == 1)
+        if (m.Parameters.Length is 1)
             return IsEnumerableOf(m.Parameters[0].Type, IsDecimal);
 
         // Sum<TSource>(IEnumerable<TSource>, Func<TSource, decimal>) etc.

@@ -403,7 +403,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             AnalyzeControlFlow(context, throwsAttributes);
         }
 
-        if (throwsAttributes.Length == 0)
+        if (throwsAttributes.Length is 0)
             return;
 
         CheckForGeneralExceptionThrowDeclarations(throwsAttributes, context);

@@ -36,7 +36,7 @@ partial class CheckedExceptionsAnalyzer
             declaredExceptions = GetDistictExceptionTypes(throwsAttributes).ToImmutableHashSet(SymbolEqualityComparer.Default);
         }
 
-        //if (declaredExceptions.Count == 0)
+        //if (declaredExceptions.Count is 0)
         //    return;
 
         var baseMethods = GetBaseOrInterfaceMethods(method)
@@ -101,7 +101,7 @@ partial class CheckedExceptionsAnalyzer
                 var declaredNamed = declared as INamedTypeSymbol;
                 var baseNamed = baseException as INamedTypeSymbol;
 
-                return declaredNamed != null && baseNamed != null && declaredNamed.InheritsFrom(baseNamed);
+                return declaredNamed is not null && baseNamed is not null && declaredNamed.InheritsFrom(baseNamed);
             });
 
             if (!isCovered)
@@ -246,7 +246,7 @@ partial class CheckedExceptionsAnalyzer
     private static bool IsTooGenericException(ITypeSymbol ex)
     {
         var namedType = ex as INamedTypeSymbol;
-        if (namedType == null)
+        if (namedType is null)
             return false;
 
         var fullName = namedType.ToDisplayString();
@@ -283,7 +283,7 @@ partial class CheckedExceptionsAnalyzer
             foreach (var ifaceMember in iface.GetMembers().OfType<IMethodSymbol>())
             {
                 var impl = type.FindImplementationForInterfaceMember(ifaceMember) as IMethodSymbol;
-                if (impl != null && impl.Equals(method, SymbolEqualityComparer.Default))
+                if (impl is not null && impl.Equals(method, SymbolEqualityComparer.Default))
                 {
                     results.Add(ifaceMember);
                 }

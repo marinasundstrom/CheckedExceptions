@@ -45,7 +45,7 @@ public class AddCatchClauseToTryCodeFixProvider : CodeFixProvider
         if (TryGetEnclosingDeferredContext(throwSite) is { } deferredContext)
         {
             var innerTry = throwSite.FirstAncestorOrSelf<TryStatementSyntax>();
-            if (innerTry == null || !deferredContext.Span.Contains(innerTry.Span))
+            if (innerTry is null || !deferredContext.Span.Contains(innerTry.Span))
             {
                 return; // ❌ inside deferred context, but not protected by a nested try
             }
@@ -111,7 +111,7 @@ public class AddCatchClauseToTryCodeFixProvider : CodeFixProvider
                 .Distinct()
                 .ToList();
 
-            if (newExceptionTypes.Count == 0)
+            if (newExceptionTypes.Count is 0)
             {
                 return document; // All exceptions already handled
             }

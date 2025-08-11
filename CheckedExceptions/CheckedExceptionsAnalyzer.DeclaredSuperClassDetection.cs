@@ -29,7 +29,7 @@ partial class CheckedExceptionsAnalyzer
                 {
                     var typeInfo = semanticModel.GetTypeInfo(typeOfExpr.Type, context.CancellationToken);
                     var typeSymbol = typeInfo.Type as INamedTypeSymbol;
-                    if (typeSymbol == null)
+                    if (typeSymbol is null)
                         continue;
 
                     declaredTypes.Add(typeSymbol);
@@ -62,7 +62,7 @@ partial class CheckedExceptionsAnalyzer
         static bool IsSubclassOf(INamedTypeSymbol derived, INamedTypeSymbol baseType)
         {
             var current = derived.BaseType;
-            while (current != null)
+            while (current is not null)
             {
                 if (current.Equals(baseType, SymbolEqualityComparer.Default))
                     return true;
@@ -89,7 +89,7 @@ partial class CheckedExceptionsAnalyzer
                     var typeInfo = semanticModel.GetTypeInfo(typeOfExpr.Type, context.CancellationToken);
                     var exceptionType = typeInfo.Type as INamedTypeSymbol;
 
-                    if (exceptionType == null)
+                    if (exceptionType is null)
                         continue;
 
                     declaredTypes.Add(exceptionType);
@@ -122,7 +122,7 @@ partial class CheckedExceptionsAnalyzer
         static bool IsSubclassOf(INamedTypeSymbol derived, INamedTypeSymbol baseType)
         {
             var current = derived.BaseType;
-            while (current != null)
+            while (current is not null)
             {
                 if (current.Equals(baseType, SymbolEqualityComparer.Default))
                     return true;

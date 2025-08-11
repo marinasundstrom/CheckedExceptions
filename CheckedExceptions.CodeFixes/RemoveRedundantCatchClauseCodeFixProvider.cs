@@ -40,7 +40,7 @@ public class RemoveRedundantCatchClauseCodeFixProvider : CodeFixProvider
 
         if (tryStatement is not null)
         {
-            if (tryStatement.Catches.Count == 1)
+            if (tryStatement.Catches.Count is 1)
             {
                 title = title.Replace(title, "Remove redundant try/catch");
             }
@@ -66,7 +66,7 @@ public class RemoveRedundantCatchClauseCodeFixProvider : CodeFixProvider
 
         if (tryStatement is not null)
         {
-            if (tryStatement.Catches.Count == 1)
+            if (tryStatement.Catches.Count is 1)
             {
                 // Get the current node in the tree
                 var nodeInRoot = root.FindNode(tryStatement.Span);

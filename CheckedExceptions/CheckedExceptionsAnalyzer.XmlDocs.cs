@@ -131,7 +131,7 @@ partial class CheckedExceptionsAnalyzer
 
         CollectMatches(ns, shortName, matches);
 
-        if (matches.Count == 0)
+        if (matches.Count is 0)
             return null;
 
         // Prefer System.* matches if available

@@ -168,7 +168,7 @@ partial class CheckedExceptionsAnalyzer
         AnalyzerOptions analyzerOptions)
     {
         var syntaxRef = method.DeclaringSyntaxReferences.FirstOrDefault();
-        if (syntaxRef == null)
+        if (syntaxRef is null)
             return ImmutableHashSet<INamedTypeSymbol>.Empty;
 
         var syntax = syntaxRef.GetSyntax();
@@ -491,7 +491,7 @@ partial class CheckedExceptionsAnalyzer
         switch (statement)
         {
             case ThrowStatementSyntax throwStmt:
-                if (throwStmt.Expression == null)
+                if (throwStmt.Expression is null)
                 {
                     // 🚩 Rethrow
                     if (context.TriedExceptions != null)
@@ -534,7 +534,7 @@ partial class CheckedExceptionsAnalyzer
                         else
                         {
                             // Always false → analyze ELSE only
-                            if (ifStmt.Else?.Statement != null)
+                            if (ifStmt.Else?.Statement is not null)
                             {
                                 var elseResult = AnalyzeStatementWithExceptions(new ControlFlowContext(context, ifStmt.Else.Statement));
                                 unhandled.UnionWith(elseResult.UnhandledExceptions);
@@ -555,7 +555,7 @@ partial class CheckedExceptionsAnalyzer
 
                     // Then branch
                     FlowWithExceptionsResult? thenResult = null;
-                    if (ifStmt.Statement != null)
+                    if (ifStmt.Statement is not null)
                     {
                         thenResult = AnalyzeStatementWithExceptions(new ControlFlowContext(context, ifStmt.Statement));
                         unhandled.UnionWith(thenResult.UnhandledExceptions);
@@ -565,7 +565,7 @@ partial class CheckedExceptionsAnalyzer
                     }
 
                     // Else branch
-                    if (ifStmt.Else?.Statement != null)
+                    if (ifStmt.Else?.Statement is not null)
                     {
                         var elseResult = AnalyzeStatementWithExceptions(new ControlFlowContext(context, ifStmt.Else.Statement));
                         unhandled.UnionWith(elseResult.UnhandledExceptions);
@@ -639,7 +639,7 @@ partial class CheckedExceptionsAnalyzer
                     foreach (var init in forStmt.Initializers)
                         unhandled.UnionWith(CollectExceptionsFromExpression(context.SyntaxContext, init, context.Settings, semanticModel));
 
-                    if (forStmt.Condition != null)
+                    if (forStmt.Condition is not null)
                         unhandled.UnionWith(CollectExceptionsFromExpression(context.SyntaxContext, forStmt.Condition, context.Settings, semanticModel));
 
                     foreach (var inc in forStmt.Incrementors)
@@ -688,14 +688,14 @@ partial class CheckedExceptionsAnalyzer
 
             case UsingStatementSyntax usingStmt:
                 {
-                    if (usingStmt.Expression != null)
+                    if (usingStmt.Expression is not null)
                         unhandled.UnionWith(CollectExceptionsFromExpression(context.SyntaxContext, usingStmt.Expression, context.Settings, semanticModel));
 
-                    if (usingStmt.Declaration != null)
+                    if (usingStmt.Declaration is not null)
                     {
                         foreach (var v in usingStmt.Declaration.Variables)
                         {
-                            if (v.Initializer?.Value != null)
+                            if (v.Initializer?.Value is not null)
                                 unhandled.UnionWith(CollectExceptionsFromExpression(context.SyntaxContext, v.Initializer.Value, context.Settings, semanticModel));
                         }
                     }
@@ -840,7 +840,7 @@ partial class CheckedExceptionsAnalyzer
         INamedTypeSymbol? caughtExceptionType = null;
 
         // --- catch-all ---
-        if (catchClause.Declaration?.Type == null)
+        if (catchClause.Declaration?.Type is null)
         {
             bool handlesAny = exceptionsLeftToHandle.Count > 0;
             if (!handlesAny)
@@ -878,7 +878,7 @@ partial class CheckedExceptionsAnalyzer
             caughtExceptionType = GetCaughtException(catchClause, context.SemanticModel);
             bool handlesAny = false;
 
-            if (caughtExceptionType != null)
+            if (caughtExceptionType is not null)
             {
                 // Is this type ever thrown in the try?
                 handlesAny = exceptionsInTry.Any(ex => IsExceptionCaught(ex, caughtExceptionType));
@@ -929,7 +929,7 @@ partial class CheckedExceptionsAnalyzer
                     new ControlFlowContext(
                     context,
                     catchBlock,
-                    caughtExceptionType != null ? [caughtExceptionType] : null,
+                    caughtExceptionType is not null ? [caughtExceptionType] : null,
                     isUnreachable: !handlesAny));
 
                 if (handlesAny)

@@ -306,7 +306,7 @@ There is initial support for LINQ query operators.
 List<string> values = new() { "10", "20", "abc", "30" };
 
 var tens = values
-    .Where([Throws(typeof(FormatException), typeof(OverflowException))] s => int.Parse(s) % 10 == 0)
+    .Where([Throws(typeof(FormatException), typeof(OverflowException))] s => int.Parse(s) % 10 is 0)
     .ToArray(); // THROW001: unhandled FormatException, OverflowException
 ```
 

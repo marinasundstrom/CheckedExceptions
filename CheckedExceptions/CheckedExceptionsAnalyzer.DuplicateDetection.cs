@@ -71,7 +71,7 @@ partial class CheckedExceptionsAnalyzer
                 {
                     var typeInfo = semanticModel.GetTypeInfo(typeOfExpr.Type, context.CancellationToken);
                     var exceptionType = typeInfo.Type as INamedTypeSymbol;
-                    if (exceptionType == null)
+                    if (exceptionType is null)
                         continue;
 
                     if (seen.Contains(exceptionType))

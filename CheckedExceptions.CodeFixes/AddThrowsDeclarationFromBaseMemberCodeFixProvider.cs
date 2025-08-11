@@ -92,7 +92,7 @@ public class AddThrowsDeclarationFromBaseMemberCodeFixProvider : CodeFixProvider
 
         var newNode = targetNode;
 
-        if (firstThrowsAttribute != null)
+        if (firstThrowsAttribute is not null)
         {
             var newArgs = firstThrowsAttribute.ArgumentList.Arguments.AddRange(
                 exceptionsToAdd.Select(ex =>

@@ -29,7 +29,7 @@ public static class TypeSymbolExtensions
 
     public static bool IsAssignableTo(this ITypeSymbol from, ITypeSymbol to, Compilation compilation)
     {
-        if (from == null || to == null)
+        if (from is null || to is null)
             return false;
 
         var conversion = compilation.ClassifyConversion(from, to);

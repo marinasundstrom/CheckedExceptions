@@ -46,7 +46,7 @@ public class IntroduceCatchClauseForRethrownExceptionCodeFixProvider : CodeFixPr
         if (TryGetEnclosingDeferredContext(throwSite) is { } deferredContext)
         {
             var innerTry = throwSite.FirstAncestorOrSelf<TryStatementSyntax>();
-            if (innerTry == null || !deferredContext.Span.Contains(innerTry.Span))
+            if (innerTry is null || !deferredContext.Span.Contains(innerTry.Span))
             {
                 return; // ❌ inside deferred context, but not protected by a nested try
             }
@@ -123,7 +123,7 @@ public class IntroduceCatchClauseForRethrownExceptionCodeFixProvider : CodeFixPr
                 .Distinct()
                 .ToList();
 
-            if (newExceptionTypes.Count == 0)
+            if (newExceptionTypes.Count is 0)
             {
                 return document; // All exceptions already handled
             }
@@ -132,7 +132,7 @@ public class IntroduceCatchClauseForRethrownExceptionCodeFixProvider : CodeFixPr
 
             TryStatementSyntax newTry;
 
-            if (statement.Parent is BlockSyntax block && block.Statements.Count == 1)
+            if (statement.Parent is BlockSyntax block && block.Statements.Count is 1)
             {
                 var catches = existingTryStatement.Catches.RemoveAt(existingTryStatement.Catches.Count - 1);
                 newTry = existingTryStatement.WithCatches(catches.AddRange(catchClausesToAdd))

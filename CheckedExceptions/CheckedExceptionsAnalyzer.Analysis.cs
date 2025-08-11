@@ -504,7 +504,7 @@ partial class CheckedExceptionsAnalyzer
             {
                 // Remove InvalidOperationException from XML — it’s not actually thrown here
                 var invalidCastExc = context.Compilation.GetTypeByMetadataName("System.InvalidCastException");
-                if (invalidCastExc != null)
+                if (invalidCastExc is not null)
                     exceptionTypes.RemoveWhere(e => SymbolEqualityComparer.Default.Equals(e, invalidCastExc));
             }
         }
