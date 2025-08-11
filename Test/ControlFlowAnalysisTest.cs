@@ -24,6 +24,10 @@ public class ControlFlowAnalysisTest
         {
             return -1;
         }
+        finally
+        {
+            Console.WriteLine("Hey!");
+        }
 
         Console.WriteLine("Test");
     }
