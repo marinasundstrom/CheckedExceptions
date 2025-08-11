@@ -1,5 +1,4 @@
 using System.Collections.Immutable;
-using System.Net.NetworkInformation;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
