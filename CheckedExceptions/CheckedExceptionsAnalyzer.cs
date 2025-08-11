@@ -271,6 +271,16 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         if (sourceType is null || targetType is null)
             return;
 
+        INamedTypeSymbol? exceptionType = CheckCastExpression(context, castExpression, targetType);
+
+        if (exceptionType is not null)
+        {
+            AnalyzeExceptionThrowingNode(context, castExpression, exceptionType, settings);
+        }
+    }
+
+    private static INamedTypeSymbol? CheckCastExpression(SyntaxNodeAnalysisContext context, CastExpressionSyntax castExpression, ITypeSymbol targetType)
+    {
         var conversion = context.SemanticModel.ClassifyConversion(castExpression.Expression, targetType);
 
         INamedTypeSymbol? exceptionType = null;
@@ -298,10 +308,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             }
         }
 
-        if (exceptionType is not null)
-        {
-            AnalyzeExceptionThrowingNode(context, castExpression, exceptionType, settings);
-        }
+        return exceptionType;
     }
 
     private static bool IsInCheckedContext(SyntaxNode node, SemanticModel model, Compilation compilation)
@@ -1027,6 +1034,26 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
                             exceptions.Add(exceptionType);
                         }
                     }
+                }
+            }
+        }
+
+        var castExpressions = expression.DescendantNodesAndSelf().OfType<CastExpressionSyntax>();
+        foreach (var castExpression in castExpressions)
+        {
+            var sourceType = context.SemanticModel.GetTypeInfo(castExpression.Expression).Type;
+            var targetType = context.SemanticModel.GetTypeInfo(castExpression.Type).Type;
+
+            if (sourceType is null || targetType is null)
+                return;
+
+            INamedTypeSymbol? invalidCastException = CheckCastExpression(context, castExpression, targetType);
+
+            if (invalidCastException is not null)
+            {
+                if (ShouldIncludeException(invalidCastException, castExpression, settings))
+                {
+                    exceptions.Add(invalidCastException);
                 }
             }
         }
