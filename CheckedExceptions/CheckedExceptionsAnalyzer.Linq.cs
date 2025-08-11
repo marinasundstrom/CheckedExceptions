@@ -138,25 +138,6 @@ partial class CheckedExceptionsAnalyzer
         }
     }
 
-    private static void CollectThrowsFromLambdaArguments(
-      IInvocationOperation op,
-      HashSet<INamedTypeSymbol> exceptionTypes)
-    {
-        foreach (var arg in op.Arguments)
-        {
-            var lambda = ExtractAnonymousFunction(arg.Value);
-            if (lambda?.Symbol is not { } sym) continue;
-
-            foreach (var attr in sym.GetAttributes())
-            {
-                foreach (var t in GetExceptionTypesFromThrowsAttribute(attr))
-                {
-                    exceptionTypes.Add(t);
-                }
-            }
-        }
-    }
-
     // Return 0..N types from [Throws(typeof(...), typeof(...))]
     private static IEnumerable<INamedTypeSymbol> GetExceptionTypesFromThrowsAttribute(AttributeData attr)
     {
@@ -405,11 +386,11 @@ partial class CheckedExceptionsAnalyzer
         // For now: skip or use AdditionalFiles metadata for known parameters.
     }
 
-    private static void CollectThrowsFromSymbol(ISymbol? sym, HashSet<INamedTypeSymbol> exceptionTypes)
+    private static void CollectThrowsFromSymbol(ISymbol? symbol, HashSet<INamedTypeSymbol> exceptionTypes)
     {
-        if (sym is null) return;
+        if (symbol is null) return;
 
-        foreach (var attr in sym.GetAttributes())
+        foreach (var attr in symbol.GetAttributes())
             foreach (var t in GetExceptionTypesFromThrowsAttribute(attr))
                 exceptionTypes.Add(t);
     }

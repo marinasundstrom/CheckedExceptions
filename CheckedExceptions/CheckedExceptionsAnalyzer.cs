@@ -812,7 +812,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         return string.Equals(exceptionName, pattern, StringComparison.Ordinal);
     }
 
-    private HashSet<INamedTypeSymbol> CollectUnhandledExceptions(SyntaxNodeAnalysisContext context, BlockSyntax block, AnalyzerSettings settings)
+    private static HashSet<INamedTypeSymbol> CollectUnhandledExceptions(SyntaxNodeAnalysisContext context, BlockSyntax block, AnalyzerSettings settings)
     {
         var unhandledExceptions = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
 
@@ -844,7 +844,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         return unhandledExceptions;
     }
 
-    private HashSet<INamedTypeSymbol> CollectExceptionsFromStatement(SyntaxNodeAnalysisContext context, StatementSyntax statement, AnalyzerSettings settings)
+    private static HashSet<INamedTypeSymbol> CollectExceptionsFromStatement(SyntaxNodeAnalysisContext context, StatementSyntax statement, AnalyzerSettings settings)
     {
         SemanticModel semanticModel = context.SemanticModel;
 
@@ -871,14 +871,14 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         return exceptions;
     }
 
-    private HashSet<INamedTypeSymbol> CollectExceptionsFromExpression(SyntaxNodeAnalysisContext context, SyntaxNode expression, AnalyzerSettings settings, SemanticModel semanticModel)
+    private static HashSet<INamedTypeSymbol> CollectExceptionsFromExpression(SyntaxNodeAnalysisContext context, SyntaxNode expression, AnalyzerSettings settings, SemanticModel semanticModel)
     {
         HashSet<INamedTypeSymbol> exceptions = [];
         CollectExceptionsFromExpression(context, expression, settings, semanticModel, exceptions);
         return exceptions;
     }
 
-    private void CollectExceptionsFromExpression(SyntaxNodeAnalysisContext context, SyntaxNode expression, AnalyzerSettings settings, SemanticModel semanticModel, HashSet<INamedTypeSymbol> exceptions)
+    private static void CollectExceptionsFromExpression(SyntaxNodeAnalysisContext context, SyntaxNode expression, AnalyzerSettings settings, SemanticModel semanticModel, HashSet<INamedTypeSymbol> exceptions)
     {
         // Collect exceptions from throw expressions
         var throwExpressions = expression.DescendantNodesAndSelf().OfType<ThrowExpressionSyntax>();
@@ -1059,7 +1059,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         }
     }
 
-    public bool ShouldIncludeException(INamedTypeSymbol exceptionType, SyntaxNode node, AnalyzerSettings settings)
+    public static bool ShouldIncludeException(INamedTypeSymbol exceptionType, SyntaxNode node, AnalyzerSettings settings)
     {
         var exceptionName = exceptionType.ToDisplayString();
 
@@ -1079,7 +1079,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         return true;
     }
 
-    private HashSet<INamedTypeSymbol> GetCaughtExceptions(SyntaxList<CatchClauseSyntax> catchClauses, SemanticModel semanticModel)
+    private static HashSet<INamedTypeSymbol> GetCaughtExceptions(SyntaxList<CatchClauseSyntax> catchClauses, SemanticModel semanticModel)
     {
         var caughtExceptions = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
 
@@ -1112,7 +1112,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         return semanticModel.GetTypeInfo(catchClause.Declaration.Type).Type as INamedTypeSymbol;
     }
 
-    private bool IsExceptionCaught(INamedTypeSymbol exceptionType, HashSet<INamedTypeSymbol>? caughtExceptions)
+    private static bool IsExceptionCaught(INamedTypeSymbol exceptionType, HashSet<INamedTypeSymbol>? caughtExceptions)
     {
         if (caughtExceptions is null)
         {
@@ -1247,7 +1247,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     /// <summary>
     /// Resolves the target method symbol from a delegate, lambda, or method group.
     /// </summary>
-    private IMethodSymbol GetTargetMethodSymbol(SyntaxNodeAnalysisContext context, InvocationExpressionSyntax invocation)
+    private static IMethodSymbol GetTargetMethodSymbol(SyntaxNodeAnalysisContext context, InvocationExpressionSyntax invocation)
     {
         var expression = invocation.Expression;
 
@@ -1447,7 +1447,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         }
     }
 
-    private HashSet<INamedTypeSymbol> GetPropertyExceptionTypes(SyntaxNodeAnalysisContext context, ExpressionSyntax expression, IPropertySymbol propertySymbol, AnalyzerSettings settings)
+    private static HashSet<INamedTypeSymbol> GetPropertyExceptionTypes(SyntaxNodeAnalysisContext context, ExpressionSyntax expression, IPropertySymbol propertySymbol, AnalyzerSettings settings)
     {
         // Determine if the analyzed expression is for a getter or setter
         bool isGetter = IsPropertyGetter(expression);
@@ -1810,7 +1810,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             unhandledExceptions);
     }
 
-    private bool ShouldIgnore(SyntaxNode node, ExceptionMode mode)
+    private static bool ShouldIgnore(SyntaxNode node, ExceptionMode mode)
     {
         if (mode is ExceptionMode.Always)
             return true;
@@ -1926,7 +1926,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         return exceptionType.ToDisplayString() is "System.Exception";
     }
 
-    private bool IsPropertyGetter(ExpressionSyntax expression)
+    private static bool IsPropertyGetter(ExpressionSyntax expression)
     {
         var parent = expression.Parent;
 
@@ -1949,7 +1949,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         return true; // Assume getter in other cases
     }
 
-    private bool IsPropertySetter(ExpressionSyntax expression)
+    private static bool IsPropertySetter(ExpressionSyntax expression)
     {
         var parent = expression.Parent;
 

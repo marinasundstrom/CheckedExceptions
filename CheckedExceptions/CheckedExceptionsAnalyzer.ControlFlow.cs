@@ -33,7 +33,12 @@ partial class CheckedExceptionsAnalyzer
         }
 
         // Collect all actually escaping exceptions
-        var actual = CollectThrownExceptions(methodSymbol, context.Compilation, context.ReportDiagnostic, context.Options);
+
+        var node = methodSymbol.DeclaringSyntaxReferences.Select(x => x.GetSyntax()).FirstOrDefault();
+
+        var semanticModel = context.Compilation.GetSemanticModel(node.SyntaxTree);
+
+        var actual = CollectThrownExceptions(methodSymbol, context.Compilation, semanticModel, context.ReportDiagnostic, context.Options);
 
         // declared - actual = redundant
         foreach (var declaredType in declared)
@@ -99,7 +104,7 @@ partial class CheckedExceptionsAnalyzer
             .ToImmutableHashSet(SymbolEqualityComparer.Default);
 
         // Collect all actually escaping exceptions
-        var actual = CollectThrownExceptions(methodSymbol, semanticModel.Compilation, context.ReportDiagnostic, context.Options);
+        var actual = CollectThrownExceptions(methodSymbol, semanticModel.Compilation, semanticModel, context.ReportDiagnostic, context.Options);
 
         // declared - actual = redundant
         foreach (var declaredType in declared)
@@ -138,7 +143,7 @@ partial class CheckedExceptionsAnalyzer
             .ToImmutableHashSet(SymbolEqualityComparer.Default);
 
         // Collect all actually escaping exceptions
-        var actual = CollectThrownExceptions(node, semanticModel.Compilation, context.ReportDiagnostic, context.Options);
+        var actual = CollectThrownExceptions(node, semanticModel.Compilation, semanticModel, context.ReportDiagnostic, context.Options);
 
         // declared - actual = redundant
         foreach (var declaredType in declared)
@@ -158,6 +163,7 @@ partial class CheckedExceptionsAnalyzer
     private ImmutableHashSet<INamedTypeSymbol> CollectThrownExceptions(
         IMethodSymbol method,
         Compilation compilation,
+        SemanticModel semanticModel,
         Action<Diagnostic> reportDiagnostic,
         AnalyzerOptions analyzerOptions)
     {
@@ -167,12 +173,13 @@ partial class CheckedExceptionsAnalyzer
 
         var syntax = syntaxRef.GetSyntax();
 
-        return CollectThrownExceptions(syntax, compilation, reportDiagnostic, analyzerOptions);
+        return CollectThrownExceptions(syntax, compilation, semanticModel, reportDiagnostic, analyzerOptions);
     }
 
     private ImmutableHashSet<INamedTypeSymbol> CollectThrownExceptions(
          SyntaxNode node,
          Compilation compilation,
+         SemanticModel semanticModel,
          Action<Diagnostic> reportDiagnostic,
          AnalyzerOptions analyzerOptions)
     {
@@ -214,8 +221,6 @@ partial class CheckedExceptionsAnalyzer
                 }
                 break;
         }
-
-        var semanticModel = compilation.GetSemanticModel(node.SyntaxTree);
 
         var context = new SyntaxNodeAnalysisContext(
             node,
