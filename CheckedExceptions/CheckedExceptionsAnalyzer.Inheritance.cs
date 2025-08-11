@@ -10,7 +10,7 @@ partial class CheckedExceptionsAnalyzer
 {
     #region  Method
 
-    private void CheckForCompatibilityWithBaseOrInterface(SymbolAnalysisContext context, ImmutableArray<AttributeData> throwsAttributes)
+    private static void CheckForCompatibilityWithBaseOrInterface(SymbolAnalysisContext context, ImmutableArray<AttributeData> throwsAttributes)
     {
         var method = (IMethodSymbol)context.Symbol;
 
@@ -65,7 +65,7 @@ partial class CheckedExceptionsAnalyzer
         }
     }
 
-    private bool IsExpressionBodiedProperty(IMethodSymbol method, out IPropertySymbol? propertySymbol)
+    private static bool IsExpressionBodiedProperty(IMethodSymbol method, out IPropertySymbol? propertySymbol)
     {
         if (method.MethodKind is MethodKind.PropertyGet
                     && method.AssociatedSymbol is IPropertySymbol prop
@@ -80,12 +80,12 @@ partial class CheckedExceptionsAnalyzer
         return false;
     }
 
-    private bool HasThrowsAttributes(ISymbol symbol)
+    private static bool HasThrowsAttributes(ISymbol symbol)
     {
         return GetThrowsAttributes(symbol).Any();
     }
 
-    private void AnalyzeMissingThrowsFromBaseMember(SymbolAnalysisContext context, IMethodSymbol method, ImmutableHashSet<ISymbol?> declaredExceptions, IMethodSymbol baseMethod, ImmutableHashSet<ISymbol?> baseExceptions)
+    private static void AnalyzeMissingThrowsFromBaseMember(SymbolAnalysisContext context, IMethodSymbol method, ImmutableHashSet<ISymbol?> declaredExceptions, IMethodSymbol baseMethod, ImmutableHashSet<ISymbol?> baseExceptions)
     {
         foreach (var baseException in baseExceptions.OfType<ITypeSymbol>())
         {
@@ -123,7 +123,7 @@ partial class CheckedExceptionsAnalyzer
         }
     }
 
-    private Location? GetSourceLocationForTarget(IMethodSymbol methodSymbol)
+    private static Location? GetSourceLocationForTarget(IMethodSymbol methodSymbol)
     {
         if (methodSymbol.AssociatedSymbol is IPropertySymbol propertySymbol)
         {
@@ -243,7 +243,7 @@ partial class CheckedExceptionsAnalyzer
         return $"{typeName}.{methodName}({parameters})";
     }
 
-    private bool IsTooGenericException(ITypeSymbol ex)
+    private static bool IsTooGenericException(ITypeSymbol ex)
     {
         var namedType = ex as INamedTypeSymbol;
         if (namedType == null)
@@ -254,7 +254,7 @@ partial class CheckedExceptionsAnalyzer
         return fullName == "System.Exception" || fullName == "System.SystemException";
     }
 
-    private IEnumerable<IMethodSymbol> GetBaseOrInterfaceMethods(IMethodSymbol method)
+    private static IEnumerable<IMethodSymbol> GetBaseOrInterfaceMethods(IMethodSymbol method)
     {
         var results = new List<IMethodSymbol>();
 

@@ -9,7 +9,7 @@ partial class CheckedExceptionsAnalyzer
     /// <summary>
     /// Analyzes exceptions thrown by a method, constructor, or other member.
     /// </summary>
-    private void AnalyzeMemberExceptions(SyntaxNodeAnalysisContext context, SyntaxNode node, IMethodSymbol methodSymbol,
+    private static void AnalyzeMemberExceptions(SyntaxNodeAnalysisContext context, SyntaxNode node, IMethodSymbol methodSymbol,
         AnalyzerSettings settings)
     {
         if (methodSymbol is null)

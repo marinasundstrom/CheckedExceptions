@@ -10,7 +10,7 @@ partial class CheckedExceptionsAnalyzer
 {
     #region  Methods
 
-    private void CheckForGeneralExceptionThrowDeclarations(
+    private static void CheckForGeneralExceptionThrowDeclarations(
         ImmutableArray<AttributeData> throwsAttributes,
         SymbolAnalysisContext context)
     {
@@ -54,7 +54,7 @@ partial class CheckedExceptionsAnalyzer
 
     #region Lambda expression and Local functions
 
-    private void CheckForGeneralExceptionThrows(
+    private static void CheckForGeneralExceptionThrows(
      SyntaxNodeAnalysisContext context,
      List<AttributeSyntax> throwsAttributes)
     {

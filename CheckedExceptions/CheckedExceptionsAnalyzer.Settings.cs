@@ -9,7 +9,7 @@ partial class CheckedExceptionsAnalyzer
 
     private const string SettingsFileName = "CheckedExceptions.settings.json";
 
-    private AnalyzerSettings GetAnalyzerSettings(AnalyzerOptions analyzerOptions)
+    private static AnalyzerSettings GetAnalyzerSettings(AnalyzerOptions analyzerOptions)
     {
         if (!configs.TryGetValue(analyzerOptions, out var config))
         {

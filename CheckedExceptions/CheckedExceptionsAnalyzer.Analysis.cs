@@ -9,7 +9,7 @@ namespace Sundstrom.CheckedExceptions;
 
 partial class CheckedExceptionsAnalyzer
 {
-    private void AnalyzeExceptionsInTryBlock(SyntaxNodeAnalysisContext context, TryStatementSyntax tryStatement, CatchClauseSyntax generalCatchClause, ThrowStatementSyntax throwStatement, AnalyzerSettings settings)
+    private static void AnalyzeExceptionsInTryBlock(SyntaxNodeAnalysisContext context, TryStatementSyntax tryStatement, CatchClauseSyntax generalCatchClause, ThrowStatementSyntax throwStatement, AnalyzerSettings settings)
     {
         var semanticModel = context.SemanticModel;
 
@@ -397,7 +397,7 @@ partial class CheckedExceptionsAnalyzer
     /// <summary>
     /// Determines if a node is within a catch block.
     /// </summary>
-    private bool IsWithinCatchBlock(SyntaxNode node, out CatchClauseSyntax catchClause)
+    private static bool IsWithinCatchBlock(SyntaxNode node, out CatchClauseSyntax catchClause)
     {
         catchClause = node.Ancestors().OfType<CatchClauseSyntax>().FirstOrDefault();
         return catchClause is not null;
@@ -406,7 +406,7 @@ partial class CheckedExceptionsAnalyzer
     /// <summary>
     /// Determines if a catch clause handles the specified exception type.
     /// </summary>
-    private bool CatchClauseHandlesException(CatchClauseSyntax catchClause, SemanticModel semanticModel, INamedTypeSymbol exceptionType)
+    private static bool CatchClauseHandlesException(CatchClauseSyntax catchClause, SemanticModel semanticModel, INamedTypeSymbol exceptionType)
     {
         if (catchClause.Declaration is null)
             return true; // Catch-all handles all exceptions
@@ -423,7 +423,7 @@ partial class CheckedExceptionsAnalyzer
     /// <summary>
     /// Determines if an exception is handled by any enclosing try-catch blocks.
     /// </summary>
-    private bool IsExceptionHandledByEnclosingTryCatch(SyntaxNode node, INamedTypeSymbol exceptionType, SemanticModel semanticModel)
+    private static bool IsExceptionHandledByEnclosingTryCatch(SyntaxNode node, INamedTypeSymbol exceptionType, SemanticModel semanticModel)
     {
         SyntaxNode? prevNode = null;
 
@@ -470,7 +470,7 @@ partial class CheckedExceptionsAnalyzer
     /// <summary>
     /// Analyzes a node that throws or propagates exceptions to check for handling or declaration.
     /// </summary>
-    private void AnalyzeExceptionThrowingNode(
+    private static void AnalyzeExceptionThrowingNode(
         SemanticModel semanticModel,
         Action<Diagnostic> reportDiagnostic,
         SyntaxNode node,
@@ -533,7 +533,7 @@ partial class CheckedExceptionsAnalyzer
         }
     }
 
-    private void AnalyzeExceptionThrowingNode(
+    private static void AnalyzeExceptionThrowingNode(
         SyntaxNodeAnalysisContext context,
         SyntaxNode node,
         INamedTypeSymbol? exceptionType,
@@ -549,7 +549,7 @@ partial class CheckedExceptionsAnalyzer
             unhandledExceptions);
     }
 
-    private void AnalyzeFunctionAttributes(SyntaxNode node, IEnumerable<AttributeSyntax> attributes, SemanticModel semanticModel, SyntaxNodeAnalysisContext context)
+    private static void AnalyzeFunctionAttributes(SyntaxNode node, IEnumerable<AttributeSyntax> attributes, SemanticModel semanticModel, SyntaxNodeAnalysisContext context)
     {
         var settings = GetAnalyzerSettings(context.Options);
 
@@ -576,7 +576,7 @@ partial class CheckedExceptionsAnalyzer
         }
     }
 
-    private void AnalyzeLinqOperation(SyntaxNodeAnalysisContext context, IMethodSymbol methodSymbol, HashSet<INamedTypeSymbol> exceptionTypes, InvocationExpressionSyntax invocation)
+    private static void AnalyzeLinqOperation(SyntaxNodeAnalysisContext context, IMethodSymbol methodSymbol, HashSet<INamedTypeSymbol> exceptionTypes, InvocationExpressionSyntax invocation)
     {
         if (IsLinqExtension(methodSymbol))
         {

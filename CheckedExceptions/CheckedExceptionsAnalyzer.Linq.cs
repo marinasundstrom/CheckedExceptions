@@ -10,7 +10,7 @@ namespace Sundstrom.CheckedExceptions;
 
 partial class CheckedExceptionsAnalyzer
 {
-    private void CollectLinqExceptions(
+    private static void CollectLinqExceptions(
         InvocationExpressionSyntax invocationSyntax,
         HashSet<INamedTypeSymbol> exceptionTypes,
         SemanticModel semanticModel,

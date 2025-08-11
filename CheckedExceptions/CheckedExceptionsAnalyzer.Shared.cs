@@ -12,7 +12,7 @@ partial class CheckedExceptionsAnalyzer
     /// <summary>
     /// Determines whether the given attribute is a ThrowsAttribute.
     /// </summary>
-    private bool IsThrowsAttribute(AttributeSyntax attributeSyntax, SemanticModel semanticModel)
+    private static bool IsThrowsAttribute(AttributeSyntax attributeSyntax, SemanticModel semanticModel)
     {
         var attributeSymbol = semanticModel.GetSymbolInfo(attributeSyntax).Symbol as IMethodSymbol;
         if (attributeSymbol is null)
@@ -25,7 +25,7 @@ partial class CheckedExceptionsAnalyzer
     /// <summary>
     /// Retrieves the name of the exception type from a ThrowsAttribute's AttributeSyntax.
     /// </summary>
-    private IEnumerable<INamedTypeSymbol> GetExceptionTypes(AttributeSyntax attributeSyntax, SemanticModel semanticModel)
+    private static IEnumerable<INamedTypeSymbol> GetExceptionTypes(AttributeSyntax attributeSyntax, SemanticModel semanticModel)
     {
         // Ensure the attribute is ThrowsAttribute
         var attributeType = semanticModel.GetTypeInfo(attributeSyntax).Type;
@@ -64,7 +64,7 @@ partial class CheckedExceptionsAnalyzer
     /// <summary>
     /// Retrieves the enclosing catch clause for a given node.
     /// </summary>
-    private CatchClauseSyntax? GetEnclosingCatchClause(SyntaxNode node)
+    private static CatchClauseSyntax? GetEnclosingCatchClause(SyntaxNode node)
     {
         return node.Ancestors().OfType<CatchClauseSyntax>().FirstOrDefault();
     }
@@ -172,12 +172,12 @@ partial class CheckedExceptionsAnalyzer
             .OfType<INamedTypeSymbol>();
     }
 
-    private bool IsExceptionDeclaredInMember(SyntaxNodeAnalysisContext context, SyntaxNode node, INamedTypeSymbol exceptionType)
+    private static bool IsExceptionDeclaredInMember(SyntaxNodeAnalysisContext context, SyntaxNode node, INamedTypeSymbol exceptionType)
     {
         return IsExceptionDeclaredInMember(context.SemanticModel, node, exceptionType);
     }
 
-    private bool IsExceptionDeclaredInMember(SemanticModel semanticModel, SyntaxNode node, INamedTypeSymbol exceptionType)
+    private static bool IsExceptionDeclaredInMember(SemanticModel semanticModel, SyntaxNode node, INamedTypeSymbol exceptionType)
     {
         foreach (var ancestor in node.Ancestors())
         {
@@ -246,7 +246,7 @@ partial class CheckedExceptionsAnalyzer
         return false;
     }
 
-    private bool IsExceptionDeclaredInSymbol(ISymbol symbol, INamedTypeSymbol exceptionType)
+    private static bool IsExceptionDeclaredInSymbol(ISymbol symbol, INamedTypeSymbol exceptionType)
     {
         if (symbol is null)
             return false;
@@ -266,12 +266,10 @@ partial class CheckedExceptionsAnalyzer
         return false;
     }
 
-    private bool IsGeneralException(INamedTypeSymbol exceptionType)
+    private static bool IsGeneralException(INamedTypeSymbol exceptionType)
     {
         return exceptionType.ToDisplayString() is "System.Exception";
     }
-
-
 
     private static List<INamedTypeSymbol> GetExceptionTypes(ISymbol symbol)
     {

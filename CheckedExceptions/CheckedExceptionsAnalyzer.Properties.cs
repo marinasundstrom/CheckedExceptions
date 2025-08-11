@@ -10,7 +10,7 @@ partial class CheckedExceptionsAnalyzer
     /// <summary>
     /// Analyzes exceptions thrown by a property, specifically its getters and setters.
     /// </summary>
-    private void AnalyzePropertyExceptions(SyntaxNodeAnalysisContext context, ExpressionSyntax expression, IPropertySymbol propertySymbol,
+    private static void AnalyzePropertyExceptions(SyntaxNodeAnalysisContext context, ExpressionSyntax expression, IPropertySymbol propertySymbol,
         AnalyzerSettings settings)
     {
         HashSet<INamedTypeSymbol> exceptionTypes = GetPropertyExceptionTypes(context, expression, propertySymbol, settings);

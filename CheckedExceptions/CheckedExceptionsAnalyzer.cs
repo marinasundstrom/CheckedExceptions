@@ -634,7 +634,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     /// <summary>
     /// Analyzes element access expressions (e.g., indexers) for exception handling.
     /// </summary>
-    private void AnalyzeElementAccess(SyntaxNodeAnalysisContext context)
+    private static void AnalyzeElementAccess(SyntaxNodeAnalysisContext context)
     {
         var settings = GetAnalyzerSettings(context.Options);
 
@@ -653,7 +653,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     /// <summary>
     /// Analyzes event assignments (e.g., += or -=) for exception handling.
     /// </summary>
-    private void AnalyzeEventAssignment(SyntaxNodeAnalysisContext context)
+    private static void AnalyzeEventAssignment(SyntaxNodeAnalysisContext context)
     {
         var settings = GetAnalyzerSettings(context.Options);
 
@@ -681,13 +681,13 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         }
     }
 
-    private void AnalyzeLambdaExpression(SyntaxNodeAnalysisContext context)
+    private static void AnalyzeLambdaExpression(SyntaxNodeAnalysisContext context)
     {
         var lambdaExpression = (LambdaExpressionSyntax)context.Node;
         AnalyzeFunctionAttributes(lambdaExpression, lambdaExpression.AttributeLists.SelectMany(a => a.Attributes), context.SemanticModel, context);
     }
 
-    private void AnalyzeLocalFunctionStatement(SyntaxNodeAnalysisContext context)
+    private static void AnalyzeLocalFunctionStatement(SyntaxNodeAnalysisContext context)
     {
         var localFunction = (LocalFunctionStatementSyntax)context.Node;
         AnalyzeFunctionAttributes(localFunction, localFunction.AttributeLists.SelectMany(a => a.Attributes), context.SemanticModel, context);
