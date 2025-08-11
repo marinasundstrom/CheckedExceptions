@@ -5,6 +5,11 @@ namespace Sundstrom.CheckedExceptions;
 
 public static class Facts
 {
+    public static bool IsGeneralException(this INamedTypeSymbol exceptionType)
+    {
+        return exceptionType.ToDisplayString() is "System.Exception";
+    }
+
     public static bool IsPotentialThrowingNode(this SyntaxNode node)
     {
         return node

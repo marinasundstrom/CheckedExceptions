@@ -45,8 +45,8 @@ partial class CheckedExceptionsAnalyzer
     }
 
     private static void CheckXmlDocsForUndeclaredExceptions_Property(
-    IEnumerable<AttributeSyntax> throwsAttributes,
-    SyntaxNodeAnalysisContext context)
+        IEnumerable<AttributeSyntax> throwsAttributes,
+        SyntaxNodeAnalysisContext context)
     {
         var semanticModel = context.SemanticModel;
         var propertySymbol = semanticModel.GetDeclaredSymbol(context.Node) as IPropertySymbol;
