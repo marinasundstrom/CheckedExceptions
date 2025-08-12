@@ -128,8 +128,8 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         category: "Control flow",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "Reports catch-all clauses that cannot handle any exceptions because all exceptions " +
-                     "thrown in the try block are either handled by earlier catch clauses or do not occur.",
+        description: "A catch-all clause is redundant because all exceptions thrown in the try block are "
+                   + "either handled by earlier catch clauses or cannot occur.",
         customTags: [WellKnownDiagnosticTags.Unnecessary]);
 
     private static readonly DiagnosticDescriptor RuleThrowsDeclarationNotValidOnFullProperty = new(
@@ -179,7 +179,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         category: "Control flow",
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "Reports that a catch clause is redundant since it does not handle any exceptions.",
+        description: "A typed catch clause is redundant because it does not handle any exceptions.",
         customTags: [WellKnownDiagnosticTags.Unnecessary]);
 
     private static readonly DiagnosticDescriptor RuleUnreachableCode = new(
