@@ -112,7 +112,15 @@ partial class CheckedExceptionsAnalyzerTests
             }
             """;
 
-        await Verifier.VerifyAnalyzerAsync(test);
+        var expected = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdRedundantCatchClause)
+            .WithSpan(13, 9, 13, 14);
+
+        await Verifier.VerifyAnalyzerAsync(test, o =>
+        {
+            o.ExpectedDiagnostics.Add(expected);
+
+            o.DisabledDiagnostics.Remove(CheckedExceptionsAnalyzer.DiagnosticIdRedundantCatchClause);
+        });
     }
 
     [Fact]
@@ -177,7 +185,15 @@ partial class CheckedExceptionsAnalyzerTests
             }
             """;
 
-        await Verifier.VerifyAnalyzerAsync(test);
+        var expected = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdRedundantCatchClause)
+            .WithSpan(16, 13, 16, 18);
+
+        await Verifier.VerifyAnalyzerAsync(test, o =>
+        {
+            o.ExpectedDiagnostics.Add(expected);
+
+            o.DisabledDiagnostics.Remove(CheckedExceptionsAnalyzer.DiagnosticIdRedundantCatchClause);
+        });
     }
 
     [Fact]
@@ -449,6 +465,46 @@ partial class CheckedExceptionsAnalyzerTests
             o.CompilerDiagnostics = CompilerDiagnostics.None;
 
             o.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdUnhandled);
+
+            ApplyDefaultOptions(o);
+        });
+    }
+
+    [Fact]
+    public async Task OvershadowedCatchClause_ShouldBe_MarkedAsRedundant()
+    {
+        var test = /* lang=c#-test */ """            
+            using System;
+
+            try
+            {
+                Foo();
+            }
+            catch (InvalidOperationException exc)
+            {
+                throw new InvalidCastException();
+            }
+            catch (InvalidOperationException exc)
+            {
+                throw new InvalidCastException();
+            }
+
+            [Throws(typeof(InvalidOperationException))] 
+            int Foo () => throw new InvalidOperationException;
+            """;
+
+        var expected = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdRedundantCatchClause)
+            .WithArguments("InvalidOperationException")
+            .WithSpan(11, 1, 11, 6);
+
+        await Verifier.VerifyAnalyzerAsync(test, o =>
+        {
+            o.ExpectedDiagnostics.Add(expected);
+            o.TestState.OutputKind = OutputKind.ConsoleApplication;
+            o.CompilerDiagnostics = CompilerDiagnostics.None;
+
+            o.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdUnhandled);
+            o.DisabledDiagnostics.Remove(CheckedExceptionsAnalyzer.DiagnosticIdRedundantCatchClause);
 
             ApplyDefaultOptions(o);
         });

@@ -317,6 +317,8 @@ partial class CheckedExceptionsAnalyzer
 
         public void ReportRedundantCatchAll(CatchClauseSyntax catchClause)
         {
+            ReportRedundantCatchClause(SyntaxContext, catchClause);
+
             SyntaxContext.ReportDiagnostic(Diagnostic.Create(
                 RuleRedundantCatchAllClause,
                 catchClause.CatchKeyword.GetLocation()));
@@ -418,14 +420,25 @@ partial class CheckedExceptionsAnalyzer
 
     private static void ReportRedundantTypedCatchClause(SyntaxNodeAnalysisContext context, CatchClauseSyntax catchClause, INamedTypeSymbol caughtType)
     {
+        ReportRedundantCatchClause(context, catchClause);
+
         context.ReportDiagnostic(Diagnostic.Create(
             RuleRedundantTypedCatchClause,
             catchClause.Declaration.Type.GetLocation(),
             caughtType.Name));
     }
 
+    private static void ReportRedundantCatchClause(SyntaxNodeAnalysisContext context, CatchClauseSyntax catchClause)
+    {
+        context.ReportDiagnostic(Diagnostic.Create(
+            RuleRedundantCatchClause,
+            catchClause.CatchKeyword.GetLocation()));
+    }
+
     private static void ReportCatchHandlesNoRemainingExceptions(SyntaxNodeAnalysisContext context, CatchClauseSyntax catchClause, IEnumerable<INamedTypeSymbol> exceptionTypes)
     {
+        ReportRedundantCatchClause(context, catchClause);
+
         var exceptionTypeNames = exceptionTypes.Select(x => $"'{x.Name}'");
 
         context.ReportDiagnostic(Diagnostic.Create(
@@ -910,8 +923,12 @@ partial class CheckedExceptionsAnalyzer
                             // Case 3: broad catch after all specifics already covered
                             ReportCatchHandlesNoRemainingExceptions(context.SyntaxContext, catchClause, previouslyCaughtMatchingExceptions);
                         }
+                        else
+                        {
+                            // INFO: Overshadowing is already reported by C# as CS0160
 
-                        // INFO: Overshadowing is already reported by C# as CS0160
+                            ReportRedundantCatchClause(context.SyntaxContext, catchClause);
+                        }
 
                         // This catch clause doesn't handle anything. Exclude from analysis.
                         handlesAny = false;
