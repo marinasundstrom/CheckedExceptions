@@ -261,7 +261,7 @@ partial class CheckedExceptionsAnalyzer
             }
         }
 
-        var objectCreations = expression.DescendantNodesAndSelf().OfType<ObjectCreationExpressionSyntax>();
+        var objectCreations = expression.DescendantNodesAndSelf().OfType<BaseObjectCreationExpressionSyntax>();
         foreach (var objectCreation in objectCreations)
         {
             var methodSymbol = semanticModel.GetSymbolInfo(objectCreation).Symbol as IMethodSymbol;
