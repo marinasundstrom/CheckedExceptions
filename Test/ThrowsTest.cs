@@ -50,9 +50,11 @@ public class ThrowsTest
         }
         catch (InvalidOperationException exc)
         {
+            throw new InvalidCastException();
         }
-        catch (InvalidOperationException exc)
+        catch
         {
+            throw;
         }
     }
 }
