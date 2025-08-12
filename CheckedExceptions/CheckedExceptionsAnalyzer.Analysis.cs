@@ -66,18 +66,22 @@ partial class CheckedExceptionsAnalyzer
                 }
             }
 
-            bool isHandled = handledExceptions.Any(handledException =>
-                exceptionType.Equals(handledException, SymbolEqualityComparer.Default) ||
-                exceptionType.InheritsFrom(handledException));
+            // ① handled by any typed catch BEFORE the general catch?
+            bool isHandledByPreceding = handledExceptions.Any(h =>
+                SymbolEqualityComparer.Default.Equals(exceptionType, h) ||
+                exceptionType.InheritsFrom(h));
+
+            // ② handled by any INNER try/catch surrounding the rethrow (between throw; and the outer catch)?
+            bool isHandledByEnclosingInnerTry =
+                IsRethrowHandledByEnclosingTry(semanticModel, throwStatement, generalCatchClause, exceptionType);
 
             bool isDeclared = IsExceptionDeclaredInMember(context, tryStatement, exceptionType);
 
-            if (!isHandled && !isDeclared)
+            if (!isHandledByPreceding && !isHandledByEnclosingInnerTry && !isDeclared)
             {
                 var properties = ImmutableDictionary.Create<string, string?>()
                     .Add("ExceptionType", exceptionType.Name);
 
-                // Report diagnostic for unhandled exception
                 var diagnostic = Diagnostic.Create(
                     RuleUnhandledException,
                     GetSignificantLocation(throwStatement),
@@ -87,6 +91,37 @@ partial class CheckedExceptionsAnalyzer
                 context.ReportDiagnostic(diagnostic);
             }
         }
+    }
+
+    private static bool IsRethrowHandledByEnclosingTry(
+    SemanticModel semanticModel,
+    ThrowStatementSyntax throwStatement,
+    CatchClauseSyntax outerCatch,
+    INamedTypeSymbol exceptionType)
+    {
+        for (SyntaxNode? n = throwStatement.Parent; n is not null && n != outerCatch; n = n.Parent)
+        {
+            if (n is TryStatementSyntax t)
+            {
+                foreach (var c in t.Catches)
+                {
+                    // general catch => handles all
+                    if (c.Declaration is null)
+                        return true;
+
+                    var caught = semanticModel.GetTypeInfo(c.Declaration.Type).Type as INamedTypeSymbol;
+                    if (caught is null) continue;
+
+                    if (SymbolEqualityComparer.Default.Equals(exceptionType, caught) ||
+                        exceptionType.InheritsFrom(caught))
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+
+        return false;
     }
 
     private static HashSet<INamedTypeSymbol> CollectUnhandledExceptions(SyntaxNodeAnalysisContext context, BlockSyntax block, AnalyzerSettings settings)
