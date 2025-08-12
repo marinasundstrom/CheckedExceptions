@@ -32,7 +32,13 @@ public class ThrowsTest
         }
         catch
         {
-            throw;
+            try
+            {
+                throw;
+            }
+            catch (InvalidOperationException invalidOperationException)
+            {
+            }
         }
     }
 

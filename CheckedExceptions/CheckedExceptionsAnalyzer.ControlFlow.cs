@@ -273,16 +273,18 @@ partial class CheckedExceptionsAnalyzer
         }
 
         public ControlFlowContext(
-          ControlFlowContext baseContext,
+          ControlFlowContext parentContext,
           SyntaxNode node,
           HashSet<INamedTypeSymbol>? triedExceptions = null,
           HashSet<INamedTypeSymbol>? remainingExceptions = null,
           HashSet<INamedTypeSymbol>? previouslyCaughtExceptionTypes = null,
           bool isUnreachable = false)
-          : this(baseContext.SyntaxContext, node, baseContext.Settings, triedExceptions, remainingExceptions, previouslyCaughtExceptionTypes, isUnreachable)
+          : this(parentContext.SyntaxContext, node, parentContext.Settings, triedExceptions, remainingExceptions, previouslyCaughtExceptionTypes, isUnreachable)
         {
-
+            Parent = parentContext;
         }
+
+        public ControlFlowContext? Parent { get; }
 
         public Compilation Compilation => SyntaxContext.Compilation;
         public SemanticModel SemanticModel => SyntaxContext.SemanticModel;
@@ -384,7 +386,7 @@ partial class CheckedExceptionsAnalyzer
             }
 
             // Delegate analysis to the per‑statement helper
-            var stmtResult = AnalyzeStatementWithExceptions(new ControlFlowContext(context, statement, context.TriedExceptions, isUnreachable: context.IsUnreachable));
+            var stmtResult = AnalyzeStatementWithExceptions(new ControlFlowContext(context, statement, context.TriedExceptions, context.RemainingExceptions, isUnreachable: context.IsUnreachable));
 
             if (stmtResult.ContainsReturn)
                 containsReturn = true;
@@ -494,8 +496,8 @@ partial class CheckedExceptionsAnalyzer
                 if (throwStmt.Expression is null)
                 {
                     // 🚩 Rethrow
-                    if (context.TriedExceptions != null)
-                        unhandled.AddRange(context.TriedExceptions);
+                    if (context.RemainingExceptions is not null)
+                        unhandled.AddRange(context.RemainingExceptions);
                 }
                 else
                 {
@@ -505,7 +507,7 @@ partial class CheckedExceptionsAnalyzer
                 return new FlowWithExceptionsResult(throwStmt, false, unhandled.ToImmutableHashSet());
 
             case TryStatementSyntax tryStmt:
-                return AnalyzeTryStatement(new ControlFlowContext(context, tryStmt, unhandled, isUnreachable: context.IsUnreachable));
+                return AnalyzeTryStatement(new ControlFlowContext(context, tryStmt, unhandled, context.RemainingExceptions, isUnreachable: context.IsUnreachable));
 
             case IfStatementSyntax ifStmt:
                 {
@@ -769,15 +771,15 @@ partial class CheckedExceptionsAnalyzer
         var triedExceptions = context.TriedExceptions ?? [];
 
         // === Analyze try body ===
-        var tryResult = AnalyzeBlockWithExceptions(new ControlFlowContext(context, tryStmt.Block));
+        var tryResult = AnalyzeBlockWithExceptions(new ControlFlowContext(context, tryStmt.Block, remainingExceptions: context.RemainingExceptions));
         triedExceptions.UnionWith(tryResult.UnhandledExceptions);
 
         bool continuationPossible = tryResult.EndReachable;
         bool containsReturn = tryResult.ContainsReturn;
 
-        var exceptionsLeftToHandle = new HashSet<INamedTypeSymbol>(tryResult.UnhandledExceptions);
+        var exceptionsLeftToHandle = new HashSet<INamedTypeSymbol>(tryResult.UnhandledExceptions, SymbolEqualityComparer.Default);
 
-        var previouslyCaughtExceptionTypes = new HashSet<INamedTypeSymbol>();
+        var previouslyCaughtExceptionTypes = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
 
         // === Analyze each catch ===
         foreach (var catchClause in tryStmt.Catches)
@@ -785,7 +787,7 @@ partial class CheckedExceptionsAnalyzer
             var catchResult = AnalyzeCatchClause(
                 new ControlFlowContext(
                        context, catchClause, triedExceptions, exceptionsLeftToHandle, [.. previouslyCaughtExceptionTypes], isUnreachable: context.IsUnreachable),
-                       new HashSet<INamedTypeSymbol>(tryResult.UnhandledExceptions),
+                       new HashSet<INamedTypeSymbol>(tryResult.UnhandledExceptions, SymbolEqualityComparer.Default),
                        exceptionsLeftToHandle);
 
             if (catchResult.CaughtExceptionType is not null)
@@ -850,7 +852,6 @@ partial class CheckedExceptionsAnalyzer
 
             // Swallow everything the try might throw
             triedExceptions.RemoveWhere(ex => exceptionsLeftToHandle.Contains(ex));
-            exceptionsLeftToHandle.Clear();
 
             if (catchClause.Block is { } catchBlock)
             {
@@ -859,6 +860,7 @@ partial class CheckedExceptionsAnalyzer
                         context,
                         catchBlock,
                         caughtExceptionsInCatch,
+                        new HashSet<INamedTypeSymbol>(exceptionsLeftToHandle, SymbolEqualityComparer.Default),
                         isUnreachable: !handlesAny));
 
                 triedExceptions.UnionWith(catchResult.UnhandledExceptions);
@@ -871,6 +873,8 @@ partial class CheckedExceptionsAnalyzer
                 if (!handlesAny)
                     context.ReportUnreachableCodeHidden(catchClause.GetLocation());
             }
+
+            exceptionsLeftToHandle.Clear();
         }
         else
         {
