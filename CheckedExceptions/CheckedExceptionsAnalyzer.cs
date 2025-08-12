@@ -31,10 +31,11 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     public const string DiagnosticIdRedundantExceptionDeclaration = "THROW012";
     public const string DiagnosticIdRedundantCatchAllClause = "THROW013";
     public const string DiagnosticIdCatchHandlesNoRemainingExceptions = "THROW014";
+    public const string DiagnosticIdRedundantCatchClause = "THROW015";
     public const string DiagnosticIdRuleUnreachableCode = "THROW020";
     public const string DiagnosticIdRuleUnreachableCodeHidden = "IDE001";
 
-    public static IEnumerable<string> AllDiagnosticsIds = [DiagnosticIdUnhandled, DiagnosticIdGeneralThrowDeclared, DiagnosticIdGeneralThrow, DiagnosticIdDuplicateDeclarations, DiagnosticIdRuleUnreachableCode, DiagnosticIdRuleUnreachableCodeHidden];
+    public static IEnumerable<string> AllDiagnosticsIds = [DiagnosticIdUnhandled, DiagnosticIdGeneralThrowDeclared, DiagnosticIdGeneralThrow, DiagnosticIdDuplicateDeclarations, DiagnosticIdRedundantCatchClause, DiagnosticIdRuleUnreachableCode, DiagnosticIdRuleUnreachableCodeHidden];
 
     private static readonly DiagnosticDescriptor RuleUnhandledException = new(
         DiagnosticIdUnhandled,
@@ -112,23 +113,23 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
     private static readonly DiagnosticDescriptor RuleRedundantTypedCatchClause = new(
         DiagnosticIdRedundantTypedCatchClause,
-        title: "Redundant catch typed clause",
+        title: "Redundant typed catch clause",
         messageFormat: "Exception type '{0}' is never thrown within the try block",
         category: "Control flow",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "Detects catch clauses for exception types that are never thrown inside the associated try block, making the catch clause redundant.",
+        description: "A typed catch clause is redundant because its exception type is never thrown inside the associated try block.",
         customTags: [WellKnownDiagnosticTags.Unnecessary]);
 
     private static readonly DiagnosticDescriptor RuleRedundantCatchAllClause = new(
         DiagnosticIdRedundantCatchAllClause,
         title: "Redundant catch-all clause",
-        messageFormat: "This catch-all clause is redundant because no exceptions remain to be handled",
+        messageFormat: "No remaining exceptions to be handled",
         category: "Control flow",
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "Reports catch-all clauses that cannot handle any exceptions because all exceptions " +
-                     "thrown in the try block are either handled by earlier catch clauses or do not occur.",
+        description: "A catch-all clause is redundant because all exceptions thrown in the try block are "
+                   + "either handled by earlier catch clauses or cannot occur.",
         customTags: [WellKnownDiagnosticTags.Unnecessary]);
 
     private static readonly DiagnosticDescriptor RuleThrowsDeclarationNotValidOnFullProperty = new(
@@ -163,12 +164,21 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor RuleCatchHandlesNoRemainingExceptions = new(
         DiagnosticIdCatchHandlesNoRemainingExceptions,
         title: "Catch clause has no remaining exceptions to handle",
-        messageFormat: "All matching exceptions for this type are already caught by previous clauses ({0})",
+        messageFormat: "All exceptions matching this type have already been caught by previous clauses ({0})",
         category: "Control flow",
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
-        description: "Reports catch clauses that are syntactically valid but will never be executed, "
-                + "because all matching exceptions have already been caught by previous clauses.",
+        description: "A catch clause is redundant because all exceptions it could handle have already been caught by previous clauses.",
+        customTags: [WellKnownDiagnosticTags.Unnecessary]);
+
+    private static readonly DiagnosticDescriptor RuleRedundantCatchClause = new(
+        DiagnosticIdRedundantCatchClause,
+        title: "Redundant catch clause",
+        messageFormat: "Redundant catch clause",
+        category: "Control flow",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description: "A typed catch clause is redundant because it does not handle any exceptions thrown in the associated try block.",
         customTags: [WellKnownDiagnosticTags.Unnecessary]);
 
     private static readonly DiagnosticDescriptor RuleUnreachableCode = new(
@@ -192,7 +202,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         customTags: [WellKnownDiagnosticTags.Unnecessary]);
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
-        [RuleUnhandledException, RuleIgnoredException, RuleGeneralThrowDeclared, RuleGeneralThrow, RuleDuplicateDeclarations, RuleMissingThrowsOnBaseMember, RuleMissingThrowsFromBaseMember, RuleDuplicateThrowsByHierarchy, RuleRedundantTypedCatchClause, RuleRedundantCatchAllClause, RuleThrowsDeclarationNotValidOnFullProperty, RuleXmlDocButNoThrows, RuleRedundantExceptionDeclaration, RuleCatchHandlesNoRemainingExceptions, RuleUnreachableCode, RuleUnreachableCodeHidden];
+        [RuleUnhandledException, RuleIgnoredException, RuleGeneralThrowDeclared, RuleGeneralThrow, RuleDuplicateDeclarations, RuleMissingThrowsOnBaseMember, RuleMissingThrowsFromBaseMember, RuleDuplicateThrowsByHierarchy, RuleRedundantTypedCatchClause, RuleRedundantCatchAllClause, RuleThrowsDeclarationNotValidOnFullProperty, RuleXmlDocButNoThrows, RuleRedundantExceptionDeclaration, RuleCatchHandlesNoRemainingExceptions, RuleRedundantCatchClause, RuleUnreachableCode, RuleUnreachableCodeHidden];
 
     public override void Initialize(AnalysisContext context)
     {

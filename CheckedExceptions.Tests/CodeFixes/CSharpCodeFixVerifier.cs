@@ -47,6 +47,7 @@ public static class CSharpCodeFixVerifier<TAnalyzer, TCodeFix, TVerifier>
 
         test.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdRedundantTypedCatchClause);
         test.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration);
+        test.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdRedundantCatchClause);
 
         if (expected is not null)
         {

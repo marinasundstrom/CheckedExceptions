@@ -13,9 +13,9 @@ This document describes the available **code fixes** and which diagnostics they 
 | **THROW005**  | Redundant exception declaration       | 🗑️ Remove redundant throws declaration                                                          |
 | **THROW007**  | Missing throws from base/interface    | 🔧 Add throws declaration from base member                                                       |
 | **THROW011**  | Missing throws from XML documentation | 🔧 Add throws declaration from XML doc                                                           |
-| **THROW013**  | Redundant typed catch-all clause      | 🧹 Remove redundant catch clause    
+| **THROW013**  | Redundant catch-all clause      | 🧹 Remove redundant catch clause    
 | **THROW014**  | Catch clause has no remaining exceptions to handle      | 🧹 Remove redundant catch clause
-
+| **THROW015**  | Redundant catch clause      | 🧹 Remove redundant catch clause
 ---
 
 ## What is a Throwing Site?
@@ -289,7 +289,8 @@ public void Bar(int arg) { /* ... */ }
 
 * `THROW004` – *Redundant typed catch clause*
 * `THROW013` – *Redundant catch-all clause*
-* `THROW014` – *Catch clause has no remaining exceptions to handle*
+* `THROW014` – *No remaining exceptions to handle* (for typed catch clause)
+* `THROW015` – *Redundant catch clause*
 
 Removes a redundant `catch` clause for an exception type that is **not thrown** in the current `try` block.
 

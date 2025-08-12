@@ -114,6 +114,7 @@ public static class CSharpAnalyzerVerifier<TAnalyzer, TVerifier>
         test.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration);
         test.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdRuleUnreachableCode);
         test.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdRuleUnreachableCodeHidden);
+        test.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdRedundantCatchClause);
 
         if (executable)
         {

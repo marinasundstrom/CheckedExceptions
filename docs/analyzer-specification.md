@@ -146,23 +146,34 @@ public void TestMethod() => throw new InvalidOperationException();
 
 ## Redundant or invalid handling (Control flow analysis)
 
+Control flow analysis detects unnecessary or incorrectly placed exception handling and declarations.
+
+The general diagnostic for redundant catch clauses is `THROW015`, reported on the catch keyword.
+More specific diagnostics may be reported on the catch declaration itself (the exception type).
+
 ### Redundant catch clauses
 
 Detected only with control flow analysis:
 
 * **Typed catch never matched** → **`THROW009`**
 
+The specified exception type is never thrown in the associated try block.
+
   ```c#
   try { } 
+  // THROW015: Redundant catch clause
   // THROW009: Exception type 'InvalidOperationException' is never thrown
   catch (InvalidOperationException) { }
   ```
 
 * **Catch‑all with nothing thrown** → **`THROW013`**
 
+No remaining exceptions are left unhandled, making the catch-all clause unnecessary.
+
   ```c#
   try { } 
-  // THROW013: This catch-all clause is redundant because no exceptions remain to be handled
+  // THROW015: Redundant catch clause
+  // THROW013: No remaining exceptions to be handled
   catch { }
   ```
 
@@ -414,7 +425,7 @@ Disables XML doc interop, including .NET class library coverage.
 Disables the optional flow‑sensitive analysis.
 When set, the analyzer will still report **unhandled exceptions** and enforce `[Throws]` contracts, but will no longer:
 
-* Detect redundant catch clauses (`THROW009`, `THROW013`)
+* Detect redundant catch clauses (`THROW009`, `THROW013`, `THROW015`)
 * Report redundant exception declarations (`THROW012`, `THROW008`)
 * Highlight unreachable code (IDE gray‑out support)
 
@@ -433,7 +444,7 @@ When enabled, the analyzer performs **basic redundancy checks** without relying 
 
 It provides:
 
-* Detection of redundant catch clauses (`THROW009`, `THROW013`)
+* Detection of redundant catch clauses (`THROW009`, `THROW013`, `THROW015`)
 
 ### Disable warnings for base type `Exception`
 
