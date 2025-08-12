@@ -197,6 +197,7 @@ Register in `.csproj`:
 | `THROW012` | 🧹 Redundant exception declaration (declared but never thrown)          |
 | `THROW013` | 🧹 Redundant catch-all clause (no remaining exceptions to catch)        |
 | `THROW014` | 🧹 Catch clause has no remaining exceptions to handle                   |
+| `THROW015` | 🧹 Catch clause is redundant (General diagnostic)                       |
 | `THROW020` | 🛑 Unreachable code detected                                            |
 | `IDE001`   | 🙈 Unreachable code (hidden diagnostic for editor greying)              |
 
