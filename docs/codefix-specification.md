@@ -289,7 +289,7 @@ public void Bar(int arg) { /* ... */ }
 
 * `THROW004` – *Redundant typed catch clause*
 * `THROW013` – *Redundant catch-all clause*
-* `THROW014` – *Catch clause has no remaining exceptions to handle*
+* `THROW014` – *No remaining exceptions to handle* (for typed catch clause)
 * `THROW015` – *Redundant catch clause*
 
 Removes a redundant `catch` clause for an exception type that is **not thrown** in the current `try` block.

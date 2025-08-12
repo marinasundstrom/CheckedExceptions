@@ -146,13 +146,18 @@ public void TestMethod() => throw new InvalidOperationException();
 
 ## Redundant or invalid handling (Control flow analysis)
 
-The general diagnostic for redundant catch clauses is `THROW015`, and it is reported on the `catch` keyword. Then there are more specific diagnostics reported on the declaration, that is on the type that is caught.
+Control flow analysis detects unnecessary or incorrectly placed exception handling and declarations.
+
+The general diagnostic for redundant catch clauses is `THROW015`, reported on the catch keyword.
+More specific diagnostics may be reported on the catch declaration itself (the exception type).
 
 ### Redundant catch clauses
 
 Detected only with control flow analysis:
 
 * **Typed catch never matched** → **`THROW009`**
+
+The specified exception type is never thrown in the associated try block.
 
   ```c#
   try { } 
@@ -162,6 +167,8 @@ Detected only with control flow analysis:
   ```
 
 * **Catch‑all with nothing thrown** → **`THROW013`**
+
+No remaining exceptions are left unhandled, making the catch-all clause unnecessary.
 
   ```c#
   try { } 
