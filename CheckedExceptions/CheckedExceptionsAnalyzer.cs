@@ -306,12 +306,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             // Check whether this concrete full property decl has any Throws declarations on it.
             CheckNoThrowsOnFullPropertyDecl(context, throwsAttributes);
 
-            if (accessorList.Accessors.All(x => x.ExpressionBody is null && x.Body is null))
-            {
-                // Only give diagnostic when we can do anything useful with the docs.
-
-                CheckXmlDocsForUndeclaredExceptions_Property(throwsAttributes, context);
-            }
+            CheckXmlDocsForUndeclaredExceptions_Property(throwsAttributes, context);
         }
         else if (propertyDeclaration.ExpressionBody is not null)
         {
@@ -406,7 +401,10 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
         CheckForCompatibilityWithBaseOrInterface(context, throwsAttributes);
 
-        CheckXmlDocsForUndeclaredExceptions(throwsAttributes, context);
+        if (methodSymbol.MethodKind is not MethodKind.PropertyGet and not MethodKind.PropertySet)
+        {
+            CheckXmlDocsForUndeclaredExceptions(throwsAttributes, context);
+        }
 
         if (settings.IsControlFlowAnalysisEnabled)
         {

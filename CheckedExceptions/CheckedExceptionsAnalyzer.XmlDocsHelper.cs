@@ -199,16 +199,35 @@ partial class CheckedExceptionsAnalyzer
 
     private static XElement? GetDocCommentXml(ISymbol symbol, CancellationToken cancellationToken)
     {
-        // Find the syntax node for the method
+        // If we're on an accessor, redirect to the associated property
+        if (symbol is IMethodSymbol m &&
+            (m.MethodKind == MethodKind.PropertyGet || m.MethodKind == MethodKind.PropertySet) &&
+            m.AssociatedSymbol is IPropertySymbol propSym)
+        {
+            symbol = propSym;
+        }
+
         var syntaxRef = symbol.DeclaringSyntaxReferences.FirstOrDefault();
         if (syntaxRef is null)
             return null;
 
         var syntaxNode = syntaxRef.GetSyntax(cancellationToken);
+
+        // If we somehow still landed on an accessor node, climb to the property
+        if (syntaxNode is AccessorDeclarationSyntax accessor)
+        {
+            // accessor.Parent is AccessorListSyntax; its Parent is the PropertyDeclarationSyntax
+            if (accessor.Parent?.Parent is BasePropertyDeclarationSyntax propDecl)
+                syntaxNode = propDecl;
+        }
+        else if (syntaxNode is AccessorListSyntax accList && accList.Parent is BasePropertyDeclarationSyntax parentProp)
+        {
+            syntaxNode = parentProp;
+        }
+
         if (syntaxNode is not (BaseMethodDeclarationSyntax or LocalFunctionStatementSyntax or BasePropertyDeclarationSyntax))
             return null;
 
-        // Collect documentation trivia
         var trivia = syntaxNode.GetLeadingTrivia()
             .Where(t => t.IsKind(SyntaxKind.SingleLineDocumentationCommentTrivia) ||
                         t.IsKind(SyntaxKind.MultiLineDocumentationCommentTrivia))
@@ -217,11 +236,11 @@ partial class CheckedExceptionsAnalyzer
         if (trivia.Count is 0)
             return null;
 
-        var xmlText = string.Concat(trivia.Select(t => t.ToFullString().Replace("///", string.Empty).Trim()));
+        var xmlText = string.Concat(trivia
+            .Select(t => t.ToFullString().Replace("///", string.Empty).Trim()));
 
         try
         {
-            // Wrap in a root element in case the comment isn't standalone XML
             return XElement.Parse("<root>" + xmlText + "</root>");
         }
         catch
