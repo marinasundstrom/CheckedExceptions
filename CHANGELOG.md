@@ -15,6 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - PR [#269](https://github.com/marinasundstrom/CheckedExceptions/pull/269) Silence declared exception from implicit object creation
+- PR [#271](https://github.com/marinasundstrom/CheckedExceptions/pull/271) Fix issue with diagnostics for XML declarations on property accessors
 
 ## [2.0.3] - 2025-08-12
 
