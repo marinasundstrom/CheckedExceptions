@@ -6,7 +6,7 @@ namespace Sundstrom.CheckedExceptions.Tests;
 
 using Verifier = CSharpAnalyzerVerifier<CheckedExceptionsAnalyzer, DefaultVerifier>;
 
-public partial class XmlDocTest
+public partial class XmlDocTest_MissingThrowsDeclaration
 {
 
     // Test 1: Ensures that declaring InvalidOperationException in XML documentation does not trigger a diagnostic
