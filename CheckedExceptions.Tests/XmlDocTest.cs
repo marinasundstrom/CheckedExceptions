@@ -72,7 +72,6 @@ public partial class XmlDocTest
         await Verifier.VerifyAnalyzerAsync(test, expected1, expected2, expected3);
     }
 
-
     // Test 3: Checks XML documentation with nullable enabled and verifies FormatException and OverflowException diagnostics
     [Fact(DisplayName = "With nullable enabled, declared FormatException and OverflowException should not trigger diagnostics")]
     public async Task NullableEnabled_WithDeclaredFormatAndOverflowExceptions_ShouldNotReportDiagnostic()
@@ -222,5 +221,295 @@ public partial class XmlDocTest
             .WithSpan(16, 9, 16, 12);
 
         await Verifier.VerifyAnalyzerAsync(test, [expected]);
+    }
+
+    [Fact()]
+    public async Task Test()
+    {
+        var test = /* lang=c#-test */ """
+            using System;
+
+            public class TestClass
+            {
+                /// <summary>
+                /// 
+                /// </summary>
+                /// <value></value>
+                /// <exception cref="InvalidOperationException">
+                /// When getting from an invalid state.
+                /// </exception>
+                /// <exception cref="ArgumentNullException">
+                /// The value provided that is set is null.
+                /// </exception>
+                public string Value
+                {
+                    get;
+                    set;
+                }
+            }
+            """;
+
+        var expected = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdXmlDocButNoThrows)
+            .WithArguments("InvalidOperationException")
+            .WithSpan(17, 9, 17, 12);
+
+        var expected2 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdXmlDocButNoThrows)
+            .WithArguments("ArgumentNullException")
+            .WithSpan(18, 9, 18, 12);
+
+        await Verifier.VerifyAnalyzerAsync(test, o =>
+        {
+            o.ExpectedDiagnostics.AddRange(expected, expected2);
+
+            o.DisabledDiagnostics.Remove(CheckedExceptionsAnalyzer.DiagnosticIdXmlDocButNoThrows);
+        });
+    }
+
+    [Fact()]
+    public async Task Test2()
+    {
+        var test = /* lang=c#-test */ """
+            using System;
+
+            public class TestClass
+            {
+                /// <exception cref="System.InvalidOperationException">
+                /// When getting a value.
+                /// </exception>
+                public int Foo => 0;
+            }
+            """;
+
+        var expected = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdXmlDocButNoThrows)
+            .WithArguments("InvalidOperationException")
+            .WithSpan(8, 16, 8, 19);
+
+        await Verifier.VerifyAnalyzerAsync(test, o =>
+        {
+            o.ExpectedDiagnostics.Add(expected);
+
+            o.DisabledDiagnostics.Remove(CheckedExceptionsAnalyzer.DiagnosticIdXmlDocButNoThrows);
+        });
+    }
+
+    // Getter with BLOCK BODY; XML docs for getter → anchor on getter method
+    [Fact(DisplayName = "Getter(block body) with <exception/> on property should report missing [Throws] anchored on getter")]
+    public async Task Getter_BlockBody_DocOnProperty_ShouldReport_OnGetter()
+    {
+        var test = /* lang=c#-test */ """
+            using System;
+
+            public class C
+            {
+                /// <exception cref="InvalidOperationException">get</exception>
+                public int P
+                {
+                    get
+                    {
+                        return 0;
+                    }
+                    set { }
+                }
+            }
+            """;
+
+        var expected = Verifier
+            .Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdXmlDocButNoThrows)
+            .WithArguments("InvalidOperationException")
+            .WithSpan(8, 9, 8, 12);
+
+        await Verifier.VerifyAnalyzerAsync(test, expected);
+    }
+
+    // Setter with BLOCK BODY; XML docs for setter → anchor on setter method
+    [Fact(DisplayName = "Setter(block body) with <exception/> on property should report missing [Throws] anchored on setter")]
+    public async Task Setter_BlockBody_DocOnProperty_ShouldReport_OnSetter()
+    {
+        var test = /* lang=c#-test */ """
+            using System;
+
+            public class C
+            {
+                /// <exception cref="ArgumentNullException">set</exception>
+                public string P
+                {
+                    get { return ""; }
+                    set
+                    {
+                        _ = value.Length;
+                    }
+                }
+            }
+            """;
+
+        var expected = Verifier
+            .Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdXmlDocButNoThrows)
+            .WithArguments("ArgumentNullException")
+            .WithSpan(9, 9, 9, 12);
+
+        await Verifier.VerifyAnalyzerAsync(test, expected);
+    }
+
+    // Both accessors with BLOCK BODIES; ambiguous XML (neither getter nor setter phrasing) → anchor on property
+    [Fact(DisplayName = "Getter+Setter(block bodies) with ambiguous <exception/> should anchor on property (single report)")]
+    public async Task GetterAndSetter_BlockBodies_AmbiguousDoc_ShouldReport_OnProperty()
+    {
+        var test = /* lang=c#-test */ """
+            using System;
+
+            public class C
+            {
+                /// <exception cref="InvalidOperationException">Thrown by the property.</exception>
+                public int P
+                {
+                    get { return 42; }
+                    set { _ = value; }
+                }
+            }
+            """;
+
+        var expected = Verifier
+            .Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdXmlDocButNoThrows)
+            .WithArguments("InvalidOperationException")
+            .WithSpan(8, 9, 8, 12);
+
+        await Verifier.VerifyAnalyzerAsync(test, expected);
+    }
+
+    // Expression-bodied GET accessor; docs for getter
+    [Fact(DisplayName = "Getter(expression-bodied) with <exception/> should report anchored on getter")]
+    public async Task Getter_ExpressionBodied_ShouldReport_OnGetter()
+    {
+        var test = /* lang=c#-test */ """
+            using System;
+
+            public class C
+            {
+                /// <exception cref="InvalidOperationException">get</exception>
+                public int P
+                {
+                    get => 1 / int.Parse("1"); // body present, but location comes from symbol
+                    set { }
+                }
+            }
+            """;
+
+        var expected = Verifier
+            .Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdXmlDocButNoThrows)
+            .WithArguments("InvalidOperationException")
+            .WithSpan(8, 9, 8, 12);
+
+        await Verifier.VerifyAnalyzerAsync(test, expected);
+    }
+
+    // Expression-bodied SET accessor; docs for setter
+    [Fact(DisplayName = "Setter(expression-bodied) with <exception/> should report anchored on setter")]
+    public async Task Setter_ExpressionBodied_ShouldReport_OnSetter()
+    {
+        var test = /* lang=c#-test */ """
+            using System;
+
+            public class C
+            {
+                /// <exception cref="ArgumentNullException">set</exception>
+                public string P
+                {
+                    get => "";
+                    set => _ = value.Length;
+                }
+            }
+            """;
+
+        var expected = Verifier
+            .Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdXmlDocButNoThrows)
+            .WithArguments("ArgumentNullException")
+            .WithSpan(9, 9, 9, 12);
+
+        await Verifier.VerifyAnalyzerAsync(test, expected);
+    }
+
+    // Mixed: auto GET; SET with BODY; docs for setter → should anchor on setter only
+    [Fact(DisplayName = "Auto-getter + setter(body) with <exception/> for setter should report on setter only")]
+    public async Task Mixed_AutoGetter_SetterBody_DocForSetter_ShouldReport_OnSetter()
+    {
+        var test = /* lang=c#-test */ """
+            using System;
+
+            public class C
+            {
+                /// <exception cref="ArgumentException">set</exception>
+                public int P
+                {
+                    get;
+                    set
+                    {
+                        if (value < 0) throw new ArgumentException();
+                    }
+                }
+            }
+            """;
+
+        var expected = Verifier
+            .Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdXmlDocButNoThrows)
+            .WithArguments("ArgumentException")
+            .WithSpan(9, 9, 9, 12);
+
+        var expected2 = Verifier
+            .UnhandledException("ArgumentException")
+            .WithSpan(11, 28, 11, 58);
+
+        await Verifier.VerifyAnalyzerAsync(test, setup: opt =>
+        {
+            opt.ExpectedDiagnostics.AddRange(expected, expected2);
+            opt.CompilerDiagnostics = CompilerDiagnostics.None;
+        });
+    }
+
+    // Expression-bodied PROPERTY (=>), i.e., no accessor list; docs on property → anchor on property
+    [Fact(DisplayName = "Expression-bodied property with <exception/> should report anchored on property")]
+    public async Task ExpressionBodiedProperty_ShouldReport_OnProperty()
+    {
+        var test = /* lang=c#-test */ """
+            using System;
+
+            public class C
+            {
+                /// <exception cref="InvalidOperationException">prop</exception>
+                public int P => int.Parse("0"); // expression-bodied property
+            }
+            """;
+
+        var expected = Verifier
+            .Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdXmlDocButNoThrows)
+            .WithArguments("InvalidOperationException")
+            .WithSpan(6, 16, 6, 17);
+
+        await Verifier.VerifyAnalyzerAsync(test, expected);
+    }
+
+    // Guard against duplicate reports: doc lists one exception; ensure exactly one diagnostic is produced
+    [Fact(DisplayName = "No duplicate diagnostics for accessor-with-body")]
+    public async Task NoDuplicate_ForAccessorWithBody()
+    {
+        var test = /* lang=c#-test */ """
+            using System;
+
+            public class C
+            {
+                /// <exception cref="InvalidOperationException">get</exception>
+                public int P
+                {
+                    get { return 0; }
+                    set { }
+                }
+            }
+            """;
+
+        var expected = Verifier
+            .Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdXmlDocButNoThrows)
+            .WithArguments("InvalidOperationException")
+            .WithSpan(8, 9, 8, 12);
+
+        await Verifier.VerifyAnalyzerAsync(test, expected);
     }
 }
