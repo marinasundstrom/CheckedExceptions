@@ -7,31 +7,31 @@ namespace Sundstrom.CheckedExceptions;
 
 partial class CheckedExceptionsAnalyzer
 {
-    private static INamedTypeSymbol? CheckCastExpression(SyntaxNodeAnalysisContext context, CastExpressionSyntax castExpression, ITypeSymbol targetType)
+    private static INamedTypeSymbol? CheckCastExpression(Compilation compilation, SemanticModel semanticModel, CastExpressionSyntax castExpression, ITypeSymbol targetType)
     {
-        var conversion = context.SemanticModel.ClassifyConversion(castExpression.Expression, targetType);
+        var conversion = semanticModel.ClassifyConversion(castExpression.Expression, targetType);
 
         INamedTypeSymbol? exceptionType = null;
 
         if (conversion.IsReference || conversion.IsUnboxing)
         {
             // Unsafe reference/unboxing → InvalidCastException
-            exceptionType = context.Compilation.GetTypeByMetadataName("System.InvalidCastException");
+            exceptionType = compilation.GetTypeByMetadataName("System.InvalidCastException");
         }
         else if (conversion.IsNumeric && conversion.IsExplicit)
         {
             // Only warn about OverflowException in checked context
-            if (IsInCheckedContext(castExpression, context.SemanticModel, context.Compilation))
+            if (IsInCheckedContext(castExpression, semanticModel, compilation))
             {
                 // See if this is a constant we can safely prove fits
-                var constant = context.SemanticModel.GetConstantValue(castExpression.Expression);
+                var constant = semanticModel.GetConstantValue(castExpression.Expression);
                 if (constant.HasValue && FitsInTarget(constant.Value, targetType))
                 {
                     // Safe numeric constant → do nothing
                 }
                 else
                 {
-                    exceptionType = context.Compilation.GetTypeByMetadataName("System.OverflowException");
+                    exceptionType = compilation.GetTypeByMetadataName("System.OverflowException");
                 }
             }
         }

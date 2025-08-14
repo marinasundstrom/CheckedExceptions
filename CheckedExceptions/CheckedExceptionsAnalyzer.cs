@@ -253,11 +253,11 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         // Collect exceptions that will surface when enumeration happens
         var exceptionTypes = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
 
-        CollectEnumerationExceptions(forEachOp.Collection, exceptionTypes, semanticModel, context.CancellationToken);
+        CollectEnumerationExceptions(forEachOp.Collection, exceptionTypes, context.Compilation, semanticModel, settings, context.CancellationToken);
 
         // Your existing nullability post-processing
         exceptionTypes = new HashSet<INamedTypeSymbol>(
-            ProcessNullable(context, forEachSyntax.Expression, null, exceptionTypes),
+            ProcessNullable(context.Compilation, context.SemanticModel, forEachSyntax.Expression, null, exceptionTypes),
             SymbolEqualityComparer.Default);
 
         foreach (var t in exceptionTypes.Distinct(SymbolEqualityComparer.Default))
@@ -277,7 +277,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         if (sourceType is null || targetType is null)
             return;
 
-        INamedTypeSymbol? exceptionType = CheckCastExpression(context, castExpression, targetType);
+        INamedTypeSymbol? exceptionType = CheckCastExpression(context.Compilation, context.SemanticModel, castExpression, targetType);
 
         if (exceptionType is not null)
         {
@@ -481,7 +481,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             // Handle delegate invokes by getting the target method symbol
             if (methodSymbol.MethodKind == MethodKind.DelegateInvoke)
             {
-                var targetMethodSymbol = GetTargetMethodSymbol(context, invocation);
+                var targetMethodSymbol = GetTargetMethodSymbol(context.SemanticModel, invocation);
                 if (targetMethodSymbol is not null)
                 {
                     methodSymbol = targetMethodSymbol;
@@ -546,7 +546,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         // Handle delegate invokes by getting the target method symbol
         if (methodSymbol.MethodKind == MethodKind.DelegateInvoke)
         {
-            var targetMethodSymbol = GetTargetMethodSymbol(context, invocation);
+            var targetMethodSymbol = GetTargetMethodSymbol(context.SemanticModel, invocation);
             if (targetMethodSymbol is not null)
             {
                 methodSymbol = targetMethodSymbol;

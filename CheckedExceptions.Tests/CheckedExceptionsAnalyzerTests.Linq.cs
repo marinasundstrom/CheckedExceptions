@@ -124,4 +124,33 @@ public partial class LinqTest
             o.ExpectedDiagnostics.AddRange(expected, expected2, expected3);
         }, executable: true);
     }
+
+    [Fact]
+    public async Task QueryOperator2()
+    {
+        var test = /* lang=c#-test */ """
+            #nullable enable
+            using System;
+            using System.Collections.Generic;
+            using System.Linq;
+
+            IEnumerable<int> items = [];
+            var query = items.Where((x) => x == int.Parse("10"));
+            var r = query.First();
+            """;
+
+        var expected = Verifier.UnhandledException("FormatException")
+            .WithSpan(8, 15, 8, 22);
+
+        var expected2 = Verifier.UnhandledException("OverflowException")
+            .WithSpan(8, 15, 8, 22);
+
+        var expected3 = Verifier.UnhandledException("InvalidOperationException")
+            .WithSpan(8, 15, 8, 22);
+
+        await Verifier.VerifyAnalyzerAsync(test, setup: o =>
+        {
+            o.ExpectedDiagnostics.AddRange(expected, expected2, expected3);
+        }, executable: true);
+    }
 }

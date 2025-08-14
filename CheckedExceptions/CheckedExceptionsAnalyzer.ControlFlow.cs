@@ -245,7 +245,7 @@ partial class CheckedExceptionsAnalyzer
         else if (expressionBody is not null)
         {
             // Collect exceptions directly from the expression
-            var exceptions = CollectExceptionsFromExpression(context, expressionBody, settings, semanticModel);
+            var exceptions = CollectExceptionsFromExpression(expressionBody, compilation, semanticModel, settings);
             return [.. exceptions.OfType<INamedTypeSymbol>()];
         }
 
@@ -515,7 +515,7 @@ partial class CheckedExceptionsAnalyzer
                 else
                 {
                     // Normal throw
-                    unhandled.UnionWith(CollectExceptionsFromStatement(context.SyntaxContext, statement, context.Settings));
+                    unhandled.UnionWith(CollectExceptionsFromStatement(statement, context.Compilation, context.SemanticModel, context.Settings));
                 }
                 return new FlowWithExceptionsResult(throwStmt, false, unhandled.ToImmutableHashSet());
 
@@ -526,7 +526,7 @@ partial class CheckedExceptionsAnalyzer
                 {
                     // exceptions in condition
                     unhandled.UnionWith(CollectExceptionsFromExpression(
-                        context.SyntaxContext, ifStmt.Condition, context.Settings, semanticModel));
+                        ifStmt.Condition, context.Compilation, context.SemanticModel, context.Settings));
 
                     // Try constant-fold the condition
                     var constantValue = semanticModel.GetConstantValue(ifStmt.Condition);
@@ -599,7 +599,7 @@ partial class CheckedExceptionsAnalyzer
 
             case WhileStatementSyntax whileStmt:
                 {
-                    unhandled.UnionWith(CollectExceptionsFromExpression(context.SyntaxContext, whileStmt.Condition, context.Settings, semanticModel));
+                    unhandled.UnionWith(CollectExceptionsFromExpression(whileStmt.Condition, context.Compilation, context.SemanticModel, context.Settings));
 
                     var bodyResult = AnalyzeStatementWithExceptions(new ControlFlowContext(context, whileStmt.Statement));
                     unhandled.UnionWith(bodyResult.UnhandledExceptions);
@@ -644,7 +644,7 @@ partial class CheckedExceptionsAnalyzer
                     var bodyResult = AnalyzeStatementWithExceptions(new ControlFlowContext(context, doStmt.Statement));
                     unhandled.UnionWith(bodyResult.UnhandledExceptions);
 
-                    unhandled.UnionWith(CollectExceptionsFromExpression(context.SyntaxContext, doStmt.Condition, context.Settings, semanticModel));
+                    unhandled.UnionWith(CollectExceptionsFromExpression(doStmt.Condition, context.Compilation, context.SemanticModel, context.Settings));
 
                     return new FlowWithExceptionsResult(doStmt, true, unhandled.ToImmutableHashSet());
                 }
@@ -652,13 +652,13 @@ partial class CheckedExceptionsAnalyzer
             case ForStatementSyntax forStmt:
                 {
                     foreach (var init in forStmt.Initializers)
-                        unhandled.UnionWith(CollectExceptionsFromExpression(context.SyntaxContext, init, context.Settings, semanticModel));
+                        unhandled.UnionWith(CollectExceptionsFromExpression(init, context.Compilation, context.SemanticModel, context.Settings));
 
                     if (forStmt.Condition is not null)
-                        unhandled.UnionWith(CollectExceptionsFromExpression(context.SyntaxContext, forStmt.Condition, context.Settings, semanticModel));
+                        unhandled.UnionWith(CollectExceptionsFromExpression(forStmt.Condition, context.Compilation, context.SemanticModel, context.Settings));
 
                     foreach (var inc in forStmt.Incrementors)
-                        unhandled.UnionWith(CollectExceptionsFromExpression(context.SyntaxContext, inc, context.Settings, semanticModel));
+                        unhandled.UnionWith(CollectExceptionsFromExpression(inc, context.Compilation, context.SemanticModel, context.Settings));
 
                     var bodyResult = AnalyzeStatementWithExceptions(new ControlFlowContext(context, forStmt.Statement));
                     unhandled.UnionWith(bodyResult.UnhandledExceptions);
@@ -668,7 +668,7 @@ partial class CheckedExceptionsAnalyzer
 
             case ForEachStatementSyntax foreachStmt:
                 {
-                    unhandled.UnionWith(CollectExceptionsFromExpression(context.SyntaxContext, foreachStmt.Expression, context.Settings, semanticModel));
+                    unhandled.UnionWith(CollectExceptionsFromExpression(foreachStmt.Expression, context.Compilation, context.SemanticModel, context.Settings));
 
                     var bodyResult = AnalyzeStatementWithExceptions(new ControlFlowContext(context, foreachStmt.Statement));
                     unhandled.UnionWith(bodyResult.UnhandledExceptions);
@@ -678,7 +678,7 @@ partial class CheckedExceptionsAnalyzer
 
             case SwitchStatementSyntax switchStmt:
                 {
-                    unhandled.UnionWith(CollectExceptionsFromExpression(context.SyntaxContext, switchStmt.Expression, context.Settings, semanticModel));
+                    unhandled.UnionWith(CollectExceptionsFromExpression(switchStmt.Expression, context.Compilation, context.SemanticModel, context.Settings));
 
                     bool continuation = false;
                     foreach (var section in switchStmt.Sections)
@@ -704,14 +704,14 @@ partial class CheckedExceptionsAnalyzer
             case UsingStatementSyntax usingStmt:
                 {
                     if (usingStmt.Expression is not null)
-                        unhandled.UnionWith(CollectExceptionsFromExpression(context.SyntaxContext, usingStmt.Expression, context.Settings, semanticModel));
+                        unhandled.UnionWith(CollectExceptionsFromExpression(usingStmt.Expression, context.Compilation, context.SemanticModel, context.Settings));
 
                     if (usingStmt.Declaration is not null)
                     {
                         foreach (var v in usingStmt.Declaration.Variables)
                         {
                             if (v.Initializer?.Value is not null)
-                                unhandled.UnionWith(CollectExceptionsFromExpression(context.SyntaxContext, v.Initializer.Value, context.Settings, semanticModel));
+                                unhandled.UnionWith(CollectExceptionsFromExpression(v.Initializer.Value, context.Compilation, context.SemanticModel, context.Settings));
                         }
                     }
 
@@ -723,7 +723,7 @@ partial class CheckedExceptionsAnalyzer
 
             case LockStatementSyntax lockStmt:
                 {
-                    unhandled.UnionWith(CollectExceptionsFromExpression(context.SyntaxContext, lockStmt.Expression, context.Settings, semanticModel));
+                    unhandled.UnionWith(CollectExceptionsFromExpression(lockStmt.Expression, context.Compilation, context.SemanticModel, context.Settings));
 
                     var bodyResult = AnalyzeStatementWithExceptions(new ControlFlowContext(context, lockStmt.Statement));
                     unhandled.UnionWith(bodyResult.UnhandledExceptions);
@@ -742,7 +742,7 @@ partial class CheckedExceptionsAnalyzer
                 {
                     if (returnStmt.Expression is not null)
                     {
-                        unhandled.UnionWith(CollectExceptionsFromExpression(context.SyntaxContext, returnStmt.Expression, context.Settings, semanticModel));
+                        unhandled.UnionWith(CollectExceptionsFromExpression(returnStmt.Expression, context.Compilation, context.SemanticModel, context.Settings));
                     }
                     return new FlowWithExceptionsResult(returnStmt, endReachable: false, containsReturn: true, unhandledExceptions: unhandled.ToImmutableHashSet());
                 }
@@ -753,7 +753,7 @@ partial class CheckedExceptionsAnalyzer
                or ElementAccessExpressionSyntax
                or ObjectCreationExpressionSyntax
                or ImplicitObjectCreationExpressionSyntax):
-                unhandled.UnionWith(CollectExceptionsFromStatement(context.SyntaxContext, statement, context.Settings));
+                unhandled.UnionWith(CollectExceptionsFromStatement(statement, context.Compilation, context.SemanticModel, context.Settings));
                 return new FlowWithExceptionsResult(localDecl, true, unhandled.ToImmutableHashSet());
 
             case ExpressionStatementSyntax exprStmt
@@ -762,13 +762,13 @@ partial class CheckedExceptionsAnalyzer
                or ElementAccessExpressionSyntax
                or ObjectCreationExpressionSyntax
                or ImplicitObjectCreationExpressionSyntax):
-                unhandled.UnionWith(CollectExceptionsFromStatement(context.SyntaxContext, statement, context.Settings));
+                unhandled.UnionWith(CollectExceptionsFromStatement(statement, context.Compilation, context.SemanticModel, context.Settings));
                 return new FlowWithExceptionsResult(exprStmt, true, unhandled.ToImmutableHashSet());
 
             default:
                 var flow = semanticModel.AnalyzeControlFlow(statement);
 
-                unhandled.UnionWith(CollectExceptionsFromStatement(context.SyntaxContext, statement, context.Settings));
+                unhandled.UnionWith(CollectExceptionsFromStatement(statement, context.Compilation, context.SemanticModel, context.Settings));
 
                 // Fallback: assume it falls through
                 return new FlowWithExceptionsResult(

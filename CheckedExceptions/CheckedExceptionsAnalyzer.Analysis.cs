@@ -146,7 +146,7 @@ partial class CheckedExceptionsAnalyzer
             else
             {
                 // Collect exceptions thrown in this statement
-                var statementExceptions = CollectExceptionsFromStatement(context, statement, settings);
+                var statementExceptions = CollectExceptionsFromStatement(statement, context.Compilation, context.SemanticModel, settings);
 
                 // Add them to the unhandled exceptions
                 unhandledExceptions.UnionWith(statementExceptions);
@@ -156,10 +156,8 @@ partial class CheckedExceptionsAnalyzer
         return unhandledExceptions;
     }
 
-    private static HashSet<INamedTypeSymbol> CollectExceptionsFromStatement(SyntaxNodeAnalysisContext context, StatementSyntax statement, AnalyzerSettings settings)
+    private static HashSet<INamedTypeSymbol> CollectExceptionsFromStatement(StatementSyntax statement, Compilation compilation, SemanticModel semanticModel, AnalyzerSettings settings)
     {
-        SemanticModel semanticModel = context.SemanticModel;
-
         var exceptions = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
 
         // Collect exception from throw statement
@@ -178,19 +176,19 @@ partial class CheckedExceptionsAnalyzer
             }
         }
 
-        CollectExceptionsFromExpression(context, statement, settings, semanticModel, exceptions);
+        CollectExceptionsFromExpression(statement, compilation, semanticModel, settings, exceptions);
 
         return exceptions;
     }
 
-    private static HashSet<INamedTypeSymbol> CollectExceptionsFromExpression(SyntaxNodeAnalysisContext context, SyntaxNode expression, AnalyzerSettings settings, SemanticModel semanticModel)
+    private static HashSet<INamedTypeSymbol> CollectExceptionsFromExpression(SyntaxNode expression, Compilation compilation, SemanticModel semanticModel, AnalyzerSettings settings)
     {
         HashSet<INamedTypeSymbol> exceptions = [];
-        CollectExceptionsFromExpression(context, expression, settings, semanticModel, exceptions);
+        CollectExceptionsFromExpression(expression, compilation, semanticModel, settings, exceptions);
         return exceptions;
     }
 
-    private static void CollectExceptionsFromExpression(SyntaxNodeAnalysisContext context, SyntaxNode expression, AnalyzerSettings settings, SemanticModel semanticModel, HashSet<INamedTypeSymbol> exceptions)
+    private static void CollectExceptionsFromExpression(SyntaxNode expression, Compilation compilation, SemanticModel semanticModel, AnalyzerSettings settings, HashSet<INamedTypeSymbol> exceptions)
     {
         // Collect exceptions from throw expressions
         var throwExpressions = expression.DescendantNodesAndSelf().OfType<ThrowExpressionSyntax>();
@@ -221,7 +219,7 @@ partial class CheckedExceptionsAnalyzer
                 // Handle delegate invokes by getting the target method symbol
                 if (methodSymbol.MethodKind == MethodKind.DelegateInvoke)
                 {
-                    var targetMethodSymbol = GetTargetMethodSymbol(context, invocation) ?? methodSymbol;
+                    var targetMethodSymbol = GetTargetMethodSymbol(semanticModel, invocation) ?? methodSymbol;
 
                     var exceptionTypes = GetExceptionTypes(targetMethodSymbol);
 
@@ -242,7 +240,7 @@ partial class CheckedExceptionsAnalyzer
                         // Get exceptions from XML documentation
                         var xmlExceptionTypes = GetExceptionTypesFromDocumentationCommentXml(semanticModel.Compilation, methodSymbol);
 
-                        xmlExceptionTypes = ProcessNullable(context, invocation, methodSymbol, xmlExceptionTypes);
+                        xmlExceptionTypes = ProcessNullable(compilation, semanticModel, invocation, methodSymbol, xmlExceptionTypes);
 
                         if (xmlExceptionTypes.Any())
                         {
@@ -274,7 +272,7 @@ partial class CheckedExceptionsAnalyzer
                     // Get exceptions from XML documentation
                     var xmlExceptionTypes = GetExceptionTypesFromDocumentationCommentXml(semanticModel.Compilation, methodSymbol);
 
-                    xmlExceptionTypes = ProcessNullable(context, objectCreation, methodSymbol, xmlExceptionTypes);
+                    xmlExceptionTypes = ProcessNullable(compilation, semanticModel, objectCreation, methodSymbol, xmlExceptionTypes);
 
                     if (xmlExceptionTypes.Any())
                     {
@@ -299,7 +297,7 @@ partial class CheckedExceptionsAnalyzer
             var propertySymbol = semanticModel.GetSymbolInfo(memberAccess).Symbol as IPropertySymbol;
             if (propertySymbol is not null)
             {
-                HashSet<INamedTypeSymbol> exceptionTypes = GetPropertyExceptionTypes(context, memberAccess, propertySymbol, settings);
+                HashSet<INamedTypeSymbol> exceptionTypes = GetPropertyExceptionTypes(compilation, semanticModel, memberAccess, propertySymbol, settings);
 
                 foreach (var exceptionType in exceptionTypes)
                 {
@@ -317,7 +315,7 @@ partial class CheckedExceptionsAnalyzer
             var propertySymbol = semanticModel.GetSymbolInfo(elementAccess).Symbol as IPropertySymbol;
             if (propertySymbol is not null)
             {
-                HashSet<INamedTypeSymbol> exceptionTypes = GetPropertyExceptionTypes(context, elementAccess, propertySymbol, settings);
+                HashSet<INamedTypeSymbol> exceptionTypes = GetPropertyExceptionTypes(compilation, semanticModel, elementAccess, propertySymbol, settings);
 
                 foreach (var exceptionType in exceptionTypes)
                 {
@@ -335,7 +333,7 @@ partial class CheckedExceptionsAnalyzer
             var propertySymbol = semanticModel.GetSymbolInfo(identifier).Symbol as IPropertySymbol;
             if (propertySymbol is not null)
             {
-                HashSet<INamedTypeSymbol> exceptionTypes = GetPropertyExceptionTypes(context, identifier, propertySymbol, settings);
+                HashSet<INamedTypeSymbol> exceptionTypes = GetPropertyExceptionTypes(compilation, semanticModel, identifier, propertySymbol, settings);
 
                 foreach (var exceptionType in exceptionTypes)
                 {
@@ -353,13 +351,13 @@ partial class CheckedExceptionsAnalyzer
         var castExpressions = expression.DescendantNodesAndSelf().OfType<CastExpressionSyntax>();
         foreach (var castExpression in castExpressions)
         {
-            var sourceType = context.SemanticModel.GetTypeInfo(castExpression.Expression).Type;
-            var targetType = context.SemanticModel.GetTypeInfo(castExpression.Type).Type;
+            var sourceType = semanticModel.GetTypeInfo(castExpression.Expression).Type;
+            var targetType = semanticModel.GetTypeInfo(castExpression.Type).Type;
 
             if (sourceType is null || targetType is null)
                 return;
 
-            INamedTypeSymbol? invalidCastException = CheckCastExpression(context, castExpression, targetType);
+            INamedTypeSymbol? invalidCastException = CheckCastExpression(compilation, semanticModel, castExpression, targetType);
 
             if (invalidCastException is not null)
             {
@@ -544,6 +542,8 @@ partial class CheckedExceptionsAnalyzer
             }
         }
 
-        CollectLinqExceptions(invocation, exceptionTypes, context.SemanticModel, context.CancellationToken);
+        var settings = GetAnalyzerSettings(context.Options);
+
+        CollectLinqExceptions(invocation, exceptionTypes, context.Compilation, context.SemanticModel, settings, context.CancellationToken);
     }
 }
