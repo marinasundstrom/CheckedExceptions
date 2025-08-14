@@ -11,7 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - PR [#267](https://github.com/marinasundstrom/CheckedExceptions/pull/267) Add separate "Redundant catch clause" diagnostic to catch
-- PR [#273](https://github.com/marinasundstrom/CheckedExceptions/pull/273) Make Throws implicit for lambdas in LINQ
+- PR [#273](https://github.com/marinasundstrom/CheckedExceptions/pull/273) Make exception declarations implicit for lambdas in LINQ
 
 ### Fixed
 
