@@ -7,16 +7,17 @@ partial class CheckedExceptionsAnalyzer
 {
     static INamedTypeSymbol? argumentNullExceptionTypeSymbol;
 
-    private static IEnumerable<ExceptionInfo> ProcessNullable(SyntaxNodeAnalysisContext context, SyntaxNode node, IMethodSymbol methodSymbol, IEnumerable<ExceptionInfo> exceptionInfos)
+    private static IEnumerable<ExceptionInfo> ProcessNullable(
+        Compilation compilation, SemanticModel semanticModel, SyntaxNode node, IMethodSymbol methodSymbol, IEnumerable<ExceptionInfo> exceptionInfos)
     {
         if (argumentNullExceptionTypeSymbol is null)
         {
-            argumentNullExceptionTypeSymbol = context.Compilation.GetTypeByMetadataName("System.ArgumentNullException");
+            argumentNullExceptionTypeSymbol = compilation.GetTypeByMetadataName("System.ArgumentNullException");
         }
 
-        var isCompilationNullableEnabled = context.Compilation.Options.NullableContextOptions is NullableContextOptions.Enable;
+        var isCompilationNullableEnabled = compilation.Options.NullableContextOptions is NullableContextOptions.Enable;
 
-        var nullableContext = context.SemanticModel.GetNullableContext(node.SpanStart);
+        var nullableContext = semanticModel.GetNullableContext(node.SpanStart);
         var isNodeInNullableContext = nullableContext is NullableContext.Enabled;
 
         if (isNodeInNullableContext || isCompilationNullableEnabled)
@@ -56,16 +57,16 @@ partial class CheckedExceptionsAnalyzer
         return exceptionInfos;
     }
 
-    private static IEnumerable<INamedTypeSymbol> ProcessNullable(SyntaxNodeAnalysisContext context, SyntaxNode node, IMethodSymbol methodSymbol, IEnumerable<INamedTypeSymbol> exceptions)
+    private static IEnumerable<INamedTypeSymbol> ProcessNullable(Compilation compilation, SemanticModel semanticModel, SyntaxNode node, IMethodSymbol methodSymbol, IEnumerable<INamedTypeSymbol> exceptions)
     {
         if (argumentNullExceptionTypeSymbol is null)
         {
-            argumentNullExceptionTypeSymbol = context.Compilation.GetTypeByMetadataName("System.ArgumentNullException");
+            argumentNullExceptionTypeSymbol = compilation.GetTypeByMetadataName("System.ArgumentNullException");
         }
 
-        var isCompilationNullableEnabled = context.Compilation.Options.NullableContextOptions is NullableContextOptions.Enable;
+        var isCompilationNullableEnabled = compilation.Options.NullableContextOptions is NullableContextOptions.Enable;
 
-        var nullableContext = context.SemanticModel.GetNullableContext(node.SpanStart);
+        var nullableContext = semanticModel.GetNullableContext(node.SpanStart);
         var isNodeInNullableContext = nullableContext is NullableContext.Enabled;
 
         if (isNodeInNullableContext || isCompilationNullableEnabled)

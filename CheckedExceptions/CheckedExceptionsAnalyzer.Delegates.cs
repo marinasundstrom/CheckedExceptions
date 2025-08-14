@@ -10,12 +10,12 @@ partial class CheckedExceptionsAnalyzer
     /// <summary>
     /// Resolves the target method symbol from a delegate, lambda, or method group.
     /// </summary>
-    private static IMethodSymbol GetTargetMethodSymbol(SyntaxNodeAnalysisContext context, InvocationExpressionSyntax invocation)
+    private static IMethodSymbol GetTargetMethodSymbol(SemanticModel semanticModel, InvocationExpressionSyntax invocation)
     {
         var expression = invocation.Expression;
 
         // Get the symbol of the expression being invoked
-        var symbolInfo = context.SemanticModel.GetSymbolInfo(expression);
+        var symbolInfo = semanticModel.GetSymbolInfo(expression);
         var symbol = symbolInfo.Symbol ?? symbolInfo.CandidateSymbols.FirstOrDefault();
 
         if (symbol is null)
@@ -38,7 +38,7 @@ partial class CheckedExceptionsAnalyzer
                         // Handle lambdas
                         if (initializer is AnonymousFunctionExpressionSyntax anonymousFunction)
                         {
-                            var lambdaSymbol = context.SemanticModel.GetSymbolInfo(anonymousFunction).Symbol as IMethodSymbol;
+                            var lambdaSymbol = semanticModel.GetSymbolInfo(anonymousFunction).Symbol as IMethodSymbol;
                             if (lambdaSymbol is not null)
                                 return lambdaSymbol;
                         }
@@ -46,13 +46,13 @@ partial class CheckedExceptionsAnalyzer
                         // Handle method groups
                         if (initializer is IdentifierNameSyntax || initializer is MemberAccessExpressionSyntax)
                         {
-                            var methodGroupSymbol = context.SemanticModel.GetSymbolInfo(initializer).Symbol as IMethodSymbol;
+                            var methodGroupSymbol = semanticModel.GetSymbolInfo(initializer).Symbol as IMethodSymbol;
                             if (methodGroupSymbol is not null)
                                 return methodGroupSymbol;
                         }
 
                         // Get the method symbol of the initializer (lambda or method group)
-                        var initializerSymbolInfo = context.SemanticModel.GetSymbolInfo(initializer);
+                        var initializerSymbolInfo = semanticModel.GetSymbolInfo(initializer);
                         var initializerSymbol = initializerSymbolInfo.Symbol ?? initializerSymbolInfo.CandidateSymbols.FirstOrDefault();
 
                         if (initializerSymbol is IMethodSymbol targetMethodSymbol)

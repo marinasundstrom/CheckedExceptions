@@ -32,6 +32,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     public const string DiagnosticIdRedundantCatchAllClause = "THROW013";
     public const string DiagnosticIdCatchHandlesNoRemainingExceptions = "THROW014";
     public const string DiagnosticIdRedundantCatchClause = "THROW015";
+    public const string DiagnosticIdImplicitlyDeclaredException = "THROW016";
     public const string DiagnosticIdRuleUnreachableCode = "THROW020";
     public const string DiagnosticIdRuleUnreachableCodeHidden = "IDE001";
 
@@ -181,6 +182,15 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         description: "A typed catch clause is redundant because it does not handle any exceptions thrown in the associated try block.",
         customTags: [WellKnownDiagnosticTags.Unnecessary]);
 
+    private static readonly DiagnosticDescriptor RuleImplicitlyDeclaredException = new(
+        DiagnosticIdImplicitlyDeclaredException,
+        "Implicitly declared exception",
+        "Implicitly declared exception type '{0}'",
+        "Control flow",
+        DiagnosticSeverity.Info,
+        isEnabledByDefault: true,
+        description: "Reports that an exception is propagated without the need to be explicitly declared with [Throws].");
+
     private static readonly DiagnosticDescriptor RuleUnreachableCode = new(
         DiagnosticIdRuleUnreachableCode,
         title: "Unreachable code",
@@ -202,7 +212,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         customTags: [WellKnownDiagnosticTags.Unnecessary]);
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
-        [RuleUnhandledException, RuleIgnoredException, RuleGeneralThrowDeclared, RuleGeneralThrow, RuleDuplicateDeclarations, RuleMissingThrowsOnBaseMember, RuleMissingThrowsFromBaseMember, RuleDuplicateThrowsByHierarchy, RuleRedundantTypedCatchClause, RuleRedundantCatchAllClause, RuleThrowsDeclarationNotValidOnFullProperty, RuleXmlDocButNoThrows, RuleRedundantExceptionDeclaration, RuleCatchHandlesNoRemainingExceptions, RuleRedundantCatchClause, RuleUnreachableCode, RuleUnreachableCodeHidden];
+        [RuleUnhandledException, RuleIgnoredException, RuleGeneralThrowDeclared, RuleGeneralThrow, RuleDuplicateDeclarations, RuleMissingThrowsOnBaseMember, RuleMissingThrowsFromBaseMember, RuleDuplicateThrowsByHierarchy, RuleRedundantTypedCatchClause, RuleRedundantCatchAllClause, RuleThrowsDeclarationNotValidOnFullProperty, RuleXmlDocButNoThrows, RuleRedundantExceptionDeclaration, RuleCatchHandlesNoRemainingExceptions, RuleRedundantCatchClause, RuleImplicitlyDeclaredException, RuleUnreachableCode, RuleUnreachableCodeHidden];
 
     public override void Initialize(AnalysisContext context)
     {
@@ -253,11 +263,11 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         // Collect exceptions that will surface when enumeration happens
         var exceptionTypes = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
 
-        CollectEnumerationExceptions(forEachOp.Collection, exceptionTypes, semanticModel, context.CancellationToken);
+        CollectEnumerationExceptions(forEachOp.Collection, exceptionTypes, context.Compilation, semanticModel, settings, context.CancellationToken);
 
         // Your existing nullability post-processing
         exceptionTypes = new HashSet<INamedTypeSymbol>(
-            ProcessNullable(context, forEachSyntax.Expression, null, exceptionTypes),
+            ProcessNullable(context.Compilation, context.SemanticModel, forEachSyntax.Expression, null, exceptionTypes),
             SymbolEqualityComparer.Default);
 
         foreach (var t in exceptionTypes.Distinct(SymbolEqualityComparer.Default))
@@ -277,7 +287,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         if (sourceType is null || targetType is null)
             return;
 
-        INamedTypeSymbol? exceptionType = CheckCastExpression(context, castExpression, targetType);
+        INamedTypeSymbol? exceptionType = CheckCastExpression(context.Compilation, context.SemanticModel, castExpression, targetType);
 
         if (exceptionType is not null)
         {
@@ -481,7 +491,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
             // Handle delegate invokes by getting the target method symbol
             if (methodSymbol.MethodKind == MethodKind.DelegateInvoke)
             {
-                var targetMethodSymbol = GetTargetMethodSymbol(context, invocation);
+                var targetMethodSymbol = GetTargetMethodSymbol(context.SemanticModel, invocation);
                 if (targetMethodSymbol is not null)
                 {
                     methodSymbol = targetMethodSymbol;
@@ -546,7 +556,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         // Handle delegate invokes by getting the target method symbol
         if (methodSymbol.MethodKind == MethodKind.DelegateInvoke)
         {
-            var targetMethodSymbol = GetTargetMethodSymbol(context, invocation);
+            var targetMethodSymbol = GetTargetMethodSymbol(context.SemanticModel, invocation);
             if (targetMethodSymbol is not null)
             {
                 methodSymbol = targetMethodSymbol;

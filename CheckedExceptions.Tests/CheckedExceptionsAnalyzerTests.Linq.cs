@@ -38,6 +38,43 @@ public partial class LinqTest
     }
 
     [Fact]
+    public async Task QueryOperator_ImplicitlyDeclared()
+    {
+        var test = /* lang=c#-test */ """
+            #nullable enable
+            using System;
+            using System.Collections.Generic;
+            using System.Linq;
+
+            IEnumerable<int> items = [];
+            var query = items.Where((x) => x == int.Parse("10"));
+            var r = query.First();
+            """;
+
+        var expected = Verifier.UnhandledException("FormatException")
+            .WithSpan(8, 15, 8, 22);
+
+        var expected2 = Verifier.UnhandledException("OverflowException")
+            .WithSpan(8, 15, 8, 22);
+
+        var expected3 = Verifier.UnhandledException("InvalidOperationException")
+            .WithSpan(8, 15, 8, 22);
+
+        var expected4 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdImplicitlyDeclaredException)
+            .WithArguments("FormatException")
+            .WithSpan(7, 41, 7, 52);
+
+        var expected5 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdImplicitlyDeclaredException)
+            .WithArguments("OverflowException")
+            .WithSpan(7, 41, 7, 52);
+
+        await Verifier.VerifyAnalyzerAsync(test, setup: o =>
+        {
+            o.ExpectedDiagnostics.AddRange(expected, expected2, expected3, expected4, expected5);
+        }, executable: true);
+    }
+
+    [Fact]
     public async Task ForEach()
     {
         var test = /* lang=c#-test */ """

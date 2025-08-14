@@ -151,6 +151,9 @@ Add `CheckedExceptions.settings.json`:
   // If true, analysis on LINQ constructs will be disabled (default: false).
   "disableLinqSupport": false,
 
+    // If true, exceptions in lambdas do not have to be declared (default: false).
+  "disableLinqImplicitlyDeclaredExceptions": false,
+
   // If true, control flow analysis, with redundancy checks, is disabled (default: false).
   "disableControlFlowAnalysis": false,
 

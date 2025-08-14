@@ -19,7 +19,8 @@ public class SurroundWithTryCatchCodeFixProvider : CodeFixProvider
     private const string TitleAddTryCatch = "Surround with try/catch";
 
     public sealed override ImmutableArray<string> FixableDiagnosticIds =>
-        [CheckedExceptionsAnalyzer.DiagnosticIdUnhandled];
+        [CheckedExceptionsAnalyzer.DiagnosticIdUnhandled,
+         CheckedExceptionsAnalyzer.DiagnosticIdImplicitlyDeclaredException];
 
     public sealed override FixAllProvider GetFixAllProvider() =>
         null!;

@@ -23,7 +23,7 @@ partial class CheckedExceptionsAnalyzer
             // Get exceptions from XML documentation
             var xmlExceptionTypes = GetExceptionTypesFromDocumentationCommentXml(context.Compilation, methodSymbol);
 
-            xmlExceptionTypes = ProcessNullable(context, node, methodSymbol, xmlExceptionTypes);
+            xmlExceptionTypes = ProcessNullable(context.Compilation, context.SemanticModel, node, methodSymbol, xmlExceptionTypes);
 
             if (xmlExceptionTypes.Any())
             {
@@ -39,7 +39,7 @@ partial class CheckedExceptionsAnalyzer
             }
         }
 
-        exceptionTypes = new HashSet<INamedTypeSymbol>(ProcessNullable(context, node, methodSymbol, exceptionTypes), SymbolEqualityComparer.Default);
+        exceptionTypes = new HashSet<INamedTypeSymbol>(ProcessNullable(context.Compilation, context.SemanticModel, node, methodSymbol, exceptionTypes), SymbolEqualityComparer.Default);
 
         foreach (var exceptionType in exceptionTypes.Distinct(SymbolEqualityComparer.Default).OfType<INamedTypeSymbol>())
         {

@@ -7,7 +7,9 @@
     },
     "disableXmlDocInterop": false,
     "disableLinqSupport": false,
+    "disableLinqImplicitlyDeclaredExceptions": false,
     "disableControlFlowAnalysis": false,
+    "enableLegacyRedundancyChecks": false,
     "disableBaseExceptionDeclaredDiagnostic": false,
     "disableBaseExceptionThrownDiagnostic": false
 }

@@ -13,7 +13,7 @@ partial class CheckedExceptionsAnalyzer
     private static void AnalyzePropertyExceptions(SyntaxNodeAnalysisContext context, ExpressionSyntax expression, IPropertySymbol propertySymbol,
         AnalyzerSettings settings)
     {
-        HashSet<INamedTypeSymbol> exceptionTypes = GetPropertyExceptionTypes(context, expression, propertySymbol, settings);
+        HashSet<INamedTypeSymbol> exceptionTypes = GetPropertyExceptionTypes(context.Compilation, context.SemanticModel, expression, propertySymbol, settings);
 
         // Deduplicate and analyze each distinct exception type
         foreach (var exceptionType in exceptionTypes.Distinct(SymbolEqualityComparer.Default).OfType<INamedTypeSymbol>())
@@ -22,7 +22,7 @@ partial class CheckedExceptionsAnalyzer
         }
     }
 
-    private static HashSet<INamedTypeSymbol> GetPropertyExceptionTypes(SyntaxNodeAnalysisContext context, ExpressionSyntax expression, IPropertySymbol propertySymbol, AnalyzerSettings settings)
+    private static HashSet<INamedTypeSymbol> GetPropertyExceptionTypes(Compilation compilation, SemanticModel semanticModel, ExpressionSyntax expression, IPropertySymbol propertySymbol, AnalyzerSettings settings)
     {
         // Determine if the analyzed expression is for a getter or setter
         bool isGetter = IsPropertyGetter(expression);
@@ -38,7 +38,7 @@ partial class CheckedExceptionsAnalyzer
         if (settings.IsXmlInteropEnabled)
         {
             // Retrieve exception types documented in XML comments for the property
-            var xmlDocumentedExceptions = GetExceptionTypesFromDocumentationCommentXml(context.Compilation, propertySymbol).ToList();
+            var xmlDocumentedExceptions = GetExceptionTypesFromDocumentationCommentXml(compilation, propertySymbol).ToList();
 
             // Filter exceptions documented specifically for the getter and setter
             getterExceptions = xmlDocumentedExceptions.Where(x => HeuristicRules.IsForGetter(x.Description));
@@ -48,7 +48,7 @@ partial class CheckedExceptionsAnalyzer
             if (isSetter && propertySymbol.SetMethod is not null)
             {
                 // Will filter away 
-                setterExceptions = ProcessNullable(context, expression, propertySymbol.SetMethod, setterExceptions);
+                setterExceptions = ProcessNullable(compilation, semanticModel, expression, propertySymbol.SetMethod, setterExceptions);
             }
 
             // Handle exceptions that don't explicitly belong to getters or setters
@@ -59,7 +59,7 @@ partial class CheckedExceptionsAnalyzer
 
             if (isSetter && propertySymbol.SetMethod is not null)
             {
-                allOtherExceptions = ProcessNullable(context, expression, propertySymbol.SetMethod, allOtherExceptions);
+                allOtherExceptions = ProcessNullable(compilation, semanticModel, expression, propertySymbol.SetMethod, allOtherExceptions);
             }
         }
 
@@ -81,7 +81,7 @@ partial class CheckedExceptionsAnalyzer
 
         if (propertySymbol.GetMethod is not null)
         {
-            allOtherExceptions = ProcessNullable(context, expression, propertySymbol.GetMethod, allOtherExceptions);
+            allOtherExceptions = ProcessNullable(compilation, semanticModel, expression, propertySymbol.GetMethod, allOtherExceptions);
         }
 
         // Add other exceptions not specific to getters or setters
