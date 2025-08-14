@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [2.1.0] - 2025-08-14
+
 ### Added
 
 - PR [#267](https://github.com/marinasundstrom/CheckedExceptions/pull/267) Add separate "Redundant catch clause" diagnostic to catch
