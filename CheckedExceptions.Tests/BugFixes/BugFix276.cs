@@ -17,7 +17,7 @@ public class BugFix276
 
         IEnumerable<string> strings = ["1", "2", "3", "4"];
         var numbers = strings.Select(int.Parse);
-        var query = numbers.Where((x) => x % 2 == 1);
+        var query = numbers.Where(x => x % 2 == 1);
         var r = query.First();
         """;
 
@@ -33,6 +33,37 @@ public class BugFix276
         await Verifier.VerifyAnalyzerAsync(test, s =>
         {
             s.ExpectedDiagnostics.AddRange(expected, expected2, expected3);
+
+            s.DisabledDiagnostics.Remove(CheckedExceptionsAnalyzer.DiagnosticIdRedundantTypedCatchClause);
+            s.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdGeneralThrowDeclared);
+        }, executable: true);
+    }
+
+    [Fact]
+    public async Task CollectExceptionsFromMethodGroup_Foreach()
+    {
+        var test = /* lang=c#-test */ """
+        #nullable enable
+        using System;
+        using System.Collections.Generic;
+        using System.Linq;
+
+        IEnumerable<string> strings = ["1", "2", "3", "4"];
+        var numbers = strings.Select(int.Parse);
+        var query = numbers.Where((x) => x % 2 == 1);
+        
+        foreach (var n in query) { }
+        """;
+
+        var expected = Verifier.UnhandledException("FormatException")
+            .WithSpan(10, 19, 10, 24);
+
+        var expected2 = Verifier.UnhandledException("OverflowException")
+            .WithSpan(10, 19, 10, 24);
+
+        await Verifier.VerifyAnalyzerAsync(test, s =>
+        {
+            s.ExpectedDiagnostics.AddRange(expected, expected2);
 
             s.DisabledDiagnostics.Remove(CheckedExceptionsAnalyzer.DiagnosticIdRedundantTypedCatchClause);
             s.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdGeneralThrowDeclared);
