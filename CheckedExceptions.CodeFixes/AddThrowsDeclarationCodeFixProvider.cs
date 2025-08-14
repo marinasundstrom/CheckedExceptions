@@ -20,7 +20,8 @@ public class AddThrowsDeclarationCodeFixProvider : CodeFixProvider
     private const string TitleAddThrowsAttribute = "Add throws declaration";
 
     public sealed override ImmutableArray<string> FixableDiagnosticIds =>
-        [CheckedExceptionsAnalyzer.DiagnosticIdUnhandled];
+        [CheckedExceptionsAnalyzer.DiagnosticIdUnhandled,
+         CheckedExceptionsAnalyzer.DiagnosticIdImplicitlyDeclaredException];
 
     public sealed override FixAllProvider GetFixAllProvider() =>
         WellKnownFixAllProviders.BatchFixer;

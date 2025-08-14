@@ -32,6 +32,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     public const string DiagnosticIdRedundantCatchAllClause = "THROW013";
     public const string DiagnosticIdCatchHandlesNoRemainingExceptions = "THROW014";
     public const string DiagnosticIdRedundantCatchClause = "THROW015";
+    public const string DiagnosticIdImplicitlyDeclaredException = "THROW016";
     public const string DiagnosticIdRuleUnreachableCode = "THROW020";
     public const string DiagnosticIdRuleUnreachableCodeHidden = "IDE001";
 
@@ -181,6 +182,15 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         description: "A typed catch clause is redundant because it does not handle any exceptions thrown in the associated try block.",
         customTags: [WellKnownDiagnosticTags.Unnecessary]);
 
+    private static readonly DiagnosticDescriptor RuleImplicitlyDeclaredException = new(
+        DiagnosticIdImplicitlyDeclaredException,
+        "Implicitly declared exception",
+        "Implicitly declared exception type '{0}'",
+        "Control flow",
+        DiagnosticSeverity.Info,
+        isEnabledByDefault: true,
+        description: "Reports that an exception is propagated without the need to be explicitly declared with [Throws].");
+
     private static readonly DiagnosticDescriptor RuleUnreachableCode = new(
         DiagnosticIdRuleUnreachableCode,
         title: "Unreachable code",
@@ -202,7 +212,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         customTags: [WellKnownDiagnosticTags.Unnecessary]);
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
-        [RuleUnhandledException, RuleIgnoredException, RuleGeneralThrowDeclared, RuleGeneralThrow, RuleDuplicateDeclarations, RuleMissingThrowsOnBaseMember, RuleMissingThrowsFromBaseMember, RuleDuplicateThrowsByHierarchy, RuleRedundantTypedCatchClause, RuleRedundantCatchAllClause, RuleThrowsDeclarationNotValidOnFullProperty, RuleXmlDocButNoThrows, RuleRedundantExceptionDeclaration, RuleCatchHandlesNoRemainingExceptions, RuleRedundantCatchClause, RuleUnreachableCode, RuleUnreachableCodeHidden];
+        [RuleUnhandledException, RuleIgnoredException, RuleGeneralThrowDeclared, RuleGeneralThrow, RuleDuplicateDeclarations, RuleMissingThrowsOnBaseMember, RuleMissingThrowsFromBaseMember, RuleDuplicateThrowsByHierarchy, RuleRedundantTypedCatchClause, RuleRedundantCatchAllClause, RuleThrowsDeclarationNotValidOnFullProperty, RuleXmlDocButNoThrows, RuleRedundantExceptionDeclaration, RuleCatchHandlesNoRemainingExceptions, RuleRedundantCatchClause, RuleImplicitlyDeclaredException, RuleUnreachableCode, RuleUnreachableCodeHidden];
 
     public override void Initialize(AnalysisContext context)
     {

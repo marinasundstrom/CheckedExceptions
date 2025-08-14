@@ -5,6 +5,20 @@ public class LinqTest
 {
     public void Test1()
     {
+        ExplicitlyDeclaredThrows();
+        ImplicitlyDeclaredThrows();
+
+        WithMethodGroup();
+
+        NestedConversionExpression();
+
+        Cast();
+
+        Cast2();
+    }
+
+    private static void ExplicitlyDeclaredThrows()
+    {
         IEnumerable<int> items = [];
         var query = items.Where([Throws(typeof(FormatException), typeof(OverflowException))] (x) => x == int.Parse("10"));
         var x = query;
@@ -16,17 +30,24 @@ public class LinqTest
         {
 
         }
-
-        NewMethod2();
-
-        NewMethod1();
-
-        NewMethod();
-
-        NewMethod0();
     }
 
-    private static void NewMethod2()
+    private static void ImplicitlyDeclaredThrows()
+    {
+        IEnumerable<int> items = [];
+        var query = items.Where((x) => x == int.Parse("10"));
+        var x = query;
+        var r = x.Select((z) => 2);
+
+        foreach (var n in query) { }
+
+        foreach (var item in r)
+        {
+
+        }
+    }
+
+    private static void WithMethodGroup()
     {
         IEnumerable<int> xs = [];
         Func<int, bool> pred = [Throws(typeof(FormatException))] (z) => int.Parse("10") == z;
@@ -34,14 +55,14 @@ public class LinqTest
         foreach (var x in q2) { }
     }
 
-    private static void NewMethod1()
+    private static void NestedConversionExpression()
     {
         IEnumerable<object> xs2 = [];
         var q0 = xs2.Where([Throws(typeof(InvalidCastException))] (x) => x == (string)x);
         foreach (var n in q0) { }
     }
 
-    private static void NewMethod()
+    private static void Cast()
     {
         IEnumerable<object> xs2 = [];
         var q0 = xs2
@@ -53,7 +74,7 @@ public class LinqTest
         foreach (var n in q0) { }
     }
 
-    private static void NewMethod0()
+    private static void Cast2()
     {
         IEnumerable<object> xs2 = [];
         var q0 = xs2

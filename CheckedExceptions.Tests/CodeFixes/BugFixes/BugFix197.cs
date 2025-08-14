@@ -55,7 +55,8 @@ public class BugFix197
             }
             """;
 
-        var expectedDiagnostic = Verifier.UnhandledException("ArgumentOutOfRangeException")
+        var expectedDiagnostic = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdImplicitlyDeclaredException)
+            .WithArguments("ArgumentOutOfRangeException")
             .WithSpan(12, 46, 12, 60);
 
         await Verifier.VerifyCodeFixAsync(testCode, [expectedDiagnostic], fixedCode, setup: opt =>

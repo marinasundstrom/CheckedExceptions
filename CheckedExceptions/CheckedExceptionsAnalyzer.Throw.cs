@@ -3,6 +3,7 @@ using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.CodeAnalysis.Operations;
 
 namespace Sundstrom.CheckedExceptions;
 
@@ -74,19 +75,85 @@ partial class CheckedExceptionsAnalyzer
         // Report diagnostic if neither handled nor declared
         if (!isHandled && !isDeclared)
         {
-            var properties = ImmutableDictionary.Create<string, string?>()
-                .Add("ExceptionType", exceptionType.Name);
+            bool isInLinqExpression = IsInsideLinqLambda(node, semanticModel, out _);
 
-            var diagnostic = Diagnostic.Create(
-                RuleUnhandledException,
-                GetSignificantLocation(node),
-                properties,
-                exceptionType.Name);
+            if (isInLinqExpression)
+            {
+                var properties = ImmutableDictionary.Create<string, string?>()
+                    .Add("ExceptionType", exceptionType.Name);
 
-            reportDiagnostic(diagnostic);
+                var diagnostic = Diagnostic.Create(
+                    RuleImplicitlyDeclaredException,
+                    GetSignificantLocation(node),
+                    properties,
+                    exceptionType.Name);
 
-            // 🔑 Collect for later redundancy analysis
-            unhandledExceptions?.Add(exceptionType);
+                reportDiagnostic(diagnostic);
+                return;
+            }
+            else
+            {
+
+                var properties = ImmutableDictionary.Create<string, string?>()
+                    .Add("ExceptionType", exceptionType.Name);
+
+                var diagnostic = Diagnostic.Create(
+                    RuleUnhandledException,
+                    GetSignificantLocation(node),
+                    properties,
+                    exceptionType.Name);
+
+                reportDiagnostic(diagnostic);
+
+                // 🔑 Collect for later redundancy analysis
+                unhandledExceptions?.Add(exceptionType);
+            }
         }
+    }
+
+    private static bool IsInsideLinqLambda(
+        SyntaxNode node,
+        SemanticModel semanticModel,
+        out IInvocationOperation? linqInvocation,
+        CancellationToken ct = default)
+    {
+        linqInvocation = null;
+
+        // Start from the operation that corresponds to the node
+        var op = semanticModel.GetOperation(node, ct);
+        if (op is null) return false;
+
+        // Walk up to find an enclosing anonymous function (lambda/local-func-as-anon)
+        IAnonymousFunctionOperation? lambda = null;
+        for (var cur = op; cur is not null; cur = cur.Parent)
+        {
+            if (cur is IAnonymousFunctionOperation anon)
+            {
+                lambda = anon;
+                break;
+            }
+        }
+        if (lambda is null) return false;
+
+        // From the lambda, climb to its enclosing invocation:
+        // Lambda -> (optional) IDelegateCreation/Conversion -> IArgument -> IInvocation
+        IOperation? p = lambda.Parent;
+
+        // unwrap delegate creation/conversions
+        while (p is IDelegateCreationOperation || p is IConversionOperation || p is IParenthesizedOperation)
+            p = p.Parent;
+
+        // the lambda should be inside an argument
+        if (p is not IArgumentOperation arg) return false;
+
+        // then the argument should belong to an invocation
+        var inv = arg.Parent as IInvocationOperation;
+        if (inv is null) return false;
+
+        // finally: is it a LINQ query operator?
+        if (!IsLinqExtension(inv.TargetMethod)) return false;
+
+        linqInvocation = inv;
+        return true;
     }
 }
