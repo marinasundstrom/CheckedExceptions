@@ -328,11 +328,11 @@ partial class CheckedExceptionsAnalyzer
                     if (del.Target is IAnonymousFunctionOperation anon)
                         CollectThrowsFromSymbol(anon.Symbol, exceptionTypes, compilation, semanticModel, settings);
                     else if (del.Target is IMethodReferenceOperation mref1)
-                        CollectThrowsFromSymbol(mref1.Method, exceptionTypes, compilation, semanticModel, settings);
+                        CollectThrowsFromSymbol(mref1.Method, exceptionTypes, compilation, semanticModel, settings, mref1.Syntax);
                     break;
 
                 case IMethodReferenceOperation mref2:
-                    CollectThrowsFromSymbol(mref2.Method, exceptionTypes, compilation, semanticModel, settings);
+                    CollectThrowsFromSymbol(mref2.Method, exceptionTypes, compilation, semanticModel, settings, mref2.Syntax);
                     break;
 
                 case ILocalReferenceOperation lref when semanticModel is not null:
@@ -369,14 +369,14 @@ partial class CheckedExceptionsAnalyzer
 
                 if (initOp is IAnonymousFunctionOperation lambda)
                     CollectThrowsFromSymbol(lambda.Symbol, exceptionTypes, compilation, semanticModel, settings);
-                else if (initOp is IMethodReferenceOperation mref)
-                    CollectThrowsFromSymbol(mref.Method, exceptionTypes, compilation, semanticModel, settings);
+                else if (initOp is IMethodReferenceOperation mref)// the method group is used at 'initExpr'
+                    CollectThrowsFromSymbol(mref.Method, exceptionTypes, compilation, semanticModel, settings, initExpr);
                 else if (initOp is IDelegateCreationOperation del)
                 {
                     if (del.Target is IAnonymousFunctionOperation anon)
                         CollectThrowsFromSymbol(anon.Symbol, exceptionTypes, compilation, semanticModel, settings);
                     else if (del.Target is IMethodReferenceOperation mref2)
-                        CollectThrowsFromSymbol(mref2.Method, exceptionTypes, compilation, semanticModel, settings);
+                        CollectThrowsFromSymbol(mref2.Method, exceptionTypes, compilation, semanticModel, settings, initExpr);
                 }
                 else if (initOp is ILocalReferenceOperation innerLocal)
                     FollowDelegateLocal(innerLocal, exceptionTypes, compilation, semanticModel, settings, ct, visited);
@@ -396,28 +396,69 @@ partial class CheckedExceptionsAnalyzer
         // For now: skip or use AdditionalFiles metadata for known parameters.
     }
 
-    private static void CollectThrowsFromSymbol(ISymbol? symbol, HashSet<INamedTypeSymbol> exceptionTypes,
-        Compilation compilation, SemanticModel semanticModel, AnalyzerSettings analyzerSettings)
+    /// <param name="usageSiteNode">Only passed when symbol is a method group</param>
+    private static void CollectThrowsFromSymbol(
+     ISymbol? symbol,
+     HashSet<INamedTypeSymbol> exceptionTypes,
+     Compilation compilation,
+     SemanticModel semanticModel,
+     AnalyzerSettings settings,
+     SyntaxNode? usageSiteNode = null,
+     CancellationToken ct = default)
     {
         if (symbol is null) return;
 
         if (symbol is IMethodSymbol methodSymbol)
         {
-            var syntax = methodSymbol.DeclaringSyntaxReferences.Select(x => x.GetSyntax()).First();
-
-            if (syntax is AnonymousFunctionExpressionSyntax anonymousFunction)
+            // 1) Source bodies (method group to user code / local func)
+            if (methodSymbol.DeclaringSyntaxReferences.Length > 0)
             {
-                if (anonymousFunction.Block is not null)
+                foreach (var sr in methodSymbol.DeclaringSyntaxReferences)
                 {
-                    exceptionTypes.AddRange(CollectExceptionsFromStatement(anonymousFunction.Block, compilation, semanticModel, analyzerSettings));
+                    var syntax = sr.GetSyntax(ct);
+                    SyntaxNode? body = syntax switch
+                    {
+                        MethodDeclarationSyntax m => (SyntaxNode?)m.Body ?? m.ExpressionBody?.Expression,
+                        LocalFunctionStatementSyntax lf => (SyntaxNode?)lf.Body ?? lf.ExpressionBody?.Expression,
+                        AnonymousFunctionExpressionSyntax af => (SyntaxNode?)af.Block ?? af.ExpressionBody,
+                        _ => null
+                    };
+
+                    if (body is not null)
+                    {
+                        // Reuse your existing collectors
+                        if (body is BlockSyntax b)
+                            exceptionTypes.AddRange(CollectExceptionsFromStatement(b, compilation, semanticModel, settings));
+                        else
+                            exceptionTypes.AddRange(CollectExceptionsFromExpression(body, compilation, semanticModel, settings));
+                    }
                 }
-                else if (anonymousFunction.ExpressionBody is not null)
+            }
+            else
+            {
+                // 2) Metadata/BCL: use a tiny knowledge base (fast path for int.Parse, etc.)
+                foreach (var t in GetKnownMethodExceptions(methodSymbol, compilation))
+                    exceptionTypes.Add(t);
+            }
+
+            var isAnonymousFunctionOrLambda = methodSymbol.MethodKind == MethodKind.AnonymousFunction;
+
+            // 3) Optional XML interop (your existing logic)
+            if (!isAnonymousFunctionOrLambda && settings.IsXmlInteropEnabled)
+            {
+                var xmlExceptionTypes = GetExceptionTypesFromDocumentationCommentXml(semanticModel.Compilation, methodSymbol);
+
+                if (usageSiteNode is not null)
                 {
-                    exceptionTypes.AddRange(CollectExceptionsFromExpression(anonymousFunction.ExpressionBody, compilation, semanticModel, analyzerSettings));
+                    xmlExceptionTypes = ProcessNullable(compilation, semanticModel, usageSiteNode, methodSymbol, xmlExceptionTypes);
                 }
+
+                if (xmlExceptionTypes.Any())
+                    exceptionTypes.AddRange(xmlExceptionTypes.Select(x => x.ExceptionType));
             }
         }
 
+        // 4) Attributes
         foreach (var attr in symbol.GetAttributes())
             foreach (var t in GetExceptionTypesFromThrowsAttribute(attr))
                 exceptionTypes.Add(t);
@@ -428,27 +469,27 @@ internal static class LinqKnowledge
 {
     // Minimal sets — extend as you go.
     public static readonly HashSet<string> DeferredOps = new(StringComparer.Ordinal)
-    {
-        "Where","Select","SelectMany",
-        "Take","Skip","TakeWhile","SkipWhile",
-        "OrderBy","OrderByDescending","ThenBy","ThenByDescending",
-        "GroupBy","Join","GroupJoin",
-        "Distinct","Concat","Union","Intersect","Except",
-        "Reverse","Zip","DefaultIfEmpty",
-        "Cast","OfType","AsEnumerable"
-    };
+        {
+            "Where", "Select", "SelectMany",
+            "Take", "Skip", "TakeWhile", "SkipWhile",
+            "OrderBy", "OrderByDescending", "ThenBy", "ThenByDescending",
+            "GroupBy", "Join", "GroupJoin",
+            "Distinct", "Concat", "Union", "Intersect", "Except",
+            "Reverse", "Zip", "DefaultIfEmpty",
+            "Cast", "OfType", "AsEnumerable"
+        };
 
     public static readonly HashSet<string> TerminalOps = new(StringComparer.Ordinal)
-    {
-        "ToArray", "ToList", "ToDictionary", "ToLookup",
-        "First", "FirstOrDefault", "Single", "SingleOrDefault",
-        "Last", "LastOrDefault",
-        "Any", "All", "Count", "LongCount",
-        "Sum", "Min", "Max", "Average",
-        "Contains", "SequenceEqual",
-        "ElementAt", "ElementAtOrDefault",
-        "Aggregate"
-    };
+        {
+            "ToArray", "ToList", "ToDictionary", "ToLookup",
+            "First", "FirstOrDefault", "Single", "SingleOrDefault",
+            "Last", "LastOrDefault",
+            "Any", "All", "Count", "LongCount",
+            "Sum", "Min", "Max", "Average",
+            "Contains", "SequenceEqual",
+            "ElementAt", "ElementAtOrDefault",
+            "Aggregate"
+        };
 
     // Built-in exceptions for terminal ops (add more as needed).
     public static ImmutableDictionary<string, Func<Compilation, IMethodSymbol, IEnumerable<INamedTypeSymbol>>> BuiltIns

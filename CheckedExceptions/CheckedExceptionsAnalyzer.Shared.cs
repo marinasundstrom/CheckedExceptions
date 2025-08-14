@@ -69,4 +69,42 @@ partial class CheckedExceptionsAnalyzer
 
         return expression.GetLocation();
     }
+
+    private static IEnumerable<INamedTypeSymbol> GetKnownMethodExceptions(IMethodSymbol method, Compilation c)
+    {
+        // Key by fully-qualified containing type + method name + arity we care about.
+        // Use parameter shapes to disambiguate common overloads.
+        var typeName = method.ContainingType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        var name = method.Name;
+
+        // int.Parse(...)
+        if (typeName == "global::System.Int32" && name == "Parse")
+            return Types(c, "System.FormatException", "System.OverflowException");
+
+        // long.Parse, short.Parse, byte.Parse, etc.
+        if (typeName.StartsWith("global::System.") && name == "Parse" && IsIntegral(method.ContainingType.SpecialType))
+            return Types(c, "System.FormatException", "System.OverflowException");
+
+        // double/float/decimal.Parse(...)
+        if (typeName is "global::System.Double" or "global::System.Single" or "global::System.Decimal")
+            if (name == "Parse")
+                return Types(c, "System.FormatException", "System.OverflowException");
+
+        // Convert.ToInt32(string), etc. (Format + Overflow)
+        if (typeName == "global::System.Convert" && name.StartsWith("To"))
+            if (method.Parameters.Length == 1 && method.Parameters[0].Type.SpecialType == SpecialType.System_String)
+                return Types(c, "System.FormatException", "System.OverflowException");
+
+        // default
+        return Array.Empty<INamedTypeSymbol>();
+
+        static bool IsIntegral(SpecialType st) =>
+            st is SpecialType.System_Byte or SpecialType.System_SByte
+               or SpecialType.System_Int16 or SpecialType.System_UInt16
+               or SpecialType.System_Int32 or SpecialType.System_UInt32
+               or SpecialType.System_Int64 or SpecialType.System_UInt64;
+
+        static IEnumerable<INamedTypeSymbol> Types(Compilation comp, params string[] metadataNames)
+            => metadataNames.Select(n => comp.GetTypeByMetadataName(n)).Where(t => t is not null)!;
+    }
 }
