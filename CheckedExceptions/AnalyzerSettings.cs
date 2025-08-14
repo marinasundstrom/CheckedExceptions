@@ -16,11 +16,23 @@ public partial class AnalyzerSettings
     [JsonIgnore]
     internal bool IsLinqSupportEnabled => !DisableLinqSupport;
 
+    [JsonPropertyName("disableLinqImplicitlyDeclaredExceptions")]
+    public bool DisableLinqImplicitlyDeclaredExceptions { get; set; } = false;
+
+    [JsonIgnore]
+    internal bool IsLinqImplicitlyDeclaredExceptionsEnabled => !DisableLinqImplicitlyDeclaredExceptions;
+
     [JsonPropertyName("disableControlFlowAnalysis")]
     public bool DisableControlFlowAnalysis { get; set; } = false;
 
+    [JsonIgnore]
+    internal bool IsControlFlowAnalysisEnabled => !DisableControlFlowAnalysis;
+
     [JsonPropertyName("enableLegacyRedundancyChecks")]
     public bool EnableLegacyRedundancyChecks { get; set; } = false;
+
+    [JsonIgnore]
+    internal bool IsLegacyRedundancyChecksEnabled => EnableLegacyRedundancyChecks;
 
     [JsonPropertyName("disableBaseExceptionDeclaredDiagnostic")]
     public bool DisableBaseExceptionDeclaredDiagnostic { get; set; } = false;
@@ -33,11 +45,6 @@ public partial class AnalyzerSettings
 
     [JsonIgnore]
     internal bool BaseExceptionThrownDiagnosticEnabled => !DisableBaseExceptionThrownDiagnostic;
-
-    [JsonIgnore]
-    internal bool IsControlFlowAnalysisEnabled => !DisableControlFlowAnalysis;
-
-    internal bool IsLegacyRedundancyChecksEnabled => EnableLegacyRedundancyChecks;
 
     [JsonPropertyName("ignoredExceptions")]
     public IEnumerable<string> IgnoredExceptions { get; set; } = new List<string>();

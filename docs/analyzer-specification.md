@@ -482,3 +482,13 @@ var query = items.Where([Throws(typeof(FormatException), typeof(OverflowExceptio
 // First will not indicate exceptions
 var r = query.First();
 ```
+
+#### Disable implicitly declared exceptions in lambdas
+
+This option control whether to disable implicitly declared exceptions in lambdas passed into LINQ operator methods.
+
+```json
+{
+  "disableLinqImplicitlyDeclaredExceptions": false,
+}
+```

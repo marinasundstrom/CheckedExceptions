@@ -75,10 +75,11 @@ partial class CheckedExceptionsAnalyzer
         // Report diagnostic if neither handled nor declared
         if (!isHandled && !isDeclared)
         {
-            bool isInLinqExpression = IsInsideLinqLambda(node, semanticModel, out _);
-
-            if (isInLinqExpression)
+            if (settings.IsLinqImplicitlyDeclaredExceptionsEnabled
+                && IsInsideLinqLambda(node, semanticModel, out _))
             {
+                // Implicitly declared exceptions in LINQ expressions
+
                 var properties = ImmutableDictionary.Create<string, string?>()
                     .Add("ExceptionType", exceptionType.Name);
 
@@ -93,6 +94,7 @@ partial class CheckedExceptionsAnalyzer
             }
             else
             {
+                // Normal diagnostics
 
                 var properties = ImmutableDictionary.Create<string, string?>()
                     .Add("ExceptionType", exceptionType.Name);

@@ -12,6 +12,11 @@
       "default": false,
       "description": "Indicates whether LINQ support is disabled."
     },
+    "disableLinqImplicitlyDeclaredExceptions": {
+      "type": "boolean",
+      "default": false,
+      "description": "Indicates whether implicitly declared exceptions are disabled for lambdas in LINQ methods."
+    },
     "disableControlFlowAnalysis": {
       "type": "boolean",
       "default": false,
