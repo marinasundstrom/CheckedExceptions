@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+
+- PR [#277](https://github.com/marinasundstrom/CheckedExceptions/pull/277) Handle method groups in LINQ methods
+
 ## [2.1.0] - 2025-08-14
 
 ### Added
