@@ -235,6 +235,11 @@ partial class CheckedExceptionsAnalyzer
                 {
                     var exceptionTypes = GetExceptionTypes(methodSymbol);
 
+                    if (settings.IsLinqSupportEnabled)
+                    {
+                        CollectLinqExceptions(invocation, exceptionTypes, compilation, semanticModel, settings);
+                    }
+
                     if (settings.IsXmlInteropEnabled)
                     {
                         // Get exceptions from XML documentation

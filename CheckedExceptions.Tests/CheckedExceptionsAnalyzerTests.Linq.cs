@@ -161,4 +161,58 @@ public partial class LinqTest
             o.ExpectedDiagnostics.AddRange(expected, expected2, expected3);
         }, executable: true);
     }
+
+    [Fact]
+    public async Task QueryAsArgument()
+    {
+        var test = /* lang=c#-test */ """
+            #nullable enable
+            using System;
+            using System.Collections.Generic;
+            using System.Linq;
+
+            IEnumerable<string> items = [];
+            void Consume(IEnumerable<string> q) { }
+            Consume(items.Where(x => int.Parse(x) > 0));
+            """;
+
+        var expected = Verifier.UnhandledException("FormatException")
+            .WithSpan(9, 15, 9, 49);
+
+        var expected2 = Verifier.UnhandledException("OverflowException")
+            .WithSpan(9, 15, 9, 49);
+
+        await Verifier.VerifyAnalyzerAsync(test, setup: o =>
+        {
+            o.ExpectedDiagnostics.AddRange(expected, expected2);
+        }, executable: true);
+    }
+
+    [Fact]
+    public async Task ReturnQuery()
+    {
+        var test = /* lang=c#-test */ """
+            #nullable enable
+            using System;
+            using System.Collections.Generic;
+            using System.Linq;
+
+            IEnumerable<string> items = [];
+            IEnumerable<string> Get()
+            {
+                return items.Where(x => int.Parse(x) > 0);
+            }
+            """;
+
+        var expected = Verifier.UnhandledException("FormatException")
+            .WithSpan(10, 14, 10, 48);
+
+        var expected2 = Verifier.UnhandledException("OverflowException")
+            .WithSpan(10, 14, 10, 48);
+
+        await Verifier.VerifyAnalyzerAsync(test, setup: o =>
+        {
+            o.ExpectedDiagnostics.AddRange(expected, expected2);
+        }, executable: true);
+    }
 }
