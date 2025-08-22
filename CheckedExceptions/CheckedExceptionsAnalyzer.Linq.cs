@@ -18,25 +18,27 @@ partial class CheckedExceptionsAnalyzer
         AnalyzerSettings settings,
         CancellationToken ct = default)
     {
-        // Skip if part of return statement
-        var returnStatement = invocationSyntax.FirstAncestorOrSelf<ReturnStatementSyntax>();
-        if (returnStatement is not null)
+        if (semanticModel.GetOperation(invocationSyntax, ct) is not IInvocationOperation termOp)
             return;
-
-        // Skip if part of argument
-        var argument = invocationSyntax.FirstAncestorOrSelf<ArgumentSyntax>();
-        if (argument is not null)
+        if (!IsLinqExtension(termOp.TargetMethod))
             return;
-
-        if (semanticModel.GetOperation(invocationSyntax, ct) is not IInvocationOperation termOp) return;
-        if (!IsLinqExtension(termOp.TargetMethod)) return;
 
         var name = termOp.TargetMethod.Name;
         var isTerminal = LinqKnowledge.TerminalOps.Contains(name);
 
-        // If this is neither a terminal operator nor crosses a boundary (argument/return), ignore
-        if (!isTerminal && !IsBoundary(termOp))
-            return;
+        if (!isTerminal)
+        {
+            // Deferred invocation inside an argument/return is handled at the boundary.
+            if (invocationSyntax.FirstAncestorOrSelf<ReturnStatementSyntax>() is not null)
+                return;
+
+            if (invocationSyntax.FirstAncestorOrSelf<ArgumentSyntax>() is not null)
+                return;
+
+            // If this is neither a terminal operator nor crosses a boundary, ignore
+            if (!IsBoundary(termOp))
+                return;
+        }
 
         if (isTerminal)
         {
@@ -266,6 +268,32 @@ partial class CheckedExceptionsAnalyzer
         AnalyzerSettings settings,
         CancellationToken ct)
     {
+        // If the collection is materialized (e.g., via ToArray()), the terminal invocation
+        // itself will surface any exceptions. In that case, diagnostics are handled by
+        // the invocation analysis, and we skip boundary reporting.
+        // Peel conversions/parentheses to check for terminal LINQ materializers
+        var inner = collection;
+        while (true)
+        {
+            switch (inner)
+            {
+                case IConversionOperation conv:
+                    inner = conv.Operand; continue;
+                case IParenthesizedOperation paren:
+                    inner = paren.Operand; continue;
+                default:
+                    break;
+            }
+            break;
+        }
+
+        if (inner is IInvocationOperation inv &&
+            IsLinqExtension(inv.TargetMethod) &&
+            LinqKnowledge.TerminalOps.Contains(inv.TargetMethod.Name))
+        {
+            return;
+        }
+
         // Walk upstream through the LINQ chain, harvesting [Throws] on deferred operators.
         CollectDeferredChainExceptions_ForEnumeration(collection, exceptionTypes, semanticModel.Compilation, semanticModel, settings, ct);
     }

@@ -138,5 +138,6 @@ public class LinqTest
         IEnumerable<string> items = [];
         var query = items.Where(x => int.Parse(x) > 0);
         foreach (var i in query.ToArray()) { }
+        return new int[0];
     }
 }

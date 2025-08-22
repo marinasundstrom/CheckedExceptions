@@ -258,9 +258,17 @@ public partial class LinqTest
         var expected2 = Verifier.UnhandledException("OverflowException")
             .WithSpan(9, 15, 9, 24);
 
+        var expected3 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdImplicitlyDeclaredException)
+            .WithArguments("FormatException")
+            .WithSpan(8, 34, 8, 42);
+
+        var expected4 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdImplicitlyDeclaredException)
+            .WithArguments("OverflowException")
+            .WithSpan(8, 34, 8, 42);
+
         await Verifier.VerifyAnalyzerAsync(test, setup: o =>
         {
-            o.ExpectedDiagnostics.AddRange(expected, expected2);
+            o.ExpectedDiagnostics.AddRange(expected, expected2, expected3, expected4);
         }, executable: true);
     }
 
@@ -284,9 +292,17 @@ public partial class LinqTest
         var expected2 = Verifier.UnhandledException("OverflowException")
             .WithSpan(8, 24, 8, 33);
 
+        var expected3 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdImplicitlyDeclaredException)
+            .WithArguments("FormatException")
+            .WithSpan(7, 34, 7, 42);
+
+        var expected4 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdImplicitlyDeclaredException)
+            .WithArguments("OverflowException")
+            .WithSpan(7, 34, 7, 42);
+
         await Verifier.VerifyAnalyzerAsync(test, setup: o =>
         {
-            //o.ExpectedDiagnostics.AddRange(expected, expected2);
+            o.ExpectedDiagnostics.AddRange(expected, expected2, expected3, expected4);
         }, executable: true);
     }
 
