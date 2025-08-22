@@ -237,7 +237,7 @@ partial class CheckedExceptionsAnalyzer
 
                     if (settings.IsLinqSupportEnabled)
                     {
-                        CollectLinqExceptions(invocation, exceptionTypes, compilation, semanticModel, settings);
+                        CollectLinqExceptions(invocation, [.. exceptionTypes], compilation, semanticModel, settings);
                     }
 
                     if (settings.IsXmlInteropEnabled)
