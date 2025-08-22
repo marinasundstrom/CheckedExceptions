@@ -196,7 +196,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     private static readonly DiagnosticDescriptor RuleDeferredMustBeHandled = new(
         id: DiagnosticIdDeferredMustBeHandled,
         title: "Deferred exceptions must be handled before crossing the boundary",
-        messageFormat: "This {0} may throw ({1}) when enumerated; handle or materialize it inside this member",
+        messageFormat: "This '{0}' may throw ({1}) when enumerated; handle or materialize it inside this member",
         category: "Control flow",
         defaultSeverity: DiagnosticSeverity.Warning,
         isEnabledByDefault: true,
