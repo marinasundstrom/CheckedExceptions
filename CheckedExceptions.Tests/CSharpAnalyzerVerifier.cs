@@ -20,6 +20,10 @@ public static class CSharpAnalyzerVerifier<TAnalyzer, TVerifier>
         => AnalyzerVerifier<TAnalyzer, AnalyzerTest, TVerifier>.Diagnostic("THROW001")
         .WithArguments(exceptionType);
 
+    public static DiagnosticResult UnhandledExceptionBoundary(string collectionType, string exceptionType)
+        => AnalyzerVerifier<TAnalyzer, AnalyzerTest, TVerifier>.Diagnostic("THROW017")
+        .WithArguments(collectionType, exceptionType);
+
     public static DiagnosticResult Informational(string exceptionType)
         => AnalyzerVerifier<TAnalyzer, AnalyzerTest, TVerifier>.Diagnostic("THROW002")
         .WithArguments(exceptionType);
@@ -62,8 +66,8 @@ public static class CSharpAnalyzerVerifier<TAnalyzer, TVerifier>
                 test.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdRedundantTypedCatchClause);
                 test.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration);
                 //test.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdXmlDocButNoThrows);
-                test.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdRuleUnreachableCode);
-                test.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdRuleUnreachableCodeHidden);
+                test.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdUnreachableCode);
+                test.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdUnreachableCodeHidden);
 
                 test.DisabledDiagnostics.AddRange(allDiagnostics.Except(expected.Select(x => x.Id)));
             }
@@ -112,8 +116,8 @@ public static class CSharpAnalyzerVerifier<TAnalyzer, TVerifier>
 
         test.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdRedundantTypedCatchClause);
         test.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration);
-        test.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdRuleUnreachableCode);
-        test.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdRuleUnreachableCodeHidden);
+        test.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdUnreachableCode);
+        test.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdUnreachableCodeHidden);
         test.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdRedundantCatchClause);
 
         if (executable)

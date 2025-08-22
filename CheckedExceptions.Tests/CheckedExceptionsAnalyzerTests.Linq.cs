@@ -182,10 +182,10 @@ public partial class LinqTest
             Consume(items.Where(x => int.Parse(x) > 0));
             """;
 
-        var expected = Verifier.UnhandledException("FormatException")
+        var expected = Verifier.UnhandledExceptionBoundary("IEnumerable<string>", "FormatException")
             .WithSpan(8, 15, 8, 43);
 
-        var expected2 = Verifier.UnhandledException("OverflowException")
+        var expected2 = Verifier.UnhandledExceptionBoundary("IEnumerable<string>", "OverflowException")
             .WithSpan(8, 15, 8, 43);
 
         var expected3 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdImplicitlyDeclaredException)
@@ -225,10 +225,10 @@ public partial class LinqTest
             .WithArguments("OverflowException")
             .WithSpan(8, 34, 8, 42);
 
-        var expected3 = Verifier.UnhandledException("FormatException")
+        var expected3 = Verifier.UnhandledExceptionBoundary("IEnumerable<string>", "FormatException")
             .WithSpan(9, 9, 9, 14);
 
-        var expected4 = Verifier.UnhandledException("OverflowException")
+        var expected4 = Verifier.UnhandledExceptionBoundary("IEnumerable<string>", "OverflowException")
             .WithSpan(9, 9, 9, 14);
 
         await Verifier.VerifyAnalyzerAsync(test, setup: o =>
@@ -253,10 +253,10 @@ public partial class LinqTest
             }
             """;
 
-        var expected = Verifier.UnhandledException("FormatException")
+        var expected = Verifier.UnhandledExceptionBoundary("IEnumerable<string>", "FormatException")
             .WithSpan(9, 18, 9, 46);
 
-        var expected2 = Verifier.UnhandledException("OverflowException")
+        var expected2 = Verifier.UnhandledExceptionBoundary("IEnumerable<string>", "OverflowException")
             .WithSpan(9, 18, 9, 46);
 
         var expected3 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdImplicitlyDeclaredException)
@@ -298,10 +298,10 @@ public partial class LinqTest
             .WithArguments("OverflowException")
             .WithSpan(9, 38, 9, 46);
 
-        var expected3 = Verifier.UnhandledException("FormatException")
+        var expected3 = Verifier.UnhandledExceptionBoundary("IEnumerable<string>", "FormatException")
             .WithSpan(10, 12, 10, 17);
 
-        var expected4 = Verifier.UnhandledException("OverflowException")
+        var expected4 = Verifier.UnhandledExceptionBoundary("IEnumerable<string>", "OverflowException")
             .WithSpan(10, 12, 10, 17);
 
         await Verifier.VerifyAnalyzerAsync(test, setup: o =>

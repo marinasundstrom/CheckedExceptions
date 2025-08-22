@@ -22,6 +22,12 @@ public partial class AnalyzerSettings
     [JsonIgnore]
     internal bool IsLinqImplicitlyDeclaredExceptionsEnabled => !DisableLinqImplicitlyDeclaredExceptions;
 
+    [JsonPropertyName("disableLinqContractBoundaryWarnings")]
+    public bool DisableLinqContractBoundaryWarnings { get; set; } = false;
+
+    [JsonIgnore]
+    internal bool IsLinqContractBoundaryWarningsEnabled => !DisableLinqContractBoundaryWarnings;
+
     [JsonPropertyName("disableControlFlowAnalysis")]
     public bool DisableControlFlowAnalysis { get; set; } = false;
 

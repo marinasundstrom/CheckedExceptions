@@ -1,6 +1,8 @@
 using System.Data.SqlTypes;
 using System.Numerics;
 
+using Test;
+
 public class LinqTest
 {
     public void Test1()
@@ -84,5 +86,40 @@ public class LinqTest
         var x2 = q0.FirstOrDefault();
 
         foreach (var n in q0) { }
+    }
+
+    private static int Cast3()
+    {
+        IEnumerable<object> xs2 = [];
+        var q0 = xs2
+            .Where((x) => x is not null)
+            .Cast<int>();
+
+        return q0.FirstOrDefault();
+    }
+
+    private static IEnumerable<int> Cast4()
+    {
+        IEnumerable<object> xs2 = [];
+        var q0 = xs2
+            .Where((x) => x is not null)
+            .Cast<int>();
+
+        return q0;
+    }
+
+    private static IEnumerable<int> Cast5()
+    {
+        IEnumerable<object> xs2 = [];
+        var q0 = xs2
+            .Where((x) => x is not null)
+            .Cast<int>();
+
+        return Foo(q0);
+    }
+
+    private static IEnumerable<int> Foo(IEnumerable<int> q0)
+    {
+        throw new NotImplementedException();
     }
 }
