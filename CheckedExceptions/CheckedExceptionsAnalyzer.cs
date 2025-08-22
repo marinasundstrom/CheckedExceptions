@@ -286,6 +286,16 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         if (argumentSyntax.Expression is null)
             return;
 
+        // If the argument materializes the sequence (e.g., ToArray()),
+        // the invocation analysis will handle diagnostics. Skip boundary reporting.
+        if (argumentSyntax.Expression is InvocationExpressionSyntax invSyntax &&
+            semanticModel.GetOperation(invSyntax) is IInvocationOperation invOp &&
+            IsLinqExtension(invOp.TargetMethod) &&
+            LinqKnowledge.TerminalOps.Contains(invOp.TargetMethod.Name))
+        {
+            return;
+        }
+
         // Collect exceptions that will surface when enumeration happens
         var exceptionTypes = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
 
