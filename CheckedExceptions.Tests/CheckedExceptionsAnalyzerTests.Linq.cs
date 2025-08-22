@@ -217,19 +217,19 @@ public partial class LinqTest
             Consume(query);
             """;
 
-        var expected = Verifier.UnhandledException("FormatException")
-            .WithSpan(9, 15, 8, 43);
-
-        var expected2 = Verifier.UnhandledException("OverflowException")
-            .WithSpan(9, 15, 8, 43);
-
-        var expected3 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdImplicitlyDeclaredException)
+        var expected = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdImplicitlyDeclaredException)
             .WithArguments("FormatException")
-            .WithSpan(8, 30, 8, 38);
+            .WithSpan(8, 34, 8, 42);
 
-        var expected4 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdImplicitlyDeclaredException)
+        var expected2 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdImplicitlyDeclaredException)
             .WithArguments("OverflowException")
-            .WithSpan(8, 30, 8, 38);
+            .WithSpan(8, 34, 8, 42);
+
+        var expected3 = Verifier.UnhandledException("FormatException")
+            .WithSpan(9, 9, 9, 14);
+
+        var expected4 = Verifier.UnhandledException("OverflowException")
+            .WithSpan(9, 9, 9, 14);
 
         await Verifier.VerifyAnalyzerAsync(test, setup: o =>
         {
@@ -290,19 +290,19 @@ public partial class LinqTest
             }
             """;
 
-        var expected = Verifier.UnhandledException("FormatException")
-            .WithSpan(10, 18, 9, 46);
-
-        var expected2 = Verifier.UnhandledException("OverflowException")
-            .WithSpan(10, 18, 9, 46);
-
-        var expected3 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdImplicitlyDeclaredException)
+        var expected = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdImplicitlyDeclaredException)
             .WithArguments("FormatException")
-            .WithSpan(9, 33, 9, 41);
+            .WithSpan(9, 38, 9, 46);
 
-        var expected4 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdImplicitlyDeclaredException)
+        var expected2 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdImplicitlyDeclaredException)
             .WithArguments("OverflowException")
-            .WithSpan(9, 33, 9, 41);
+            .WithSpan(9, 38, 9, 46);
+
+        var expected3 = Verifier.UnhandledException("FormatException")
+            .WithSpan(10, 12, 10, 17);
+
+        var expected4 = Verifier.UnhandledException("OverflowException")
+            .WithSpan(10, 12, 10, 17);
 
         await Verifier.VerifyAnalyzerAsync(test, setup: o =>
         {

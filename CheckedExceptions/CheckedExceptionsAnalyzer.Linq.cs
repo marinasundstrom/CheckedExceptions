@@ -18,6 +18,16 @@ partial class CheckedExceptionsAnalyzer
         AnalyzerSettings settings,
         CancellationToken ct = default)
     {
+        // Skip if part of return statement
+        var returnStatement = invocationSyntax.FirstAncestorOrSelf<ReturnStatementSyntax>();
+        if (returnStatement is not null)
+            return;
+
+        // Skip if part of argument
+        var argument = invocationSyntax.FirstAncestorOrSelf<ArgumentSyntax>();
+        if (argument is not null)
+            return;
+
         if (semanticModel.GetOperation(invocationSyntax, ct) is not IInvocationOperation termOp) return;
         if (!IsLinqExtension(termOp.TargetMethod)) return;
 

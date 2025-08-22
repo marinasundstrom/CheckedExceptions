@@ -1,5 +1,6 @@
 ﻿namespace Sundstrom.CheckedExceptions;
 
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Linq;
@@ -243,6 +244,80 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         context.RegisterSyntaxNodeAction(AnalyzePropertyDeclaration, SyntaxKind.PropertyDeclaration);
         context.RegisterSyntaxNodeAction(AnalyzeCastExpression, SyntaxKind.CastExpression);
         context.RegisterSyntaxNodeAction(AnalyzeForeachStatement, SyntaxKind.ForEachStatement);
+        context.RegisterSyntaxNodeAction(AnalyzeReturnStatement, SyntaxKind.ReturnStatement);
+        context.RegisterSyntaxNodeAction(AnalyzeArgument, SyntaxKind.Argument);
+    }
+
+    private void AnalyzeArgument(SyntaxNodeAnalysisContext context)
+    {
+        var argumentSyntax = (ArgumentSyntax)context.Node;
+
+        var settings = GetAnalyzerSettings(context.Options);
+
+        if (!settings.IsLinqSupportEnabled)
+            return;
+
+        var semanticModel = context.SemanticModel;
+
+        var op = semanticModel.GetOperation(argumentSyntax);
+        if (op is not IArgumentOperation argument)
+            return;
+
+        if (argument.Value is null)
+            return;
+
+        if (argumentSyntax.Expression is null)
+            return;
+
+        // Collect exceptions that will surface when enumeration happens
+        var exceptionTypes = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
+
+        CollectEnumerationExceptions(argument.Value, exceptionTypes, context.Compilation, semanticModel, settings, context.CancellationToken);
+
+        exceptionTypes = new HashSet<INamedTypeSymbol>(
+            ProcessNullable(context.Compilation, context.SemanticModel, argumentSyntax.Expression, null, exceptionTypes),
+            SymbolEqualityComparer.Default);
+
+        foreach (var t in exceptionTypes.Distinct(SymbolEqualityComparer.Default))
+        {
+            AnalyzeExceptionThrowingNode(context, argumentSyntax.Expression, (INamedTypeSymbol?)t, settings);
+        }
+    }
+
+    private void AnalyzeReturnStatement(SyntaxNodeAnalysisContext context)
+    {
+        var returnStatementSyntax = (ReturnStatementSyntax)context.Node;
+
+        var settings = GetAnalyzerSettings(context.Options);
+
+        if (!settings.IsLinqSupportEnabled)
+            return;
+
+        var semanticModel = context.SemanticModel;
+
+        var op = semanticModel.GetOperation(returnStatementSyntax);
+        if (op is not IReturnOperation returnOp)
+            return;
+
+        if (returnOp.ReturnedValue is null)
+            return;
+
+        if (returnStatementSyntax.Expression is null)
+            return;
+
+        // Collect exceptions that will surface when enumeration happens
+        var exceptionTypes = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
+
+        CollectEnumerationExceptions(returnOp.ReturnedValue, exceptionTypes, context.Compilation, semanticModel, settings, context.CancellationToken);
+
+        exceptionTypes = new HashSet<INamedTypeSymbol>(
+            ProcessNullable(context.Compilation, context.SemanticModel, returnStatementSyntax.Expression, null, exceptionTypes),
+            SymbolEqualityComparer.Default);
+
+        foreach (var t in exceptionTypes.Distinct(SymbolEqualityComparer.Default))
+        {
+            AnalyzeExceptionThrowingNode(context, returnStatementSyntax.Expression, (INamedTypeSymbol?)t, settings);
+        }
     }
 
     private void AnalyzeForeachStatement(SyntaxNodeAnalysisContext context)
