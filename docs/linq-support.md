@@ -17,12 +17,14 @@ IEnumerable<string> values = [ "10", "x", "20" ];
 
 var allEven = values
     .Where(v => v.Length > 0)
-    .All([Throws(typeof(FormatException), typeof(OverflowException))] (v) => int.Parse(v) % 2 is 0);
+    .All(v => int.Parse(v) % 2 is 0);
 
 // Reported on All(...):
 // THROW001: Unhandled exception type 'FormatException'
 // THROW001: Unhandled exception type 'OverflowException'
 ```
+
+> Exceptions are inferred and implicit on LINQ methods, so no declarations needed. this behavior can be disabled. 
 
 This differs from `First()`/`Single()` cases by not adding its own “empty/duplicate” errors—`All` only reflects exceptions from the predicate.
 
@@ -31,10 +33,10 @@ This differs from `First()`/`Single()` cases by not adding its own “empty/dupl
 A different shape: a **mid-stream predicate** on a deferred operator, evaluated during enumeration. Diagnostics are issued on the query expression being iterated.
 
 ```csharp
-IEnumerable<string> dates = new[] { "2001-01-01", "oops", "2005-12-31" };
+IEnumerable<string> dates = [ "2001-01-01", "oops", "2005-12-31" ];
 
 var recent = dates
-    .TakeWhile([Throws(typeof(FormatException))] (s) => DateTime.Parse(s).Year >= 2000);
+    .TakeWhile([Throws(s => DateTime.Parse(s).Year >= 2000);
 
 // Reported on "recent":
 // THROW001: Unhandled exception type 'FormatException'

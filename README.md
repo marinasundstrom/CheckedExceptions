@@ -151,7 +151,7 @@ Add `CheckedExceptions.settings.json`:
   // If true, analysis on LINQ constructs will be disabled (default: false).
   "disableLinqSupport": false,
 
-  // If true, exceptions in lambdas do not have to be declared (default: false).
+  // If true, exceptions in LINQ lambdas do not have to be declared (default: false).
   "disableLinqImplicitlyDeclaredExceptions": false,
 
   // If true, control flow analysis, with redundancy checks, is disabled (default: false).
@@ -160,11 +160,11 @@ Add `CheckedExceptions.settings.json`:
   // If true, basic redundancy checks are available when control flow analysis is disabled (default: false).
   "enableLegacyRedundancyChecks": false,
 
-  // If true, the analayzer will not warn about declaring base type Exception with [Throws] (default: false).
+  // If true, the analyzer will not warn about declaring base type Exception with [Throws] (default: false).
   "disableBaseExceptionDeclaredDiagnostic": false,
 
-  // If true, the analayzer will not warn about throwing base type Exception (default: false).
-  // Enable if you use another analyzer reporting a similar diagnostic.
+  // If true, the analyzer will not warn about throwing base type Exception (default: false).
+  // Set to true if you use another analyzer reporting a similar diagnostic.
   "disableBaseExceptionThrownDiagnostic": false
 }
 ```
@@ -307,12 +307,14 @@ This is due to a **technical limitation**: the XML documentation files for .NET 
 There is initial support for LINQ query operators.
 
 ```csharp
-List<string> values = new() { "10", "20", "abc", "30" };
+List<string> values = [ "10", "20", "abc", "30" ];
 
 var tens = values
-    .Where([Throws(typeof(FormatException), typeof(OverflowException))] s => int.Parse(s) % 10 is 0)
+    .Where(s => int.Parse(s) % 10 is 0)
     .ToArray(); // THROW001: unhandled FormatException, OverflowException
 ```
+
+> Exceptions are inferred and implicit on LINQ methods, so no declarations needed. this behavior can be disabled. 
 
 Read about it [here](docs/linq-support.md).
 
