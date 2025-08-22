@@ -20,7 +20,7 @@ public static class CSharpAnalyzerVerifier<TAnalyzer, TVerifier>
         => AnalyzerVerifier<TAnalyzer, AnalyzerTest, TVerifier>.Diagnostic("THROW001")
         .WithArguments(exceptionType);
 
-    public static DiagnosticResult UnhandledExceptionBoundary(string collectionType, string exceptionType)
+    public static DiagnosticResult UnhandledExceptionEnumerableBoundary(string collectionType, string exceptionType)
         => AnalyzerVerifier<TAnalyzer, AnalyzerTest, TVerifier>.Diagnostic("THROW017")
         .WithArguments(collectionType, exceptionType);
 

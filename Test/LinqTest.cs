@@ -118,8 +118,25 @@ public class LinqTest
         return Foo(q0);
     }
 
+    private static IEnumerable<int> Cast6()
+    {
+        IEnumerable<object> xs2 = [];
+        var q0 = xs2
+            .Where((x) => x is not null)
+            .Cast<int>();
+
+        return Foo(q0.ToArray());
+    }
+
     private static IEnumerable<int> Foo(IEnumerable<int> q0)
     {
         throw new NotImplementedException();
+    }
+
+    private static IEnumerable<int> Cast7()
+    {
+        IEnumerable<string> items = [];
+        var query = items.Where(x => int.Parse(x) > 0);
+        foreach (var i in query.ToArray()) { }
     }
 }
