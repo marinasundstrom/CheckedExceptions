@@ -52,7 +52,7 @@ public class LinqTest
     private static void WithMethodGroup()
     {
         IEnumerable<int> xs = [];
-        Func<int, bool> pred = [Throws(typeof(FormatException))] (z) => int.Parse("10") == z;
+        Func<int, bool> pred = z => int.Parse("10") == z;
         var q2 = xs.Where(pred).Where(x => x is 0);
         foreach (var x in q2) { }
     }
@@ -60,7 +60,7 @@ public class LinqTest
     private static void NestedConversionExpression()
     {
         IEnumerable<object> xs2 = [];
-        var q0 = xs2.Where([Throws(typeof(InvalidCastException))] (x) => x == (string)x);
+        var q0 = xs2.Where(x => x == (string)x);
         foreach (var n in q0) { }
     }
 
@@ -68,7 +68,7 @@ public class LinqTest
     {
         IEnumerable<object> xs2 = [];
         var q0 = xs2
-            .Where([Throws(typeof(FormatException), typeof(OverflowException))] (x) => x is not null)
+            .Where(x => x is not null)
             .Cast<string>();
 
         var x2 = q0.FirstOrDefault();
@@ -80,7 +80,7 @@ public class LinqTest
     {
         IEnumerable<object> xs2 = [];
         var q0 = xs2
-            .Where([Throws(typeof(FormatException), typeof(OverflowException))] (x) => x is not null)
+            .Where(x => x is not null)
             .Cast<int>();
 
         var x2 = q0.FirstOrDefault();
@@ -133,11 +133,10 @@ public class LinqTest
         throw new NotImplementedException();
     }
 
-    private static IEnumerable<int> Cast7()
+    private static void Cast7()
     {
         IEnumerable<string> items = [];
         var query = items.Where(x => int.Parse(x) > 0);
         foreach (var i in query.ToArray()) { }
-        return new int[0];
     }
 }
