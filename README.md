@@ -154,6 +154,9 @@ Add `CheckedExceptions.settings.json`:
   // If true, exceptions in LINQ lambdas do not have to be declared (default: false).
   "disableLinqImplicitlyDeclaredExceptions": false,
 
+  // If true, no diagnostics will be issued on contract boundaries, such as arguments to methods and  return statements (default: false).
+  "disableLinqEnumerableBoundaryWarnings": false,
+
   // If true, control flow analysis, with redundancy checks, is disabled (default: false).
   "disableControlFlowAnalysis": false,
 

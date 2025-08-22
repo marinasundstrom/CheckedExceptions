@@ -18,28 +18,68 @@ partial class CheckedExceptionsAnalyzer
         AnalyzerSettings settings,
         CancellationToken ct = default)
     {
+        // Skip if part of return statement
+        var returnStatement = invocationSyntax.FirstAncestorOrSelf<ReturnStatementSyntax>();
+        if (returnStatement is not null)
+            return;
+
+        // Skip if part of argument
+        var argument = invocationSyntax.FirstAncestorOrSelf<ArgumentSyntax>();
+        if (argument is not null)
+            return;
+
         if (semanticModel.GetOperation(invocationSyntax, ct) is not IInvocationOperation termOp) return;
         if (!IsLinqExtension(termOp.TargetMethod)) return;
 
         var name = termOp.TargetMethod.Name;
-        if (!LinqKnowledge.TerminalOps.Contains(name)) return;
+        var isTerminal = LinqKnowledge.TerminalOps.Contains(name);
 
-        // NEW: harvest predicate/selector on this terminal op
-        CollectThrowsFromFunctionalArguments(termOp, exceptionTypes, compilation, semanticModel, settings, ct);
+        // If this is neither a terminal operator nor crosses a boundary (argument/return), ignore
+        if (!isTerminal && !IsBoundary(termOp))
+            return;
 
-        // Existing: add built-ins for the terminal
-        if (LinqKnowledge.BuiltIns.TryGetValue(name, out var builtInFactory))
-            foreach (var t in builtInFactory(semanticModel.Compilation, termOp.TargetMethod))
-                if (t is not null) exceptionTypes.Add(t);
+        if (isTerminal)
+        {
+            // harvest predicate/selector on this terminal op
+            CollectThrowsFromFunctionalArguments(termOp, exceptionTypes, compilation, semanticModel, settings, ct);
 
-        // Backtrack upstream
-        var source = GetLinqSourceOperation(termOp);
-        if (source is null) return;
+            // add built-ins for the terminal
+            if (LinqKnowledge.BuiltIns.TryGetValue(name, out var builtInFactory))
+                foreach (var t in builtInFactory(semanticModel.Compilation, termOp.TargetMethod))
+                    if (t is not null) exceptionTypes.Add(t);
 
-        CollectDeferredChainExceptions(source, exceptionTypes, semanticModel.Compilation, semanticModel, settings);
+            // Backtrack upstream
+            var source = GetLinqSourceOperation(termOp);
+            if (source is null) return;
+
+            CollectDeferredChainExceptions(source, exceptionTypes, semanticModel.Compilation, semanticModel, settings);
+        }
+        else
+        {
+            // Deferred query passed across a boundary – collect upstream exceptions
+            CollectDeferredChainExceptions_ForEnumeration(termOp, exceptionTypes, compilation, semanticModel, settings, ct);
+        }
     }
 
     // --- helpers ---
+
+    private static bool IsBoundary(IOperation op)
+    {
+        for (var parent = op.Parent; parent is not null; parent = parent.Parent)
+        {
+            switch (parent)
+            {
+                case IArgumentOperation:
+                case IReturnOperation:
+                    return true;
+                case IConversionOperation or IParenthesizedOperation:
+                    continue;
+                default:
+                    return false;
+            }
+        }
+        return false;
+    }
 
     private static bool IsLinqExtension(IMethodSymbol method)
     {
@@ -94,7 +134,7 @@ partial class CheckedExceptionsAnalyzer
                     if (LinqKnowledge.TerminalOps.Contains(name))
                     {
                         // NEW: harvest lambdas/method groups on terminal op too
-                        CollectThrowsFromFunctionalArguments(inv, exceptionTypes, compilation, semanticModel, default);
+                        CollectThrowsFromFunctionalArguments(inv, exceptionTypes, compilation, semanticModel, settings, default);
 
                         if (LinqKnowledge.BuiltIns.TryGetValue(name, out var builtInFactory))
                             foreach (var t in builtInFactory(compilation, inv.TargetMethod))
@@ -105,7 +145,7 @@ partial class CheckedExceptionsAnalyzer
                     }
 
                     // Unknown op: still inspect functional args
-                    CollectThrowsFromFunctionalArguments(inv, exceptionTypes, compilation, semanticModel, default);
+                    CollectThrowsFromFunctionalArguments(inv, exceptionTypes, compilation, semanticModel, settings, default);
                     current = GetLinqSourceOperation(inv);
                     continue;
 

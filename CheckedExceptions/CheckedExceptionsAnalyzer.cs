@@ -1,5 +1,6 @@
 ﻿namespace Sundstrom.CheckedExceptions;
 
+using System;
 using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using System.Linq;
@@ -33,10 +34,11 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
     public const string DiagnosticIdCatchHandlesNoRemainingExceptions = "THROW014";
     public const string DiagnosticIdRedundantCatchClause = "THROW015";
     public const string DiagnosticIdImplicitlyDeclaredException = "THROW016";
-    public const string DiagnosticIdRuleUnreachableCode = "THROW020";
-    public const string DiagnosticIdRuleUnreachableCodeHidden = "IDE001";
+    public const string DiagnosticIdDeferredMustBeHandled = "THROW017";
+    public const string DiagnosticIdUnreachableCode = "THROW020";
+    public const string DiagnosticIdUnreachableCodeHidden = "IDE001";
 
-    public static IEnumerable<string> AllDiagnosticsIds = [DiagnosticIdUnhandled, DiagnosticIdGeneralThrowDeclared, DiagnosticIdGeneralThrow, DiagnosticIdDuplicateDeclarations, DiagnosticIdRedundantCatchClause, DiagnosticIdRuleUnreachableCode, DiagnosticIdRuleUnreachableCodeHidden];
+    public static IEnumerable<string> AllDiagnosticsIds = [DiagnosticIdUnhandled, DiagnosticIdGeneralThrowDeclared, DiagnosticIdGeneralThrow, DiagnosticIdDuplicateDeclarations, DiagnosticIdRedundantCatchClause, DiagnosticIdDeferredMustBeHandled, DiagnosticIdUnreachableCode, DiagnosticIdUnreachableCodeHidden];
 
     private static readonly DiagnosticDescriptor RuleUnhandledException = new(
         DiagnosticIdUnhandled,
@@ -191,8 +193,21 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         isEnabledByDefault: true,
         description: "Reports that an exception is propagated without the need to be explicitly declared with [Throws].");
 
+    private static readonly DiagnosticDescriptor RuleDeferredMustBeHandled = new(
+        id: DiagnosticIdDeferredMustBeHandled,
+        title: "Deferred exceptions must be handled before crossing the boundary",
+        messageFormat: "This '{0}' may throw ({1}) when enumerated; handle or materialize it inside this member",
+        category: "Control flow",
+        defaultSeverity: DiagnosticSeverity.Warning,
+        isEnabledByDefault: true,
+        description:
+            "A value of type IEnumerable<T> or IAsyncEnumerable<T> whose pipeline can throw is leaving the member. " +
+            "Because execution is deferred, exceptions are not part of this member’s contract and must be handled or " +
+            "materialized before returning/passing the sequence."
+        );
+
     private static readonly DiagnosticDescriptor RuleUnreachableCode = new(
-        DiagnosticIdRuleUnreachableCode,
+        DiagnosticIdUnreachableCode,
         title: "Unreachable code",
         messageFormat: "Unreachable code detected",
         category: "Control flow",
@@ -202,7 +217,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         customTags: [WellKnownDiagnosticTags.Unnecessary]);
 
     private static readonly DiagnosticDescriptor RuleUnreachableCodeHidden = new(
-        DiagnosticIdRuleUnreachableCodeHidden,
+        DiagnosticIdUnreachableCodeHidden,
         title: "Unreachable code",
         messageFormat: "Unreachable code detected",
         category: "Control flow",
@@ -212,7 +227,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         customTags: [WellKnownDiagnosticTags.Unnecessary]);
 
     public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics =>
-        [RuleUnhandledException, RuleIgnoredException, RuleGeneralThrowDeclared, RuleGeneralThrow, RuleDuplicateDeclarations, RuleMissingThrowsOnBaseMember, RuleMissingThrowsFromBaseMember, RuleDuplicateThrowsByHierarchy, RuleRedundantTypedCatchClause, RuleRedundantCatchAllClause, RuleThrowsDeclarationNotValidOnFullProperty, RuleXmlDocButNoThrows, RuleRedundantExceptionDeclaration, RuleCatchHandlesNoRemainingExceptions, RuleRedundantCatchClause, RuleImplicitlyDeclaredException, RuleUnreachableCode, RuleUnreachableCodeHidden];
+        [RuleUnhandledException, RuleIgnoredException, RuleGeneralThrowDeclared, RuleGeneralThrow, RuleDuplicateDeclarations, RuleMissingThrowsOnBaseMember, RuleMissingThrowsFromBaseMember, RuleDuplicateThrowsByHierarchy, RuleRedundantTypedCatchClause, RuleRedundantCatchAllClause, RuleThrowsDeclarationNotValidOnFullProperty, RuleXmlDocButNoThrows, RuleRedundantExceptionDeclaration, RuleCatchHandlesNoRemainingExceptions, RuleRedundantCatchClause, RuleImplicitlyDeclaredException, RuleDeferredMustBeHandled, RuleUnreachableCode, RuleUnreachableCodeHidden];
 
     public override void Initialize(AnalysisContext context)
     {
@@ -243,6 +258,106 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         context.RegisterSyntaxNodeAction(AnalyzePropertyDeclaration, SyntaxKind.PropertyDeclaration);
         context.RegisterSyntaxNodeAction(AnalyzeCastExpression, SyntaxKind.CastExpression);
         context.RegisterSyntaxNodeAction(AnalyzeForeachStatement, SyntaxKind.ForEachStatement);
+        context.RegisterSyntaxNodeAction(AnalyzeReturnStatement, SyntaxKind.ReturnStatement);
+        context.RegisterSyntaxNodeAction(AnalyzeArgument, SyntaxKind.Argument);
+    }
+
+    private void AnalyzeArgument(SyntaxNodeAnalysisContext context)
+    {
+        var argumentSyntax = (ArgumentSyntax)context.Node;
+
+        var settings = GetAnalyzerSettings(context.Options);
+
+        if (!settings.IsLinqSupportEnabled)
+            return;
+
+        if (!settings.IsLinqEnumerableBoundaryWarningsEnabled)
+            return;
+
+        var semanticModel = context.SemanticModel;
+
+        var op = semanticModel.GetOperation(argumentSyntax);
+        if (op is not IArgumentOperation argument)
+            return;
+
+        if (argument.Value is null)
+            return;
+
+        if (argumentSyntax.Expression is null)
+            return;
+
+        // Collect exceptions that will surface when enumeration happens
+        var exceptionTypes = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
+
+        CollectEnumerationExceptions(argument.Value, exceptionTypes, context.Compilation, semanticModel, settings, context.CancellationToken);
+
+        exceptionTypes = new HashSet<INamedTypeSymbol>(
+            ProcessNullable(context.Compilation, context.SemanticModel, argumentSyntax.Expression, null, exceptionTypes),
+            SymbolEqualityComparer.Default);
+
+        foreach (var t in exceptionTypes.Distinct(SymbolEqualityComparer.Default))
+        {
+            ReportEnumerableBoundaryDiagnostic(context, argumentSyntax.Expression, (INamedTypeSymbol?)t, settings, semanticModel);
+        }
+    }
+
+    private void AnalyzeReturnStatement(SyntaxNodeAnalysisContext context)
+    {
+        var returnStatementSyntax = (ReturnStatementSyntax)context.Node;
+
+        var settings = GetAnalyzerSettings(context.Options);
+
+        if (!settings.IsLinqSupportEnabled)
+            return;
+
+        if (!settings.IsLinqEnumerableBoundaryWarningsEnabled)
+            return;
+
+        var semanticModel = context.SemanticModel;
+
+        var op = semanticModel.GetOperation(returnStatementSyntax);
+        if (op is not IReturnOperation returnOp)
+            return;
+
+        if (returnOp.ReturnedValue is null)
+            return;
+
+        if (returnStatementSyntax.Expression is null)
+            return;
+
+        // Collect exceptions that will surface when enumeration happens
+        var exceptionTypes = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
+
+        CollectEnumerationExceptions(returnOp.ReturnedValue, exceptionTypes, context.Compilation, semanticModel, settings, context.CancellationToken);
+
+        exceptionTypes = new HashSet<INamedTypeSymbol>(
+            ProcessNullable(context.Compilation, context.SemanticModel, returnStatementSyntax.Expression, null, exceptionTypes),
+            SymbolEqualityComparer.Default);
+
+        foreach (var t in exceptionTypes.Distinct(SymbolEqualityComparer.Default))
+        {
+            ReportEnumerableBoundaryDiagnostic(context, returnStatementSyntax.Expression, (INamedTypeSymbol)t!, settings, semanticModel);
+        }
+    }
+
+    private void ReportEnumerableBoundaryDiagnostic(SyntaxNodeAnalysisContext context, ExpressionSyntax expression, INamedTypeSymbol exceptionType, AnalyzerSettings settings, SemanticModel semanticModel)
+    {
+        var properties = ImmutableDictionary.Create<string, string?>()
+            .Add("ExceptionType", exceptionType.Name);
+
+        var op = semanticModel.GetOperation(expression);
+
+        if (op?.Type is null)
+            return;
+
+        var diagnostic = Diagnostic.Create(
+            RuleDeferredMustBeHandled,
+            GetSignificantLocation(expression),
+            properties,
+            op.Type.ToDisplayString(SymbolDisplayFormat.MinimallyQualifiedFormat),
+            exceptionType.Name);
+
+        context.ReportDiagnostic(diagnostic);
     }
 
     private void AnalyzeForeachStatement(SyntaxNodeAnalysisContext context)

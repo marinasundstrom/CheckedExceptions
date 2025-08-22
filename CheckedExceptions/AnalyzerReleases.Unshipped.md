@@ -18,5 +18,6 @@ THROW013 | Control flow | Warning | CheckedExceptionsAnalyzer
 THROW014 | Control flow | Warning | CheckedExceptionsAnalyzer
 THROW015 | Control flow | Warning | CheckedExceptionsAnalyzer
 THROW016 | Control flow | Info | CheckedExceptionsAnalyzer
+THROW017 | Control flow | Warning | CheckedExceptionsAnalyzer
 THROW020 | Control flow | Warning | CheckedExceptionsAnalyzer
 IDE001 | Control flow | Hidden | CheckedExceptionsAnalyzer

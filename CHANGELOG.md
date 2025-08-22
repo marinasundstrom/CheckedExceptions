@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+-  PR [#284](https://github.com/marinasundstrom/CheckedExceptions/pull/284) Report diagnostics on return expression and arguments
+
 ## [2.1.1] - 2025-08-14
 
 ### Fixed

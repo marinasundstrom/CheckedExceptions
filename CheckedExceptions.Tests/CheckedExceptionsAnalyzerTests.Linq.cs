@@ -142,7 +142,7 @@ public partial class LinqTest
             IEnumerable<object> items = [];
             var query = items
                 .Where([Throws(typeof(FormatException), typeof(OverflowException))] (x) => x is not null)
-                .Cast<string>();
+            .Cast<string>();
 
             foreach (var item in query) { }
             """;
@@ -156,9 +156,157 @@ public partial class LinqTest
         var expected3 = Verifier.UnhandledException("InvalidCastException")
             .WithSpan(11, 22, 11, 27);
 
+        var expected4 = Verifier.UnhandledException("FormatException")
+            .WithSpan(8, 6, 8, 94);
+
+        var expected5 = Verifier.UnhandledException("OverflowException")
+            .WithSpan(8, 6, 8, 94);
+
         await Verifier.VerifyAnalyzerAsync(test, setup: o =>
         {
-            o.ExpectedDiagnostics.AddRange(expected, expected2, expected3);
+            o.ExpectedDiagnostics.AddRange(expected, expected2, expected3, expected4, expected5);
+        }, executable: true);
+    }
+
+    [Fact]
+    public async Task QueryAsArgument()
+    {
+        var test = /* lang=c#-test */ """
+            #nullable enable
+            using System;
+            using System.Collections.Generic;
+            using System.Linq;
+
+            IEnumerable<string> items = [];
+            void Consume(IEnumerable<string> q) { }
+            Consume(items.Where(x => int.Parse(x) > 0));
+            """;
+
+        var expected = Verifier.UnhandledExceptionBoundary("IEnumerable<string>", "FormatException")
+            .WithSpan(8, 15, 8, 43);
+
+        var expected2 = Verifier.UnhandledExceptionBoundary("IEnumerable<string>", "OverflowException")
+            .WithSpan(8, 15, 8, 43);
+
+        var expected3 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdImplicitlyDeclaredException)
+            .WithArguments("FormatException")
+            .WithSpan(8, 30, 8, 38);
+
+        var expected4 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdImplicitlyDeclaredException)
+            .WithArguments("OverflowException")
+            .WithSpan(8, 30, 8, 38);
+
+        await Verifier.VerifyAnalyzerAsync(test, setup: o =>
+        {
+            o.ExpectedDiagnostics.AddRange(expected, expected2, expected3, expected4);
+        }, executable: true);
+    }
+
+    [Fact]
+    public async Task EnumerableAsArgument()
+    {
+        var test = /* lang=c#-test */ """
+            #nullable enable
+            using System;
+            using System.Collections.Generic;
+            using System.Linq;
+
+            IEnumerable<string> items = [];
+            void Consume(IEnumerable<string> q) { }
+            var query = items.Where(x => int.Parse(x) > 0);
+            Consume(query);
+            """;
+
+        var expected = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdImplicitlyDeclaredException)
+            .WithArguments("FormatException")
+            .WithSpan(8, 34, 8, 42);
+
+        var expected2 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdImplicitlyDeclaredException)
+            .WithArguments("OverflowException")
+            .WithSpan(8, 34, 8, 42);
+
+        var expected3 = Verifier.UnhandledExceptionBoundary("IEnumerable<string>", "FormatException")
+            .WithSpan(9, 9, 9, 14);
+
+        var expected4 = Verifier.UnhandledExceptionBoundary("IEnumerable<string>", "OverflowException")
+            .WithSpan(9, 9, 9, 14);
+
+        await Verifier.VerifyAnalyzerAsync(test, setup: o =>
+        {
+            o.ExpectedDiagnostics.AddRange(expected, expected2, expected3, expected4);
+        }, executable: true);
+    }
+
+    [Fact]
+    public async Task ReturnQuery()
+    {
+        var test = /* lang=c#-test */ """
+            #nullable enable
+            using System;
+            using System.Collections.Generic;
+            using System.Linq;
+
+            IEnumerable<string> items = [];
+            IEnumerable<string> Get()
+            {
+                return items.Where(x => int.Parse(x) > 0);
+            }
+            """;
+
+        var expected = Verifier.UnhandledExceptionBoundary("IEnumerable<string>", "FormatException")
+            .WithSpan(9, 18, 9, 46);
+
+        var expected2 = Verifier.UnhandledExceptionBoundary("IEnumerable<string>", "OverflowException")
+            .WithSpan(9, 18, 9, 46);
+
+        var expected3 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdImplicitlyDeclaredException)
+            .WithArguments("FormatException")
+            .WithSpan(9, 33, 9, 41);
+
+        var expected4 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdImplicitlyDeclaredException)
+            .WithArguments("OverflowException")
+            .WithSpan(9, 33, 9, 41);
+
+        await Verifier.VerifyAnalyzerAsync(test, setup: o =>
+        {
+            o.ExpectedDiagnostics.AddRange(expected, expected2, expected3, expected4);
+        }, executable: true);
+    }
+
+    [Fact]
+    public async Task ReturnEnumerable()
+    {
+        var test = /* lang=c#-test */ """
+            #nullable enable
+            using System;
+            using System.Collections.Generic;
+            using System.Linq;
+
+            IEnumerable<string> items = [];
+            IEnumerable<string> Get()
+            {
+                var query = items.Where(x => int.Parse(x) > 0);
+                return query;
+            }
+            """;
+
+        var expected = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdImplicitlyDeclaredException)
+            .WithArguments("FormatException")
+            .WithSpan(9, 38, 9, 46);
+
+        var expected2 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdImplicitlyDeclaredException)
+            .WithArguments("OverflowException")
+            .WithSpan(9, 38, 9, 46);
+
+        var expected3 = Verifier.UnhandledExceptionBoundary("IEnumerable<string>", "FormatException")
+            .WithSpan(10, 12, 10, 17);
+
+        var expected4 = Verifier.UnhandledExceptionBoundary("IEnumerable<string>", "OverflowException")
+            .WithSpan(10, 12, 10, 17);
+
+        await Verifier.VerifyAnalyzerAsync(test, setup: o =>
+        {
+            o.ExpectedDiagnostics.AddRange(expected, expected2, expected3, expected4);
         }, executable: true);
     }
 }
