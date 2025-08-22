@@ -271,7 +271,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         if (!settings.IsLinqSupportEnabled)
             return;
 
-        if (!settings.IsLinqContractBoundaryWarningsEnabled)
+        if (!settings.IsLinqEnumerableBoundaryWarningsEnabled)
             return;
 
         var semanticModel = context.SemanticModel;
@@ -297,7 +297,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
         foreach (var t in exceptionTypes.Distinct(SymbolEqualityComparer.Default))
         {
-            ReportContractBoundaryDiagnostic(context, argumentSyntax.Expression, (INamedTypeSymbol?)t, settings, semanticModel);
+            ReportEnumerableBoundaryDiagnostic(context, argumentSyntax.Expression, (INamedTypeSymbol?)t, settings, semanticModel);
         }
     }
 
@@ -310,7 +310,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         if (!settings.IsLinqSupportEnabled)
             return;
 
-        if (!settings.IsLinqContractBoundaryWarningsEnabled)
+        if (!settings.IsLinqEnumerableBoundaryWarningsEnabled)
             return;
 
         var semanticModel = context.SemanticModel;
@@ -336,11 +336,11 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
         foreach (var t in exceptionTypes.Distinct(SymbolEqualityComparer.Default))
         {
-            ReportContractBoundaryDiagnostic(context, returnStatementSyntax.Expression, (INamedTypeSymbol)t!, settings, semanticModel);
+            ReportEnumerableBoundaryDiagnostic(context, returnStatementSyntax.Expression, (INamedTypeSymbol)t!, settings, semanticModel);
         }
     }
 
-    private void ReportContractBoundaryDiagnostic(SyntaxNodeAnalysisContext context, ExpressionSyntax expression, INamedTypeSymbol exceptionType, AnalyzerSettings settings, SemanticModel semanticModel)
+    private void ReportEnumerableBoundaryDiagnostic(SyntaxNodeAnalysisContext context, ExpressionSyntax expression, INamedTypeSymbol exceptionType, AnalyzerSettings settings, SemanticModel semanticModel)
     {
         var properties = ImmutableDictionary.Create<string, string?>()
             .Add("ExceptionType", exceptionType.Name);
