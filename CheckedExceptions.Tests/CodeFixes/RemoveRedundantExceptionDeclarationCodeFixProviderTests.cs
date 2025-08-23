@@ -3,6 +3,7 @@ namespace Sundstrom.CheckedExceptions.Tests.CodeFixes;
 using System.Threading.Tasks;
 
 using Microsoft.CodeAnalysis.Testing;
+
 using Xunit;
 using Xunit.Abstractions;
 
@@ -40,9 +41,9 @@ public class C
 
         var expected = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration)
             .WithArguments("InvalidOperationException")
-            .WithSpan(6, 20, 6, 44);
+            .WithSpan(6, 20, 6, 45);
 
-        await Verifier.VerifyCodeFixAsync(testCode, expected, fixedCode, setup: option =>
+        await Verifier.VerifyCodeFixAsync(testCode, [expected], fixedCode, setup: option =>
         {
             option.DisabledDiagnostics.Remove(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration);
         });
@@ -81,9 +82,9 @@ public class C
 
         var expected = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration)
             .WithArguments("InvalidOperationException")
-            .WithSpan(6, 20, 6, 44);
+            .WithSpan(6, 20, 6, 45);
 
-        await Verifier.VerifyCodeFixAsync(testCode, expected, fixedCode, setup: option =>
+        await Verifier.VerifyCodeFixAsync(testCode, [expected], fixedCode, setup: option =>
         {
             option.DisabledDiagnostics.Remove(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration);
         });
