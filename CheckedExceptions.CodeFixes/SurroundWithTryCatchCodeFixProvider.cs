@@ -23,7 +23,7 @@ public class SurroundWithTryCatchCodeFixProvider : CodeFixProvider
          CheckedExceptionsAnalyzer.DiagnosticIdImplicitlyDeclaredException];
 
     public sealed override FixAllProvider GetFixAllProvider() =>
-        null!;
+        WellKnownFixAllProviders.BatchFixer;
 
     public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
     {

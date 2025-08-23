@@ -33,83 +33,69 @@ public class RemoveRedundantCatchClauseCodeFixProvider : CodeFixProvider
         var node = root.FindNode(diagnostic.Location.SourceSpan);
 
         var catchClause = node.AncestorsAndSelf().OfType<CatchClauseSyntax>().First();
-
         var tryStatement = catchClause.Parent as TryStatementSyntax;
 
         string title = TitleRemoveRedundantCatchClause;
 
-        if (tryStatement is not null)
+        if (diagnostics.Length is 1 && tryStatement?.Catches.Count is 1)
         {
-            if (tryStatement.Catches.Count is 1)
-            {
-                title = title.Replace(title, "Remove redundant try/catch");
-            }
+            title = "Remove redundant try/catch";
         }
 
         context.RegisterCodeFix(
             CodeAction.Create(
                 title: title,
-                createChangedDocument: c => RemoveRedundantCatchClauseAsync(context.Document, catchClause, diagnostics, c),
+                createChangedDocument: c => RemoveRedundantCatchClausesAsync(context.Document, diagnostics, c),
                 equivalenceKey: TitleRemoveRedundantCatchClause),
             diagnostics);
     }
 
-    private async Task<Document> RemoveRedundantCatchClauseAsync(Document document, CatchClauseSyntax catchClause, IEnumerable<Diagnostic> diagnostics, CancellationToken cancellationToken)
+    private async Task<Document> RemoveRedundantCatchClausesAsync(Document document, IEnumerable<Diagnostic> diagnostics, CancellationToken cancellationToken)
     {
-        var exceptionTypeNames = diagnostics
-            .Select(d => d.Properties.TryGetValue("ExceptionType", out var type) ? type! : string.Empty);
-
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-        if (root is null) return document;
-
-        var tryStatement = catchClause.Parent as TryStatementSyntax;
-
-        if (tryStatement is not null)
+        if (root is null)
         {
-            if (tryStatement.Catches.Count is 1)
+            return document;
+        }
+
+        var orderedDiagnostics = diagnostics
+            .OrderByDescending(d => d.Location.SourceSpan.Start);
+
+        var newRoot = root;
+
+        foreach (var diagnostic in orderedDiagnostics)
+        {
+            var clause = newRoot.FindNode(diagnostic.Location.SourceSpan).AncestorsAndSelf().OfType<CatchClauseSyntax>().First();
+            var tryStatement = clause.Parent as TryStatementSyntax;
+
+            if (tryStatement is not null && tryStatement.Catches.Count == 1)
             {
-                // Get the current node in the tree
-                var nodeInRoot = root.FindNode(tryStatement.Span);
-
-                // What we want to insert instead
+                var nodeInRoot = newRoot.FindNode(tryStatement.Span);
                 var liftedStatements = tryStatement.Block.Statements;
-
-                SyntaxNode newRoot;
 
                 if (nodeInRoot is GlobalStatementSyntax global)
                 {
-                    // Wrap each lifted statement in its own GlobalStatementSyntax
-                    var newGlobals = liftedStatements.Select(
-                        s => GlobalStatement(s)
-                            .WithLeadingTrivia(global.GetLeadingTrivia())
-                            .WithTrailingTrivia(global.GetTrailingTrivia()));
+                    var newGlobals = liftedStatements.Select(s => GlobalStatement(s)
+                        .WithLeadingTrivia(global.GetLeadingTrivia())
+                        .WithTrailingTrivia(global.GetTrailingTrivia()));
 
-                    newRoot = root.ReplaceNode(global, newGlobals);
+                    newRoot = newRoot.ReplaceNode(global, newGlobals);
                 }
                 else if (nodeInRoot is TryStatementSyntax tryNode)
                 {
-                    // Normal case inside a block
-
                     var annotatedStatements = liftedStatements
                         .Select(s => s.WithAdditionalAnnotations(Formatter.Annotation));
 
-                    newRoot = root.ReplaceNode(tryNode, annotatedStatements);
+                    newRoot = newRoot.ReplaceNode(tryNode, annotatedStatements);
                 }
-                else
-                {
-                    // Fallback (shouldn’t really happen)
-                    return document;
-                }
-
-                return document.WithSyntaxRoot(newRoot);
             }
             else
             {
-                var newRoot = root.RemoveNode(catchClause, SyntaxRemoveOptions.AddElasticMarker);
-                return document.WithSyntaxRoot(newRoot);
+                var currentClause = newRoot.FindNode(clause.Span).AncestorsAndSelf().OfType<CatchClauseSyntax>().First();
+                newRoot = newRoot.RemoveNode(currentClause, SyntaxRemoveOptions.AddElasticMarker);
             }
         }
 
-        return document;
+        return document.WithSyntaxRoot(newRoot);
     }
 }
