@@ -10,7 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- PR [#PR_NUMBER](https://github.com/marinasundstrom/CheckedExceptions/pull/PR_NUMBER) Code fix to remove redundant exception declarations
+- PR [#295](https://github.com/marinasundstrom/CheckedExceptions/pull/295) Code fix to remove redundant exception declarations
 
 ## [2.2.0] - 2025-08-23
 
