@@ -503,7 +503,7 @@ This option disables analysis of LINQ operators defined on `Queryable`. Expressi
 
 #### Disable implicitly declared exceptions in lambdas
 
-This option control whether to disable implicitly declared exceptions in lambdas passed into LINQ operator methods.
+This option controls whether to disable implicitly declared exceptions in lambdas passed into LINQ operator methods. When enabled (the default), exceptions are inferred and any `[Throws]` declarations on these lambdas are reported as redundant.
 
 ```json
 {

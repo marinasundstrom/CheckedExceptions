@@ -31,9 +31,18 @@ public partial class LinqTest
         var expected3 = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(8, 15, 8, 22);
 
+        var expected4 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration)
+            .WithArguments("FormatException")
+            .WithSpan(7, 40, 7, 55);
+
+        var expected5 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration)
+            .WithArguments("OverflowException")
+            .WithSpan(7, 65, 7, 82);
+
         await Verifier.VerifyAnalyzerAsync(test, setup: o =>
         {
-            o.ExpectedDiagnostics.AddRange(expected, expected2, expected3);
+            o.ExpectedDiagnostics.AddRange(expected, expected2, expected3, expected4, expected5);
+            o.DisabledDiagnostics.Remove(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration);
         }, executable: true);
     }
 
@@ -61,10 +70,19 @@ public partial class LinqTest
         var expected3 = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(9, 21, 9, 33);
 
+        var expected4 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration)
+            .WithArguments("FormatException")
+            .WithSpan(8, 40, 8, 55);
+
+        var expected5 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration)
+            .WithArguments("OverflowException")
+            .WithSpan(8, 65, 8, 82);
+
         await Verifier.VerifyAnalyzerAsync(test, setup: o =>
         {
             o.TestState.AdditionalReferences.Add(MetadataReference.CreateFromFile(typeof(System.Linq.AsyncEnumerable).Assembly.Location));
-            o.ExpectedDiagnostics.AddRange(expected, expected2, expected3);
+            o.ExpectedDiagnostics.AddRange(expected, expected2, expected3, expected4, expected5);
+            o.DisabledDiagnostics.Remove(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration);
         }, executable: true);
     }
 
@@ -127,10 +145,18 @@ public partial class LinqTest
 
         var expected2 = Verifier.UnhandledException("OverflowException")
             .WithSpan(8, 22, 8, 27);
+        var expected3 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration)
+            .WithArguments("FormatException")
+            .WithSpan(7, 40, 7, 55);
+
+        var expected4 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration)
+            .WithArguments("OverflowException")
+            .WithSpan(7, 65, 7, 82);
 
         await Verifier.VerifyAnalyzerAsync(test, setup: o =>
         {
-            o.ExpectedDiagnostics.AddRange(expected, expected2);
+            o.ExpectedDiagnostics.AddRange(expected, expected2, expected3, expected4);
+            o.DisabledDiagnostics.Remove(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration);
         }, executable: true);
     }
 
@@ -154,7 +180,6 @@ public partial class LinqTest
 
         var expected2 = Verifier.UnhandledException("OverflowException")
             .WithSpan(9, 22, 9, 27);
-
         await Verifier.VerifyAnalyzerAsync(test, setup: o =>
         {
             o.ExpectedDiagnostics.AddRange(expected, expected2);
@@ -181,7 +206,6 @@ public partial class LinqTest
 
         var expected2 = Verifier.UnhandledException("OverflowException")
             .WithSpan(9, 22, 9, 27);
-
         await Verifier.VerifyAnalyzerAsync(test, setup: o =>
         {
             o.ExpectedDiagnostics.AddRange(expected, expected2);
@@ -213,10 +237,18 @@ public partial class LinqTest
 
         var expected3 = Verifier.UnhandledException("InvalidCastException")
             .WithSpan(11, 22, 11, 27);
+        var expected4 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration)
+            .WithArguments("FormatException")
+            .WithSpan(8, 27, 8, 42);
+
+        var expected5 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration)
+            .WithArguments("OverflowException")
+            .WithSpan(8, 52, 8, 69);
 
         await Verifier.VerifyAnalyzerAsync(test, setup: o =>
         {
-            o.ExpectedDiagnostics.AddRange(expected, expected2, expected3);
+            o.ExpectedDiagnostics.AddRange(expected, expected2, expected3, expected4, expected5);
+            o.DisabledDiagnostics.Remove(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration);
         }, executable: true);
     }
 

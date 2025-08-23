@@ -84,6 +84,7 @@ partial class CheckedExceptionsAnalyzer
     {
         var semanticModel = context.SemanticModel;
         var node = context.Node;
+        var settings = GetAnalyzerSettings(context.Options);
 
         IMethodSymbol? methodSymbol = null;
 
@@ -102,6 +103,18 @@ partial class CheckedExceptionsAnalyzer
         // Collect all declared exception types from [Throws]
         var declared = throwsAttributes.SelectMany(x => GetExceptionTypes(x, semanticModel))
             .ToImmutableHashSet(SymbolEqualityComparer.Default);
+
+        if (settings.IsLinqImplicitlyDeclaredExceptionsEnabled &&
+            IsInsideLinqLambda(node, semanticModel, settings, out _))
+        {
+            foreach (var declaredType in declared)
+            {
+                var location = GetThrowsAttributeLocation(methodSymbol, (INamedTypeSymbol?)declaredType!, context.Compilation)
+                               ?? node.GetLocation();
+                ReportRedundantExceptionDeclaration(context.ReportDiagnostic, declaredType, location);
+            }
+            return;
+        }
 
         // Collect all actually escaping exceptions
         var actual = CollectThrownExceptions(methodSymbol, semanticModel.Compilation, semanticModel, context.ReportDiagnostic, context.Options);

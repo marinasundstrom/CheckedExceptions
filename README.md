@@ -151,7 +151,7 @@ Add `CheckedExceptions.settings.json`:
   // If true, analysis on LINQ constructs will be disabled (default: false).
   "disableLinqSupport": false,
 
-  // If true, exceptions in LINQ lambdas do not have to be declared (default: false).
+  // If true, implicit exception inference in LINQ lambdas is disabled and declarations are required (default: false).
   "disableLinqImplicitlyDeclaredExceptions": false,
 
   // If true, no diagnostics will be issued on contract boundaries, such as arguments to methods and  return statements (default: false).
@@ -317,7 +317,7 @@ var tens = values
     .ToArray(); // THROW001: unhandled FormatException, OverflowException
 ```
 
-> Exceptions are inferred and implicit on LINQ methods, so no declarations needed. this behavior can be disabled. 
+> Exceptions are inferred and implicit on LINQ methods. Any explicit `[Throws]` on LINQ lambdas is flagged as redundant. This behavior can be disabled.
 
 Read about it [here](docs/linq-support.md).
 
