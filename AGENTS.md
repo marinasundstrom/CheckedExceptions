@@ -33,3 +33,10 @@
   [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) style.
 - Reference the pull request in the form
   `- PR [#PR_NUMBER](https://github.com/marinasundstrom/CheckedExceptions/pull/PR_NUMBER) Description`.
+
+## Documentation
+- Keep user-facing docs current. Update:
+  - `README.md`
+  - `docs/analyzer-specification.md`
+  - `docs/codefix-specification.md`
+  when changes affect functionality or user guidance.
