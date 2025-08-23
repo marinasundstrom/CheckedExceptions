@@ -135,7 +135,7 @@ partial class CheckedExceptionsAnalyzer
 
                         // 2) add intrinsic deferred-op exceptions (e.g., Cast<T>)
                         if (LinqKnowledge.DeferredBuiltIns.TryGetValue(name, out var defFactory))
-                            foreach (var t in defFactory(compilation, inv))
+                            foreach (var t in defFactory(compilation, semanticModel, inv))
                                 if (t is not null) exceptionTypes.Add(t);
 
                         current = GetLinqSourceOperation(inv);
@@ -331,7 +331,7 @@ partial class CheckedExceptionsAnalyzer
                             CollectThrowsFromFunctionalArguments(inv, exceptionTypes, compilation, semanticModel, settings, ct);
 
                             if (LinqKnowledge.DeferredBuiltIns.TryGetValue(name, out var defFactory))
-                                foreach (var t in defFactory(compilation, inv))
+                                foreach (var t in defFactory(compilation, semanticModel, inv))
                                     if (t is not null) exceptionTypes.Add(t);
 
                             current = GetLinqSourceOperation(inv);
@@ -613,21 +613,19 @@ internal static class LinqKnowledge
             ["ToList"] = (c, m) => [],
         }.ToImmutableDictionary();
 
-    public static ImmutableDictionary<string, Func<Compilation, IInvocationOperation, IEnumerable<INamedTypeSymbol>>> DeferredBuiltIns
-            = new Dictionary<string, Func<Compilation, IInvocationOperation, IEnumerable<INamedTypeSymbol>>>(StringComparer.Ordinal)
+    public static ImmutableDictionary<string, Func<Compilation, SemanticModel, IInvocationOperation, IEnumerable<INamedTypeSymbol>>> DeferredBuiltIns
+            = new Dictionary<string, Func<Compilation, SemanticModel, IInvocationOperation, IEnumerable<INamedTypeSymbol>>>(StringComparer.Ordinal)
             {
                 // Cast<T>() will throw InvalidCastException during enumeration if an element can't be cast
-                ["Cast"] = (comp, inv) =>
+                ["Cast"] = (comp, semanticModel, inv) =>
                 {
                     // T in Cast<T>()
                     if (inv.TargetMethod.TypeArguments.Length is not 1)
                         return Array.Empty<INamedTypeSymbol>();
                     var targetT = inv.TargetMethod.TypeArguments[0];
 
-                    var semanticModel = comp.GetSemanticModel(inv.Syntax.SyntaxTree);
-
                     // try to recover S
-                    var srcElem = ResolveSourceElementType(inv, /* you have it in the caller */ semanticModel, default);
+                    var srcElem = ResolveSourceElementType(inv, semanticModel, default);
 
                     // unknown => be pessimistic (may throw during enumeration)
                     if (srcElem is null)

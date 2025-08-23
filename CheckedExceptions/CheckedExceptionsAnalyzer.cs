@@ -549,9 +549,18 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         if (throwsAttributes.Length is 0)
             return;
 
-        CheckForGeneralExceptionThrowDeclarations(throwsAttributes, context);
-        CheckForDuplicateThrowsDeclarations(context, throwsAttributes);
-        CheckForRedundantThrowsDeclarationsHandledByDeclaredSuperClass(context, throwsAttributes);
+        var attributeSyntaxes = throwsAttributes
+            .Select(attr => attr.ApplicationSyntaxReference?.GetSyntax(context.CancellationToken))
+            .OfType<AttributeSyntax>();
+
+        foreach (var group in attributeSyntaxes.GroupBy(a => a.SyntaxTree))
+        {
+            var semanticModel = context.Compilation.GetSemanticModel(group.Key);
+            var throwsContext = new ThrowsContext(semanticModel, context.Options, context.ReportDiagnostic, context.CancellationToken);
+            CheckForGeneralExceptionThrows(group, throwsContext);
+            CheckForDuplicateThrowsDeclarations(group, throwsContext);
+            CheckForRedundantThrowsHandledByDeclaredSuperClass(group, throwsContext);
+        }
     }
 
     /// <summary>
