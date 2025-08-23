@@ -25,5 +25,5 @@
 
 ## Formatting
 - Format each changed file using
-  `dotnet format <path to dir of solution or project file> --include <comma separated list with file paths>`
-  to respect `.editorconfig` rules.
+  `dotnet format <path to dir of solution or project file> --no-restore --include <comma separated list with file paths>`
+  to respect `.editorconfig` rules without triggering a restore.
