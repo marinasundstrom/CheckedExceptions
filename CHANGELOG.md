@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - PR [#287](https://github.com/marinasundstrom/CheckedExceptions/pull/287) Fix LINQ chain diagnostics
 - PR [#294](https://github.com/marinasundstrom/CheckedExceptions/pull/294) Enable batch fixing for catch-clause, try-catch, and redundant catch clause code fixes
+- PR [#293](https://github.com/marinasundstrom/CheckedExceptions/pull/293) Mark throws declarations in LINQ lambdas as redundant when implicitly declared exceptions are enabled
 
 ## [2.1.2] - 2025-08-22
 

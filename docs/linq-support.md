@@ -26,7 +26,7 @@ var allEven = values
 // THROW001: Unhandled exception type 'OverflowException'
 ```
 
-> Exceptions are inferred and implicit on LINQ methods, so no declarations needed. this behavior can be disabled. 
+> Exceptions are inferred and implicit on LINQ methods. Any explicit `[Throws]` on LINQ lambdas is reported as redundant. This behavior can be disabled.
 
 This differs from `First()`/`Single()` cases by not adding its own “empty/duplicate” errors—`All` only reflects exceptions from the predicate.
 
