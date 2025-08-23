@@ -10,10 +10,9 @@ partial class CheckedExceptionsAnalyzer
 {
     private static void CheckForRedundantThrowsHandledByDeclaredSuperClass(
         IEnumerable<AttributeSyntax> throwsAttributes,
-        SemanticModel semanticModel,
-        Action<Diagnostic> reportDiagnostic,
-        CancellationToken cancellationToken)
+        ThrowsContext context)
     {
+        var semanticModel = context.SemanticModel;
         var declaredTypes = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
         var typeToExprMap = new Dictionary<INamedTypeSymbol, TypeOfExpressionSyntax>(SymbolEqualityComparer.Default);
 
@@ -23,7 +22,7 @@ partial class CheckedExceptionsAnalyzer
             {
                 if (arg.Expression is TypeOfExpressionSyntax typeOfExpr)
                 {
-                    var typeInfo = semanticModel.GetTypeInfo(typeOfExpr.Type, cancellationToken);
+                    var typeInfo = semanticModel.GetTypeInfo(typeOfExpr.Type, context.CancellationToken);
                     var exceptionType = typeInfo.Type as INamedTypeSymbol;
 
                     if (exceptionType is null)
@@ -46,7 +45,7 @@ partial class CheckedExceptionsAnalyzer
                 {
                     if (typeToExprMap.TryGetValue(type, out var expr))
                     {
-                        reportDiagnostic(Diagnostic.Create(
+                        context.ReportDiagnostic(Diagnostic.Create(
                             RuleDuplicateThrowsByHierarchy,
                             expr.Type.GetLocation(),
                             otherType.Name));

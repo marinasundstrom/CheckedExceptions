@@ -556,9 +556,10 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         foreach (var group in attributeSyntaxes.GroupBy(a => a.SyntaxTree))
         {
             var semanticModel = context.Compilation.GetSemanticModel(group.Key);
-            CheckForGeneralExceptionThrows(group, semanticModel, context.Options, context.ReportDiagnostic, context.CancellationToken);
-            CheckForDuplicateThrowsDeclarations(group, semanticModel, context.ReportDiagnostic, context.CancellationToken);
-            CheckForRedundantThrowsHandledByDeclaredSuperClass(group, semanticModel, context.ReportDiagnostic, context.CancellationToken);
+            var throwsContext = new ThrowsContext(semanticModel, context.Options, context.ReportDiagnostic, context.CancellationToken);
+            CheckForGeneralExceptionThrows(group, throwsContext);
+            CheckForDuplicateThrowsDeclarations(group, throwsContext);
+            CheckForRedundantThrowsHandledByDeclaredSuperClass(group, throwsContext);
         }
     }
 

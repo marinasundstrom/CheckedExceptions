@@ -17,7 +17,7 @@ partial class CheckedExceptionsAnalyzer
         var thrownExceptions = CollectUnhandledExceptions(context, tryStatement.Block, settings);
 
         // Collect exception types handled by preceding catch clauses
-        var handledExceptions = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
+        HashSet<INamedTypeSymbol>? handledExceptions = new(SymbolEqualityComparer.Default);
         foreach (var catchClause in tryStatement.Catches)
         {
             if (catchClause == generalCatchClause)
@@ -369,9 +369,9 @@ partial class CheckedExceptionsAnalyzer
         }
     }
 
-    private static HashSet<INamedTypeSymbol> GetCaughtExceptions(SyntaxList<CatchClauseSyntax> catchClauses, SemanticModel semanticModel)
+    private static HashSet<INamedTypeSymbol>? GetCaughtExceptions(SyntaxList<CatchClauseSyntax> catchClauses, SemanticModel semanticModel)
     {
-        var caughtExceptions = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
+        HashSet<INamedTypeSymbol>? caughtExceptions = new(SymbolEqualityComparer.Default);
 
         foreach (var catchClause in catchClauses)
         {
@@ -518,25 +518,18 @@ partial class CheckedExceptionsAnalyzer
         if (throwsAttributes.Count is 0)
             return;
 
-        CheckForGeneralExceptionThrows(
-            throwsAttributes,
+        var throwsContext = new ThrowsContext(
             context.SemanticModel,
             context.Options,
             context.ReportDiagnostic,
             context.CancellationToken);
 
+        CheckForGeneralExceptionThrows(throwsAttributes, throwsContext);
+
         if (throwsAttributes.Any())
         {
-            CheckForDuplicateThrowsDeclarations(
-                throwsAttributes,
-                context.SemanticModel,
-                context.ReportDiagnostic,
-                context.CancellationToken);
-            CheckForRedundantThrowsHandledByDeclaredSuperClass(
-                throwsAttributes,
-                context.SemanticModel,
-                context.ReportDiagnostic,
-                context.CancellationToken);
+            CheckForDuplicateThrowsDeclarations(throwsAttributes, throwsContext);
+            CheckForRedundantThrowsHandledByDeclaredSuperClass(throwsAttributes, throwsContext);
         }
     }
 

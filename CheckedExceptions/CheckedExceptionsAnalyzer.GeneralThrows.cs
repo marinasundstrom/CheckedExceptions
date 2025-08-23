@@ -13,13 +13,13 @@ partial class CheckedExceptionsAnalyzer
 
     private static void CheckForGeneralExceptionThrows(
         IEnumerable<AttributeSyntax> throwsAttributes,
-        SemanticModel semanticModel,
-        AnalyzerOptions options,
-        Action<Diagnostic> reportDiagnostic,
-        CancellationToken cancellationToken)
+        ThrowsContext context)
     {
         const string generalExceptionName = "Exception";
         const string generalExceptionNamespace = "System";
+
+        var semanticModel = context.SemanticModel;
+        var settings = GetAnalyzerSettings(context.Options);
 
         foreach (var attribute in throwsAttributes)
         {
@@ -27,24 +27,20 @@ partial class CheckedExceptionsAnalyzer
             {
                 if (arg.Expression is TypeOfExpressionSyntax typeOfExpr)
                 {
-                    var typeInfo = semanticModel.GetTypeInfo(typeOfExpr.Type, cancellationToken);
+                    var typeInfo = semanticModel.GetTypeInfo(typeOfExpr.Type, context.CancellationToken);
                     var type = typeInfo.Type as INamedTypeSymbol;
 
                     if (type is null)
                         continue;
 
-                    var settings = GetAnalyzerSettings(options);
-
-                    if (settings.BaseExceptionDeclaredDiagnosticEnabled)
+                    if (settings.BaseExceptionDeclaredDiagnosticEnabled &&
+                        type.Name == generalExceptionName &&
+                        type.ContainingNamespace?.ToDisplayString() == generalExceptionNamespace)
                     {
-                        if (type.Name == generalExceptionName &&
-                            type.ContainingNamespace?.ToDisplayString() == generalExceptionNamespace)
-                        {
-                            reportDiagnostic(Diagnostic.Create(
-                                RuleGeneralThrowDeclared,
-                                typeOfExpr.Type.GetLocation(), // ✅ report precisely on typeof(Exception)
-                                type.Name));
-                        }
+                        context.ReportDiagnostic(Diagnostic.Create(
+                            RuleGeneralThrowDeclared,
+                            typeOfExpr.Type.GetLocation(), // ✅ report precisely on typeof(Exception)
+                            type.Name));
                     }
                 }
             }

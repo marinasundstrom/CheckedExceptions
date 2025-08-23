@@ -17,10 +17,9 @@ partial class CheckedExceptionsAnalyzer
     /// <param name="context">The analysis context.</param>
     private static void CheckForDuplicateThrowsDeclarations(
         IEnumerable<AttributeSyntax> throwsAttributes,
-        SemanticModel semanticModel,
-        Action<Diagnostic> reportDiagnostic,
-        CancellationToken cancellationToken)
+        ThrowsContext context)
     {
+        var semanticModel = context.SemanticModel;
         var seen = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
 
         foreach (var throwsAttribute in throwsAttributes)
@@ -29,14 +28,14 @@ partial class CheckedExceptionsAnalyzer
             {
                 if (arg.Expression is TypeOfExpressionSyntax typeOfExpr)
                 {
-                    var typeInfo = semanticModel.GetTypeInfo(typeOfExpr.Type, cancellationToken);
+                    var typeInfo = semanticModel.GetTypeInfo(typeOfExpr.Type, context.CancellationToken);
                     var exceptionType = typeInfo.Type as INamedTypeSymbol;
                     if (exceptionType is null)
                         continue;
 
                     if (seen.Contains(exceptionType))
                     {
-                        reportDiagnostic(Diagnostic.Create(
+                        context.ReportDiagnostic(Diagnostic.Create(
                             RuleDuplicateDeclarations,
                             typeOfExpr.Type.GetLocation(), // ✅ precise location
                             exceptionType.Name));
