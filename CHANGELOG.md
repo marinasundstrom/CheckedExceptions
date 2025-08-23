@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [2.2.1] - 2025-08-23
+
 ### Added
 
 - PR [#295](https://github.com/marinasundstrom/CheckedExceptions/pull/295) Code fix to remove redundant exception declarations
