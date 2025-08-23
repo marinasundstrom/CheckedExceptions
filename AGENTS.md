@@ -15,6 +15,10 @@
 - Restore and compile the solution with
   `dotnet build CheckedExceptions.sln`.
 
+## Local Package Source
+- `NuGet.config` includes `./artifacts/package/debug` for local packages, but it is currently unused.
+- If a restore or build fails because this folder is missing, either create it (for example, `mkdir -p artifacts/package/debug`) or ignore the source.
+
 ## Testing
 - Execute the unit tests with
   `dotnet test CheckedExceptions.sln`.

@@ -518,12 +518,25 @@ partial class CheckedExceptionsAnalyzer
         if (throwsAttributes.Count is 0)
             return;
 
-        CheckForGeneralExceptionThrows(context, throwsAttributes);
+        CheckForGeneralExceptionThrows(
+            throwsAttributes,
+            context.SemanticModel,
+            context.Options,
+            context.ReportDiagnostic,
+            context.CancellationToken);
 
         if (throwsAttributes.Any())
         {
-            CheckForDuplicateThrowsDeclarations(throwsAttributes, context);
-            CheckForRedundantThrowsHandledByDeclaredSuperClass(throwsAttributes, context);
+            CheckForDuplicateThrowsDeclarations(
+                throwsAttributes,
+                context.SemanticModel,
+                context.ReportDiagnostic,
+                context.CancellationToken);
+            CheckForRedundantThrowsHandledByDeclaredSuperClass(
+                throwsAttributes,
+                context.SemanticModel,
+                context.ReportDiagnostic,
+                context.CancellationToken);
         }
     }
 

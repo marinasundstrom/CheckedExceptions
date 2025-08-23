@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Immutable;
+using System.Threading;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -58,9 +60,10 @@ partial class CheckedExceptionsAnalyzer
     /// <param name="context">The analysis context.</param>
     private static void CheckForDuplicateThrowsDeclarations(
         IEnumerable<AttributeSyntax> throwsAttributes,
-        SyntaxNodeAnalysisContext context)
+        SemanticModel semanticModel,
+        Action<Diagnostic> reportDiagnostic,
+        CancellationToken cancellationToken)
     {
-        var semanticModel = context.SemanticModel;
         var seen = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
 
         foreach (var throwsAttribute in throwsAttributes)
@@ -69,14 +72,14 @@ partial class CheckedExceptionsAnalyzer
             {
                 if (arg.Expression is TypeOfExpressionSyntax typeOfExpr)
                 {
-                    var typeInfo = semanticModel.GetTypeInfo(typeOfExpr.Type, context.CancellationToken);
+                    var typeInfo = semanticModel.GetTypeInfo(typeOfExpr.Type, cancellationToken);
                     var exceptionType = typeInfo.Type as INamedTypeSymbol;
                     if (exceptionType is null)
                         continue;
 
                     if (seen.Contains(exceptionType))
                     {
-                        context.ReportDiagnostic(Diagnostic.Create(
+                        reportDiagnostic(Diagnostic.Create(
                             RuleDuplicateDeclarations,
                             typeOfExpr.Type.GetLocation(), // ✅ precise location
                             exceptionType.Name));

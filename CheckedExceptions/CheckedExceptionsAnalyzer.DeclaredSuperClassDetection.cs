@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Immutable;
+using System.Threading;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -73,10 +75,11 @@ partial class CheckedExceptionsAnalyzer
     }
 
     private static void CheckForRedundantThrowsHandledByDeclaredSuperClass(
-     IEnumerable<AttributeSyntax> throwsAttributes,
-     SyntaxNodeAnalysisContext context)
+        IEnumerable<AttributeSyntax> throwsAttributes,
+        SemanticModel semanticModel,
+        Action<Diagnostic> reportDiagnostic,
+        CancellationToken cancellationToken)
     {
-        var semanticModel = context.SemanticModel;
         var declaredTypes = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
         var typeToExprMap = new Dictionary<INamedTypeSymbol, TypeOfExpressionSyntax>(SymbolEqualityComparer.Default);
 
@@ -86,7 +89,7 @@ partial class CheckedExceptionsAnalyzer
             {
                 if (arg.Expression is TypeOfExpressionSyntax typeOfExpr)
                 {
-                    var typeInfo = semanticModel.GetTypeInfo(typeOfExpr.Type, context.CancellationToken);
+                    var typeInfo = semanticModel.GetTypeInfo(typeOfExpr.Type, cancellationToken);
                     var exceptionType = typeInfo.Type as INamedTypeSymbol;
 
                     if (exceptionType is null)
@@ -109,7 +112,7 @@ partial class CheckedExceptionsAnalyzer
                 {
                     if (typeToExprMap.TryGetValue(type, out var expr))
                     {
-                        context.ReportDiagnostic(Diagnostic.Create(
+                        reportDiagnostic(Diagnostic.Create(
                             RuleDuplicateThrowsByHierarchy,
                             expr.Type.GetLocation(),
                             otherType.Name));
