@@ -535,7 +535,9 @@ partial class CheckedExceptionsAnalyzer
 
     private static void AnalyzeLinqOperation(SyntaxNodeAnalysisContext context, IMethodSymbol methodSymbol, HashSet<INamedTypeSymbol> exceptionTypes, InvocationExpressionSyntax invocation)
     {
-        if (IsLinqExtension(methodSymbol))
+        var settings = GetAnalyzerSettings(context.Options);
+
+        if (IsLinqExtension(methodSymbol, settings))
         {
             var name = methodSymbol.Name;
 
@@ -547,8 +549,6 @@ partial class CheckedExceptionsAnalyzer
                     exceptionTypes.RemoveWhere(e => SymbolEqualityComparer.Default.Equals(e, invalidCastExc));
             }
         }
-
-        var settings = GetAnalyzerSettings(context.Options);
 
         CollectLinqExceptions(invocation, exceptionTypes, context.Compilation, context.SemanticModel, settings, context.CancellationToken);
     }

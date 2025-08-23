@@ -290,7 +290,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         // the invocation analysis will handle diagnostics. Skip boundary reporting.
         if (argumentSyntax.Expression is InvocationExpressionSyntax invSyntax &&
             semanticModel.GetOperation(invSyntax) is IInvocationOperation invOp &&
-            IsLinqExtension(invOp.TargetMethod) &&
+            IsLinqExtension(invOp.TargetMethod, settings) &&
             LinqKnowledge.TerminalOps.Contains(invOp.TargetMethod.Name))
         {
             return;

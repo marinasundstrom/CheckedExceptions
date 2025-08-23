@@ -76,7 +76,7 @@ partial class CheckedExceptionsAnalyzer
         if (!isHandled && !isDeclared)
         {
             if (settings.IsLinqImplicitlyDeclaredExceptionsEnabled
-                && IsInsideLinqLambda(node, semanticModel, out _))
+                && IsInsideLinqLambda(node, semanticModel, settings, out _))
             {
                 // Implicitly declared exceptions in LINQ expressions
 
@@ -116,6 +116,7 @@ partial class CheckedExceptionsAnalyzer
     private static bool IsInsideLinqLambda(
         SyntaxNode node,
         SemanticModel semanticModel,
+        AnalyzerSettings settings,
         out IInvocationOperation? linqInvocation,
         CancellationToken ct = default)
     {
@@ -153,7 +154,7 @@ partial class CheckedExceptionsAnalyzer
         if (inv is null) return false;
 
         // finally: is it a LINQ query operator?
-        if (!IsLinqExtension(inv.TargetMethod)) return false;
+        if (!IsLinqExtension(inv.TargetMethod, settings)) return false;
 
         linqInvocation = inv;
         return true;

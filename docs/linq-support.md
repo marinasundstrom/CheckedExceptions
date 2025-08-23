@@ -1,8 +1,10 @@
 # LINQ support
 
-The analyzer understands LINQ query operators on both `IEnumerable<T>` and `IAsyncEnumerable<T>` (via [System.Linq.Async](https://www.nuget.org/packages/System.Linq.Async)).
+The analyzer understands LINQ query operators on both `IEnumerable<T>` and `IAsyncEnumerable<T>` (via [System.Linq.Async](https://www.nuget.org/packages/System.Linq.Async)). Support for `IQueryable<T>` is enabled by default; disable it with `disableLinqQueryableSupport` if your provider cannot translate the expressions.
 
 Async operator names such as `FirstAsync` or `FirstAwaitWithCancellation` are normalized to their synchronous counterparts so the same exception knowledge applies.
+
+> ⚠️ Translation of `IQueryable<T>` expressions depends on the LINQ provider. Disable support with `disableLinqQueryableSupport` if your provider cannot evaluate the expressions similarly to LINQ-to-Objects.
 
 ## Deferred execution
 

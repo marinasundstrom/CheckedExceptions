@@ -28,6 +28,12 @@ public partial class AnalyzerSettings
     [JsonIgnore]
     internal bool IsLinqEnumerableBoundaryWarningsEnabled => !DisableLinqEnumerableBoundaryWarnings;
 
+    [JsonPropertyName("disableLinqQueryableSupport")]
+    public bool DisableLinqQueryableSupport { get; set; } = false;
+
+    [JsonIgnore]
+    internal bool IsLinqQueryableSupportEnabled => !DisableLinqQueryableSupport;
+
     [JsonPropertyName("disableControlFlowAnalysis")]
     public bool DisableControlFlowAnalysis { get; set; } = false;
 
