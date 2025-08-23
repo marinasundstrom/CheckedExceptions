@@ -40,3 +40,7 @@
   - `docs/analyzer-specification.md`
   - `docs/codefix-specification.md`
   when changes affect functionality or user guidance.
+ - NuGet package README:
+   - `CheckedExceptions.Package/docs/README.md` is published to nuget.org.
+   - Base its content on the root `README.md`, but keep it to a brief introduction and a short example.
+   - Link back to the repository for full documentation and details.
