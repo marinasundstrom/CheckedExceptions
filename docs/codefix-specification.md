@@ -16,6 +16,7 @@ This document describes the available **code fixes** and which diagnostics they 
 | **THROW013**  | Redundant catch-all clause      | 🧹 Remove redundant catch clause    
 | **THROW014**  | Catch clause has no remaining exceptions to handle      | 🧹 Remove redundant catch clause
 | **THROW015**  | Redundant catch clause      | 🧹 Remove redundant catch clause
+| **THROW017**  | Deferred enumeration crossing boundary | 🧺 Materialize enumeration with ToArray
 ---
 
 ## What is a Throwing Site?
@@ -559,5 +560,34 @@ public string Data
     [Throws(typeof(IOException))]
     get => throw new IOException();
     set => throw new IOException();
+}
+```
+---
+
+## 🧺 `Materialize enumeration`
+
+**Applies to:**
+
+* `THROW017` – *Deferred enumeration crossing boundary*
+
+Adds `.ToArray()` to deferred sequences that leave the member, forcing materialization so exceptions surface within the current member.
+
+### Example
+
+```csharp
+// Before
+IEnumerable<string> items = [];
+IEnumerable<string> Get()
+{
+    var query = items.Where(x => int.Parse(x) > 0);
+    return query; // THROW017
+}
+
+// After
+IEnumerable<string> items = [];
+IEnumerable<string> Get()
+{
+    var query = items.Where(x => int.Parse(x) > 0);
+    return query.ToArray();
 }
 ```
