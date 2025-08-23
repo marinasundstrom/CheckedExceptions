@@ -20,7 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - PR [#287](https://github.com/marinasundstrom/CheckedExceptions/pull/287) Fix LINQ chain diagnostics
-- PR [#PR_NUMBER](https://github.com/marinasundstrom/CheckedExceptions/pull/PR_NUMBER) Enable batch fixing for catch-clause, try-catch, and redundant catch clause code fixes
+- PR [#294](https://github.com/marinasundstrom/CheckedExceptions/pull/294) Enable batch fixing for catch-clause, try-catch, and redundant catch clause code fixes
 
 ## [2.1.2] - 2025-08-22
 
