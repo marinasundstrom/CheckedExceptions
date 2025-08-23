@@ -10,12 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- PR [#PR_NUMBER](https://github.com/marinasundstrom/CheckedExceptions/pull/PR_NUMBER) Handle LINQ methods on `AsyncEnumerable`
-- PR [#PR_NUMBER](https://github.com/marinasundstrom/CheckedExceptions/pull/PR_NUMBER) LINQ support for `IQueryable` enabled by default with option to disable via `disableLinqQueryableSupport`
+- PR [#290](https://github.com/marinasundstrom/CheckedExceptions/pull/290) Handle LINQ methods on `AsyncEnumerable`
+- PR [#291](https://github.com/marinasundstrom/CheckedExceptions/pull/291) LINQ support for `IQueryable` enabled by default with option to disable via `disableLinqQueryableSupport`
 
 ### Changed
 
-- PR [#PR_NUMBER](https://github.com/marinasundstrom/CheckedExceptions/pull/PR_NUMBER) Trim NuGet package README and document maintenance guidelines
+- PR [#290](https://github.com/marinasundstrom/CheckedExceptions/pull/290) Trim NuGet package README and document maintenance guidelines
 
 ### Fixed
 
