@@ -10,9 +10,10 @@ This document describes the available **code fixes** and which diagnostics they 
 | ------------- | ------------------------------------- | ------------------------------------------------------------------------------------------------ |
 | **THROW001**  | Unhandled exception type              | 🔧 Add throws declaration<br>🧯 Surround with try/catch<br>➕ Add catch clause to surrounding try<br>➕ Introduce catch clause |
 | **THROW004**  | Redundant typed catch clause          | 🧹 Remove redundant catch clause                                                                 |
-| **THROW005**  | Redundant exception declaration       | 🗑️ Remove redundant throws declaration                                                          |
+| **THROW005**  | Duplicate exception declaration       | 🗑️ Remove redundant throws declaration                                  |
 | **THROW007**  | Missing throws from base/interface    | 🔧 Add throws declaration from base member                                                       |
 | **THROW011**  | Missing throws from XML documentation | 🔧 Add throws declaration from XML doc                                                           |
+| **THROW012**  | Redundant exception declaration       | 🗑️ Remove redundant throws declaration                                  |
 | **THROW013**  | Redundant catch-all clause      | 🧹 Remove redundant catch clause    
 | **THROW014**  | Catch clause has no remaining exceptions to handle      | 🧹 Remove redundant catch clause
 | **THROW015**  | Redundant catch clause      | 🧹 Remove redundant catch clause
@@ -362,7 +363,8 @@ Func<int, int> f = x => x;
 
 **Applies to:**
 
-* `THROW005` – *Redundant exception declaration*
+* `THROW005` – *Duplicate exception declaration*
+* `THROW012` – *Redundant exception declaration*
 
 Removes a `[Throws]` declaration for an exception type that is **never thrown**.
 
