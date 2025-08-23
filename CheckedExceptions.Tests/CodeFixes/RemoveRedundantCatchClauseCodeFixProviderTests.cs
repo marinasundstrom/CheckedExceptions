@@ -2,6 +2,7 @@ namespace Sundstrom.CheckedExceptions.Tests.CodeFixes;
 
 using System.Threading.Tasks;
 
+using Microsoft.CodeAnalysis.Testing;
 using Xunit;
 using Xunit.Abstractions;
 
@@ -186,5 +187,92 @@ catch (OverflowException overflowException)
         {
             option.DisabledDiagnostics.Remove(CheckedExceptionsAnalyzer.DiagnosticIdRedundantTypedCatchClause);
         });
+    }
+
+    [Fact]
+    public async Task FixAll_RemovesRedundantCatchClausesAcrossMethods()
+    {
+        var testCode = /* lang=c#-test */  """
+#nullable enable
+using System;
+
+class TestClass
+{
+    void Method1()
+    {
+        try
+        {
+            int.Parse("a");
+        }
+        catch (FormatException ex)
+        {
+        }
+        catch (OverflowException ex)
+        {
+        }
+        catch (ArgumentException ex)
+        {
+        }
+    }
+
+    void Method2()
+    {
+        try
+        {
+            int x = 0;
+            string y = "";
+        }
+        catch (FormatException ex)
+        {
+        }
+    }
+}
+""";
+
+        var fixedCode = /* lang=c#-test */  """
+#nullable enable
+using System;
+
+class TestClass
+{
+    void Method1()
+    {
+        try
+        {
+            int.Parse("a");
+        }
+        catch (FormatException ex)
+        {
+        }
+        catch (OverflowException ex)
+        {
+        }
+    }
+
+    void Method2()
+    {
+        int x = 0;
+        string y = "";
+    }
+}
+""";
+
+        var expectedDiagnostic1 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdRedundantTypedCatchClause)
+            .WithArguments("ArgumentException")
+            .WithSpan(18, 16, 18, 33);
+        var expectedDiagnostic2 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdRedundantTypedCatchClause)
+            .WithArguments("FormatException")
+            .WithSpan(30, 16, 30, 31);
+
+        await Verifier.VerifyCodeFixAsync(
+            testCode,
+            [expectedDiagnostic1, expectedDiagnostic2],
+            fixedCode,
+            expectedIncrementalIterations: 2,
+            setup: test =>
+            {
+                test.CodeFixTestBehaviors &= ~CodeFixTestBehaviors.SkipFixAllCheck;
+                test.DisabledDiagnostics.Remove(CheckedExceptionsAnalyzer.DiagnosticIdRedundantTypedCatchClause);
+            });
     }
 }

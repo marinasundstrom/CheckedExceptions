@@ -790,4 +790,72 @@ namespace TestNamespace
             opt.CompilerDiagnostics = CompilerDiagnostics.None;
         });
     }
+
+    [Fact]
+    public async Task FixAll_WrapsMultipleMethods_WhenUnhandledExceptions()
+    {
+        var testCode = /* lang=c#-test */  """
+using System;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        public void Method1()
+        {
+            throw new InvalidOperationException();
+        }
+
+        public void Method2()
+        {
+            throw new ArgumentException();
+        }
+    }
+}
+""";
+
+        var fixedCode = /* lang=c#-test */  """
+using System;
+
+namespace TestNamespace
+{
+    public class TestClass
+    {
+        public void Method1()
+        {
+            try
+            {
+                throw new InvalidOperationException();
+            }
+            catch (InvalidOperationException invalidOperationException)
+            {
+            }
+        }
+
+        public void Method2()
+        {
+            try
+            {
+                throw new ArgumentException();
+            }
+            catch (ArgumentException argumentException)
+            {
+            }
+        }
+    }
+}
+""";
+
+        var expectedDiagnostic1 = Verifier.UnhandledException("InvalidOperationException")
+            .WithSpan(9, 13, 9, 51);
+        var expectedDiagnostic2 = Verifier.UnhandledException("ArgumentException")
+            .WithSpan(14, 13, 14, 43);
+
+        await Verifier.VerifyCodeFixAsync(
+            testCode,
+            [expectedDiagnostic1, expectedDiagnostic2],
+            fixedCode,
+            expectedIncrementalIterations: 2,
+            setup: test => test.CodeFixTestBehaviors &= ~CodeFixTestBehaviors.SkipFixAllCheck);
+    }
 }
