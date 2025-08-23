@@ -430,4 +430,51 @@ public partial class LinqTest
             o.ExpectedDiagnostics.AddRange(expected, expected2, expected3, expected4);
         }, executable: true);
     }
+
+    [Fact]
+    public async Task QueryableOperator_EnabledByDefault()
+    {
+        var test = /* lang=c#-test */ """
+            #nullable enable
+            using System;
+            using System.Collections.Generic;
+            using System.Linq;
+
+            IQueryable<int> items = new List<int>().AsQueryable();
+            var query = items.Where(x => true);
+            var r = Queryable.First<int>(query);
+            """;
+
+        var expected = Verifier.UnhandledException("InvalidOperationException")
+            .WithSpan(8, 19, 8, 36);
+
+        await Verifier.VerifyAnalyzerAsync(test, setup: o =>
+        {
+            o.ExpectedDiagnostics.Add(expected);
+        }, executable: true);
+    }
+
+    [Fact]
+    public async Task QueryableOperator_Disabled()
+    {
+        var test = /* lang=c#-test */ """
+            #nullable enable
+            using System;
+            using System.Collections.Generic;
+            using System.Linq;
+
+            IQueryable<int> items = new List<int>().AsQueryable();
+            var query = items.Where(x => true);
+            var r = Queryable.First<int>(query);
+            """;
+
+        await Verifier.VerifyAnalyzerAsync(test, setup: o =>
+        {
+            o.TestState.AdditionalFiles.Add(("CheckedExceptions.settings.json", """
+{
+  "disableLinqQueryableSupport": true
+}
+"""));
+        }, executable: true);
+    }
 }

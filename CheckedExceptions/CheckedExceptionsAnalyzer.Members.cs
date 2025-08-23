@@ -15,6 +15,9 @@ partial class CheckedExceptionsAnalyzer
         if (methodSymbol is null)
             return;
 
+        if (!settings.IsLinqQueryableSupportEnabled && IsQueryableExtension(methodSymbol))
+            return;
+
         var exceptionTypes = new HashSet<INamedTypeSymbol>(
             GetExceptionTypes(methodSymbol), SymbolEqualityComparer.Default);
 

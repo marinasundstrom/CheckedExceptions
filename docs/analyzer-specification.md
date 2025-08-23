@@ -400,7 +400,7 @@ This is treated as valid when there is only a `get` accessor.
 
 ### LINQ queries
 
-The analyzer recognizes LINQ query operators whose extensions live in the `System.Linq` namespace and whose containing type name ends with `Enumerable` or `Queryable`, including `AsyncEnumerable` from the [`System.Linq.Async`](https://www.nuget.org/packages/System.Linq.Async) package.
+The analyzer recognizes LINQ query operators whose extensions live in the `System.Linq` namespace and whose containing type name ends with `Enumerable`. Operators ending in `Queryable` are also supported. You can disable this by setting `disableLinqQueryableSupport` to `true`. `AsyncEnumerable` from the [`System.Linq.Async`](https://www.nuget.org/packages/System.Linq.Async) package is also recognized.
 
 Async operator names suffixed with `Async`, `Await`, or `AwaitWithCancellation` are normalized to their synchronous counterparts so built-in exception knowledge applies.
 
@@ -489,6 +489,16 @@ var query = items.Where([Throws(typeof(FormatException), typeof(OverflowExceptio
 
 // First will not indicate exceptions
 var r = query.First();
+```
+
+### Disable LINQ IQueryable support
+
+This option disables analysis of LINQ operators defined on `Queryable`. Expression tree translation depends on the provider, so disable this when your provider behaves differently.
+
+```json
+{
+    "disableLinqQueryableSupport": true
+}
 ```
 
 #### Disable implicitly declared exceptions in lambdas

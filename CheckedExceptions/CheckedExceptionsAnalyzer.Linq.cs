@@ -21,7 +21,7 @@ partial class CheckedExceptionsAnalyzer
     {
         if (semanticModel.GetOperation(invocationSyntax, ct) is not IInvocationOperation termOp)
             return;
-        if (!IsLinqExtension(termOp.TargetMethod))
+        if (!IsLinqExtension(termOp.TargetMethod, settings))
             return;
 
         var name = GetLinqName(termOp.TargetMethod);
@@ -33,7 +33,7 @@ partial class CheckedExceptionsAnalyzer
             // defer handling until the outermost call is analyzed.
             if (invocationSyntax.Parent is MemberAccessExpressionSyntax { Parent: InvocationExpressionSyntax outer } &&
                 semanticModel.GetOperation(outer, ct) is IInvocationOperation outerOp &&
-                IsLinqExtension(outerOp.TargetMethod))
+                IsLinqExtension(outerOp.TargetMethod, settings))
             {
                 return;
             }
@@ -108,7 +108,7 @@ partial class CheckedExceptionsAnalyzer
         return name;
     }
 
-    private static bool IsLinqExtension(IMethodSymbol method)
+    private static bool IsLinqExtension(IMethodSymbol method, AnalyzerSettings settings)
     {
         if (method is null || !method.IsExtensionMethod) return false;
 
@@ -119,8 +119,26 @@ partial class CheckedExceptionsAnalyzer
         if (ns != "System.Linq") return false;
 
         var name = containingType.Name;
-        return name.EndsWith("Enumerable", StringComparison.Ordinal)
-            || name.EndsWith("Queryable", StringComparison.Ordinal);
+        if (name.EndsWith("Enumerable", StringComparison.Ordinal))
+            return true;
+
+        if (name.EndsWith("Queryable", StringComparison.Ordinal))
+            return settings.IsLinqQueryableSupportEnabled;
+
+        return false;
+    }
+
+    private static bool IsQueryableExtension(IMethodSymbol method)
+    {
+        if (method is null || !method.IsExtensionMethod) return false;
+
+        var containingType = method.ContainingType;
+        if (containingType is null) return false;
+
+        var ns = containingType.ContainingNamespace?.ToDisplayString();
+        if (ns != "System.Linq") return false;
+
+        return containingType.Name.EndsWith("Queryable", StringComparison.Ordinal);
     }
 
     private static IOperation? GetLinqSourceOperation(IInvocationOperation op)
@@ -144,7 +162,7 @@ partial class CheckedExceptionsAnalyzer
         {
             switch (current)
             {
-                case IInvocationOperation inv when IsLinqExtension(inv.TargetMethod):
+                case IInvocationOperation inv when IsLinqExtension(inv.TargetMethod, settings):
                     var name = GetLinqName(inv.TargetMethod);
 
                     if (LinqKnowledge.DeferredOps.Contains(name))
@@ -316,7 +334,7 @@ partial class CheckedExceptionsAnalyzer
         }
 
         if (inner is IInvocationOperation inv &&
-            IsLinqExtension(inv.TargetMethod) &&
+            IsLinqExtension(inv.TargetMethod, settings) &&
             LinqKnowledge.TerminalOps.Contains(GetLinqName(inv.TargetMethod)))
         {
             return;
@@ -340,7 +358,7 @@ partial class CheckedExceptionsAnalyzer
         {
             switch (current)
             {
-                case IInvocationOperation inv when IsLinqExtension(inv.TargetMethod):
+                case IInvocationOperation inv when IsLinqExtension(inv.TargetMethod, settings):
                     {
                         var name = GetLinqName(inv.TargetMethod);
 
