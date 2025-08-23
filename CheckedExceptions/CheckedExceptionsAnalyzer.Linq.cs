@@ -1,4 +1,5 @@
 
+using System;
 using System.Collections.Immutable;
 
 using Microsoft.CodeAnalysis;
@@ -23,7 +24,7 @@ partial class CheckedExceptionsAnalyzer
         if (!IsLinqExtension(termOp.TargetMethod))
             return;
 
-        var name = termOp.TargetMethod.Name;
+        var name = GetLinqName(termOp.TargetMethod);
         var isTerminal = LinqKnowledge.TerminalOps.Contains(name);
 
         if (!isTerminal)
@@ -92,6 +93,21 @@ partial class CheckedExceptionsAnalyzer
         return false;
     }
 
+    private static string GetLinqName(IMethodSymbol method)
+    {
+        var name = method.Name;
+
+        if (name.EndsWith("Async", StringComparison.Ordinal))
+            name = name.Substring(0, name.Length - "Async".Length);
+
+        if (name.EndsWith("AwaitWithCancellation", StringComparison.Ordinal))
+            name = name.Substring(0, name.Length - "AwaitWithCancellation".Length);
+        else if (name.EndsWith("Await", StringComparison.Ordinal))
+            name = name.Substring(0, name.Length - "Await".Length);
+
+        return name;
+    }
+
     private static bool IsLinqExtension(IMethodSymbol method)
     {
         if (method is null || !method.IsExtensionMethod) return false;
@@ -99,9 +115,12 @@ partial class CheckedExceptionsAnalyzer
         var containingType = method.ContainingType;
         if (containingType is null) return false;
 
-        // System.Linq.Enumerable or System.Linq.Queryable
-        return containingType.Name is "Enumerable" or "Queryable"
-            && containingType.ContainingNamespace?.ToDisplayString() == "System.Linq";
+        var ns = containingType.ContainingNamespace?.ToDisplayString();
+        if (ns != "System.Linq") return false;
+
+        var name = containingType.Name;
+        return name.EndsWith("Enumerable", StringComparison.Ordinal)
+            || name.EndsWith("Queryable", StringComparison.Ordinal);
     }
 
     private static IOperation? GetLinqSourceOperation(IInvocationOperation op)
@@ -126,7 +145,7 @@ partial class CheckedExceptionsAnalyzer
             switch (current)
             {
                 case IInvocationOperation inv when IsLinqExtension(inv.TargetMethod):
-                    var name = inv.TargetMethod.Name;
+                    var name = GetLinqName(inv.TargetMethod);
 
                     if (LinqKnowledge.DeferredOps.Contains(name))
                     {
@@ -298,7 +317,7 @@ partial class CheckedExceptionsAnalyzer
 
         if (inner is IInvocationOperation inv &&
             IsLinqExtension(inv.TargetMethod) &&
-            LinqKnowledge.TerminalOps.Contains(inv.TargetMethod.Name))
+            LinqKnowledge.TerminalOps.Contains(GetLinqName(inv.TargetMethod)))
         {
             return;
         }
@@ -323,7 +342,7 @@ partial class CheckedExceptionsAnalyzer
             {
                 case IInvocationOperation inv when IsLinqExtension(inv.TargetMethod):
                     {
-                        var name = inv.TargetMethod.Name;
+                        var name = GetLinqName(inv.TargetMethod);
 
                         // On enumeration, we care about exceptions contributed by *deferred* ops.
                         if (LinqKnowledge.DeferredOps.Contains(name) || !LinqKnowledge.TerminalOps.Contains(name))

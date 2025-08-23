@@ -23,7 +23,9 @@ This document describes the available **code fixes** and which diagnostics they 
 A **throwing site** is either:
 
 * A `throw` statement, or
-* A method, property, or event access where a `[Throws(...)]`-annotated member propagates an exception.
+* A method, property, event, or LINQ operator access where exceptions are known to propagate (via `[Throws(...)]` or built-in knowledge).
+
+LINQ termination operators such as `First` or `FirstAsync` are therefore eligible for fixes like **Add throws declaration** when their query pipelines can throw.
 
 ---
 

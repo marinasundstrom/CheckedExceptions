@@ -1,8 +1,8 @@
 # LINQ support
 
-The analyzer has initial support for LINQ through the standard query operators.
+The analyzer understands LINQ query operators on both `IEnumerable<T>` and `IAsyncEnumerable<T>` (via [System.Linq.Async](https://www.nuget.org/packages/System.Linq.Async)).
 
-More will be added in future releases.
+Async operator names such as `FirstAsync` or `FirstAwaitWithCancellation` are normalized to their synchronous counterparts so the same exception knowledge applies.
 
 ## Deferred execution
 
@@ -27,6 +27,17 @@ var allEven = values
 > Exceptions are inferred and implicit on LINQ methods, so no declarations needed. this behavior can be disabled. 
 
 This differs from `First()`/`Single()` cases by not adding its own “empty/duplicate” errors—`All` only reflects exceptions from the predicate.
+
+### Async query methods
+
+Async pipelines work the same way:
+
+```csharp
+IAsyncEnumerable<int> items = default!;
+var query = items.Where([Throws(typeof(FormatException), typeof(OverflowException))] (x) => x == int.Parse("10"));
+var r = await query.FirstAsync();
+// THROW001: FormatException, OverflowException, InvalidOperationException
+```
 
 ## Enumerating with `foreach`
 

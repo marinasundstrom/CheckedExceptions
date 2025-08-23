@@ -307,7 +307,7 @@ This is due to a **technical limitation**: the XML documentation files for .NET 
 
 **Answer:**
 
-There is initial support for LINQ query operators.
+There is support for LINQ query operators on `IEnumerable<T>` and asynchronous operators like `FirstAsync` on `IAsyncEnumerable<T>` (via [System.Linq.Async](https://www.nuget.org/packages/System.Linq.Async)).
 
 ```csharp
 List<string> values = [ "10", "20", "abc", "30" ];

@@ -398,6 +398,14 @@ This is treated as valid when there is only a `get` accessor.
 
 > ℹ️ When exceptions are inferred from **XML documentation**, the same [property heuristics](#property-heuristics) apply to expression‑bodied properties: if only a `get` is present, exceptions are mapped to the getter; if only a `set` is present, exceptions are mapped to the setter.
 
+### LINQ queries
+
+The analyzer recognizes LINQ query operators whose extensions live in the `System.Linq` namespace and whose containing type name ends with `Enumerable` or `Queryable`, including `AsyncEnumerable` from the [`System.Linq.Async`](https://www.nuget.org/packages/System.Linq.Async) package.
+
+Async operator names suffixed with `Async`, `Await`, or `AwaitWithCancellation` are normalized to their synchronous counterparts so built-in exception knowledge applies.
+
+See [docs/linq-support.md](linq-support.md) for examples.
+
 ---
 
 ## Configuration

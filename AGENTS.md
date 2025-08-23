@@ -27,3 +27,20 @@
 - Format each changed file using
   `dotnet format <path to dir of solution or project file> --no-restore --include <comma separated list with file paths>`
   to respect `.editorconfig` rules without triggering a restore.
+
+## Changelog
+- Record your changes in `CHANGELOG.md` under the "Unreleased" section using the
+  [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) style.
+- Reference the pull request in the form
+  `- PR [#PR_NUMBER](https://github.com/marinasundstrom/CheckedExceptions/pull/PR_NUMBER) Description`.
+
+## Documentation
+- Keep user-facing docs current. Update:
+  - `README.md`
+  - `docs/analyzer-specification.md`
+  - `docs/codefix-specification.md`
+  when changes affect functionality or user guidance.
+ - NuGet package README:
+   - `CheckedExceptions.Package/docs/README.md` is published to nuget.org.
+   - Base its content on the root `README.md`, but keep it to a brief introduction and a short example.
+   - Link back to the repository for full documentation and details.
