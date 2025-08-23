@@ -28,6 +28,15 @@ partial class CheckedExceptionsAnalyzer
 
         if (!isTerminal)
         {
+            // If this invocation is the source in a chained LINQ call (e.g., xs.Where(...).Where(...)),
+            // defer handling until the outermost call is analyzed.
+            if (invocationSyntax.Parent is MemberAccessExpressionSyntax { Parent: InvocationExpressionSyntax outer } &&
+                semanticModel.GetOperation(outer, ct) is IInvocationOperation outerOp &&
+                IsLinqExtension(outerOp.TargetMethod))
+            {
+                return;
+            }
+
             // Deferred invocation inside an argument/return is handled at the boundary.
             if (invocationSyntax.FirstAncestorOrSelf<ReturnStatementSyntax>() is not null)
                 return;

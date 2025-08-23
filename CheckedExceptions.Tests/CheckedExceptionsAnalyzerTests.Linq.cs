@@ -131,6 +131,33 @@ public partial class LinqTest
     }
 
     [Fact]
+    public async Task PassDelegateByVariable_Chained()
+    {
+        var test = /* lang=c#-test */ """
+            #nullable enable
+            using System;
+            using System.Collections.Generic;
+            using System.Linq;
+
+            IEnumerable<int> items = [];
+            Func<int, bool> pred = [Throws(typeof(FormatException), typeof(OverflowException))] (z) => int.Parse("10") == z;
+            var query = items.Where(pred).Where(x => x is 0);
+            foreach (var item in query) { }
+            """;
+
+        var expected = Verifier.UnhandledException("FormatException")
+            .WithSpan(9, 22, 9, 27);
+
+        var expected2 = Verifier.UnhandledException("OverflowException")
+            .WithSpan(9, 22, 9, 27);
+
+        await Verifier.VerifyAnalyzerAsync(test, setup: o =>
+        {
+            o.ExpectedDiagnostics.AddRange(expected, expected2);
+        }, executable: true);
+    }
+
+    [Fact]
     public async Task CastOperator()
     {
         var test = /* lang=c#-test */ """
@@ -156,15 +183,9 @@ public partial class LinqTest
         var expected3 = Verifier.UnhandledException("InvalidCastException")
             .WithSpan(11, 22, 11, 27);
 
-        var expected4 = Verifier.UnhandledException("FormatException")
-            .WithSpan(8, 6, 8, 94);
-
-        var expected5 = Verifier.UnhandledException("OverflowException")
-            .WithSpan(8, 6, 8, 94);
-
         await Verifier.VerifyAnalyzerAsync(test, setup: o =>
         {
-            o.ExpectedDiagnostics.AddRange(expected, expected2, expected3, expected4, expected5);
+            o.ExpectedDiagnostics.AddRange(expected, expected2, expected3);
         }, executable: true);
     }
 

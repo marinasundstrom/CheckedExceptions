@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+
+- PR [#287](https://github.com/marinasundstrom/CheckedExceptions/pull/287) Fix LINQ chain diagnostics
+
 ## [2.1.2] - 2025-08-22
 
 ### Added
