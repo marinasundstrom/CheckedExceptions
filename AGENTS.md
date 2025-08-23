@@ -27,3 +27,9 @@
 - Format each changed file using
   `dotnet format <path to dir of solution or project file> --no-restore --include <comma separated list with file paths>`
   to respect `.editorconfig` rules without triggering a restore.
+
+## Changelog
+- Record your changes in `CHANGELOG.md` under the "Unreleased" section using the
+  [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) style.
+- Reference the pull request in the form
+  `- PR [#PR_NUMBER](https://github.com/marinasundstrom/CheckedExceptions/pull/PR_NUMBER) Description`.

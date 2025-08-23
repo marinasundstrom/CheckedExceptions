@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Added
+
+- PR [#PR_NUMBER](https://github.com/marinasundstrom/CheckedExceptions/pull/PR_NUMBER) Handle LINQ methods on `AsyncEnumerable`
+
 ### Fixed
 
 - PR [#287](https://github.com/marinasundstrom/CheckedExceptions/pull/287) Fix LINQ chain diagnostics
