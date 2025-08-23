@@ -5,15 +5,10 @@ namespace Sundstrom.CheckedExceptions;
 
 partial class CheckedExceptionsAnalyzer
 {
-    static INamedTypeSymbol? argumentNullExceptionTypeSymbol;
-
     private static IEnumerable<ExceptionInfo> ProcessNullable(
         Compilation compilation, SemanticModel semanticModel, SyntaxNode node, IMethodSymbol methodSymbol, IEnumerable<ExceptionInfo> exceptionInfos)
     {
-        if (argumentNullExceptionTypeSymbol is null)
-        {
-            argumentNullExceptionTypeSymbol = compilation.GetTypeByMetadataName("System.ArgumentNullException");
-        }
+        var argumentNullExceptionTypeSymbol = compilation.GetTypeByMetadataName("System.ArgumentNullException");
 
         var isCompilationNullableEnabled = compilation.Options.NullableContextOptions is NullableContextOptions.Enable;
 
@@ -59,10 +54,7 @@ partial class CheckedExceptionsAnalyzer
 
     private static IEnumerable<INamedTypeSymbol> ProcessNullable(Compilation compilation, SemanticModel semanticModel, SyntaxNode node, IMethodSymbol methodSymbol, IEnumerable<INamedTypeSymbol> exceptions)
     {
-        if (argumentNullExceptionTypeSymbol is null)
-        {
-            argumentNullExceptionTypeSymbol = compilation.GetTypeByMetadataName("System.ArgumentNullException");
-        }
+        var argumentNullExceptionTypeSymbol = compilation.GetTypeByMetadataName("System.ArgumentNullException");
 
         var isCompilationNullableEnabled = compilation.Options.NullableContextOptions is NullableContextOptions.Enable;
 
