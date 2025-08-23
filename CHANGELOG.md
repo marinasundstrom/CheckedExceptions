@@ -10,6 +10,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- PR [#292](https://github.com/marinasundstrom/CheckedExceptions/pull/292) Materialize deferred enumerables with ToArray
 - PR [#290](https://github.com/marinasundstrom/CheckedExceptions/pull/290) Handle LINQ methods on `AsyncEnumerable`
 - PR [#291](https://github.com/marinasundstrom/CheckedExceptions/pull/291) LINQ support for `IQueryable` enabled by default with option to disable via `disableLinqQueryableSupport`
 
