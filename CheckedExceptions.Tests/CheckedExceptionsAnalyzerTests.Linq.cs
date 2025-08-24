@@ -408,7 +408,7 @@ public partial class LinqTest
             """;
 
         var expected = Verifier.UnhandledException("InvalidCastException")
-            .WithSpan(10, 12, 10, 19);
+            .WithSpan(10, 13, 10, 18);
 
         await Verifier.VerifyAnalyzerAsync(test, setup: o =>
         {
@@ -435,7 +435,7 @@ public partial class LinqTest
             """;
 
         var expected = Verifier.UnhandledException("InvalidCastException")
-            .WithSpan(10, 12, 10, 19);
+            .WithSpan(10, 29, 10, 34);
 
         await Verifier.VerifyAnalyzerAsync(test, setup: o =>
         {
