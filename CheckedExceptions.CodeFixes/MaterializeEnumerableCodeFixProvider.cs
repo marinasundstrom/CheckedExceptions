@@ -33,15 +33,19 @@ public class MaterializeEnumerableCodeFixProvider : CodeFixProvider
         context.RegisterCodeFix(
             CodeAction.Create(
                 Title,
-                c => AddToArrayAsync(context.Document, node, c),
+                c => AddToArrayAsync(context.Document, diagnostic, c),
                 Title),
             context.Diagnostics);
     }
 
-    private static async Task<Document> AddToArrayAsync(Document document, ExpressionSyntax expression, CancellationToken cancellationToken)
+    private static async Task<Document> AddToArrayAsync(Document document, Diagnostic diagnostic, CancellationToken cancellationToken)
     {
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false) as CompilationUnitSyntax;
         if (root is null)
+            return document;
+
+        var expression = root.FindNode(diagnostic.Location.SourceSpan) as ExpressionSyntax;
+        if (expression is null)
             return document;
 
         var exprWithoutTrivia = expression.WithoutTrivia();

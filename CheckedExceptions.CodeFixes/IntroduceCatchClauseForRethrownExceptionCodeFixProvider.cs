@@ -81,7 +81,7 @@ public class IntroduceCatchClauseForRethrownExceptionCodeFixProvider : CodeFixPr
         context.RegisterCodeFix(
             CodeAction.Create(
                 title: diagnosticsCount > 1 ? TitleAddTryCatch.Replace("clause", "clauses") : TitleAddTryCatch,
-                createChangedDocument: c => AddTryCatchAsync(context.Document, (StatementSyntax)throwSite!, diagnostics, c),
+                createChangedDocument: c => AddTryCatchAsync(context.Document, diagnostics, c),
                 equivalenceKey: TitleAddTryCatch),
             diagnostics);
     }
@@ -92,7 +92,7 @@ public class IntroduceCatchClauseForRethrownExceptionCodeFixProvider : CodeFixPr
             ?? node.FirstAncestorOrSelf<LocalFunctionStatementSyntax>();
     }
 
-    private async Task<Document> AddTryCatchAsync(Document document, StatementSyntax statement, IEnumerable<Diagnostic> diagnostics, CancellationToken cancellationToken)
+    private async Task<Document> AddTryCatchAsync(Document document, IEnumerable<Diagnostic> diagnostics, CancellationToken cancellationToken)
     {
         // Retrieve exception types from diagnostics
         var exceptionTypeNames = diagnostics
@@ -104,6 +104,10 @@ public class IntroduceCatchClauseForRethrownExceptionCodeFixProvider : CodeFixPr
         {
             return document;
         }
+
+        var diagnostic = diagnostics.First();
+        var node = root.FindNode(diagnostic.Location.SourceSpan);
+        var statement = (StatementSyntax)(node is ExpressionSyntax expr ? expr.FirstAncestorOrSelf<StatementSyntax>()! : node);
 
         var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
 

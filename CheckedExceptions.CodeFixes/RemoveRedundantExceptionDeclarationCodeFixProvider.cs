@@ -37,14 +37,18 @@ public class RemoveRedundantExceptionDeclarationCodeFixProvider : CodeFixProvide
         context.RegisterCodeFix(
             CodeAction.Create(
                 title: TitleRemoveRedundantExceptionDeclaration,
-                createChangedDocument: c => RemoveRedundantDeclarationAsync(context.Document, argument, c),
+                createChangedDocument: c => RemoveRedundantDeclarationAsync(context.Document, diagnostic, c),
                 equivalenceKey: TitleRemoveRedundantExceptionDeclaration),
             context.Diagnostics);
     }
 
-    private static async Task<Document> RemoveRedundantDeclarationAsync(Document document, AttributeArgumentSyntax argument, CancellationToken cancellationToken)
+    private static async Task<Document> RemoveRedundantDeclarationAsync(Document document, Diagnostic diagnostic, CancellationToken cancellationToken)
     {
         var editor = await DocumentEditor.CreateAsync(document, cancellationToken).ConfigureAwait(false);
+        var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+        var argument = root.FindNode(diagnostic.Location.SourceSpan, getInnermostNodeForTie: true).FirstAncestorOrSelf<AttributeArgumentSyntax>();
+        if (argument is null)
+            return document;
 
         var attribute = (AttributeSyntax)argument.Parent.Parent;
         var list = (AttributeListSyntax)attribute.Parent;
