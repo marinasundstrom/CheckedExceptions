@@ -26,55 +26,14 @@ public class IntroduceCatchClauseForRethrownExceptionCodeFixProvider : CodeFixPr
     public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
     {
         var diagnostics = context.Diagnostics;
-
         var cancellationToken = context.CancellationToken;
         var root = await context.Document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
         var diagnostic = diagnostics.First();
-        var node = root.FindNode(diagnostic.Location.SourceSpan);
 
-        // This is the throw site — could be any expression
-        var throwSite = node;
-
-        // 🔎 Case 1: expression-bodied lambda → no fix possible
-        if (TryGetEnclosingDeferredContext(throwSite) is LambdaExpressionSyntax lambda &&
-            lambda.Body is ExpressionSyntax)
+        if (GetThrowStatement(root, diagnostic) is null)
         {
-            return; // ❌ can't wrap an expression-bodied lambda in try/catch
-        }
-
-        // 🔎 Case 2: inside any lambda or local function
-        if (TryGetEnclosingDeferredContext(throwSite) is { } deferredContext)
-        {
-            var innerTry = throwSite.FirstAncestorOrSelf<TryStatementSyntax>();
-            if (innerTry is null || !deferredContext.Span.Contains(innerTry.Span))
-            {
-                return; // ❌ inside deferred context, but not protected by a nested try
-            }
-        }
-
-        // ✅ Normal case: check for enclosing catch clause
-        var catchClause = throwSite.FirstAncestorOrSelf<CatchClauseSyntax>();
-        if (catchClause?.Block is null || !catchClause.Block.DescendantNodes().Contains(throwSite))
-        {
-            return; // ❌ not inside runtime flow of a try
-        }
-
-        if (catchClause.Declaration is not null)
             return;
-
-        // We need the closest statement
-        if (throwSite is ExpressionSyntax)
-        {
-            throwSite = throwSite.FirstAncestorOrSelf<StatementSyntax>();
         }
-
-        // This fix is only available for expression-less "throw" in a catch all clause
-
-        if (throwSite is not ThrowStatementSyntax throwStatement)
-            return;
-
-        if (throwStatement.Expression is not null)
-            return;
 
         var diagnosticsCount = diagnostics.Length;
 
@@ -92,6 +51,56 @@ public class IntroduceCatchClauseForRethrownExceptionCodeFixProvider : CodeFixPr
             ?? node.FirstAncestorOrSelf<LocalFunctionStatementSyntax>();
     }
 
+    private static ThrowStatementSyntax? GetThrowStatement(SyntaxNode root, Diagnostic diagnostic)
+    {
+        var node = root.FindNode(diagnostic.Location.SourceSpan);
+
+        // This is the throw site — could be any expression
+        var throwSite = node;
+
+        // 🔎 Case 1: expression-bodied lambda → no fix possible
+        if (TryGetEnclosingDeferredContext(throwSite) is LambdaExpressionSyntax lambda &&
+            lambda.Body is ExpressionSyntax)
+        {
+            return null; // ❌ can't wrap an expression-bodied lambda in try/catch
+        }
+
+        // 🔎 Case 2: inside any lambda or local function
+        if (TryGetEnclosingDeferredContext(throwSite) is { } deferredContext)
+        {
+            var innerTry = throwSite.FirstAncestorOrSelf<TryStatementSyntax>();
+            if (innerTry is null || !deferredContext.Span.Contains(innerTry.Span))
+            {
+                return null; // ❌ inside deferred context, but not protected by a nested try
+            }
+        }
+
+        // ✅ Normal case: check for enclosing catch clause
+        var catchClause = throwSite.FirstAncestorOrSelf<CatchClauseSyntax>();
+        if (catchClause?.Block is null || !catchClause.Block.DescendantNodes().Contains(throwSite))
+        {
+            return null; // ❌ not inside runtime flow of a try
+        }
+
+        if (catchClause.Declaration is not null)
+            return null;
+
+        // We need the closest statement
+        if (throwSite is ExpressionSyntax)
+        {
+            throwSite = throwSite.FirstAncestorOrSelf<StatementSyntax>();
+        }
+
+        // This fix is only available for expression-less "throw" in a catch all clause
+        if (throwSite is not ThrowStatementSyntax throwStatement)
+            return null;
+
+        if (throwStatement.Expression is not null)
+            return null;
+
+        return throwStatement;
+    }
+
     private async Task<Document> AddTryCatchAsync(Document document, IEnumerable<Diagnostic> diagnostics, CancellationToken cancellationToken)
     {
         // Retrieve exception types from diagnostics
@@ -99,15 +108,17 @@ public class IntroduceCatchClauseForRethrownExceptionCodeFixProvider : CodeFixPr
             .Select(diagnostic => diagnostic.Properties.ContainsKey("ExceptionType") ? diagnostic.Properties["ExceptionType"]! : string.Empty);
 
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-
         if (root is null)
         {
             return document;
         }
 
         var diagnostic = diagnostics.First();
-        var node = root.FindNode(diagnostic.Location.SourceSpan);
-        var statement = (StatementSyntax)(node is ExpressionSyntax expr ? expr.FirstAncestorOrSelf<StatementSyntax>()! : node);
+        var statement = GetThrowStatement(root, diagnostic);
+        if (statement is null)
+        {
+            return document;
+        }
 
         var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
 

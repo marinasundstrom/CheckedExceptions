@@ -28,8 +28,7 @@ public class RemoveRedundantExceptionDeclarationCodeFixProvider : CodeFixProvide
     {
         var diagnostic = context.Diagnostics.First();
         var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken).ConfigureAwait(false);
-        var node = root.FindNode(diagnostic.Location.SourceSpan, getInnermostNodeForTie: true);
-        var argument = node.FirstAncestorOrSelf<AttributeArgumentSyntax>();
+        var argument = GetArgument(root, diagnostic);
 
         if (argument is null)
             return;
@@ -45,8 +44,7 @@ public class RemoveRedundantExceptionDeclarationCodeFixProvider : CodeFixProvide
     private static async Task<Document> RemoveRedundantDeclarationAsync(Document document, Diagnostic diagnostic, CancellationToken cancellationToken)
     {
         var editor = await DocumentEditor.CreateAsync(document, cancellationToken).ConfigureAwait(false);
-        var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-        var argument = root.FindNode(diagnostic.Location.SourceSpan, getInnermostNodeForTie: true).FirstAncestorOrSelf<AttributeArgumentSyntax>();
+        var argument = GetArgument(editor.OriginalRoot, diagnostic);
         if (argument is null)
             return document;
 
@@ -74,5 +72,11 @@ public class RemoveRedundantExceptionDeclarationCodeFixProvider : CodeFixProvide
         }
 
         return editor.GetChangedDocument();
+    }
+
+    private static AttributeArgumentSyntax? GetArgument(SyntaxNode root, Diagnostic diagnostic)
+    {
+        var node = root.FindNode(diagnostic.Location.SourceSpan, getInnermostNodeForTie: true);
+        return node.FirstAncestorOrSelf<AttributeArgumentSyntax>();
     }
 }
