@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [2.2.2] - 2025-08-24
+
 ### Fixed
 
 - PR [#296](https://github.com/marinasundstrom/CheckedExceptions/pull/296) Fetch updated syntax nodes in code fixes to ensure batch fixes apply correctly
