@@ -335,6 +335,25 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         if (returnStatementSyntax.Expression is null)
             return;
 
+        if (returnStatementSyntax.Expression is CollectionExpressionSyntax coll &&
+            coll.Elements.Any(e => e is SpreadElementSyntax))
+        {
+            var spreadExceptionTypes = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
+
+            CollectEnumerationExceptions(returnOp.ReturnedValue, spreadExceptionTypes, context.Compilation, semanticModel, settings, context.CancellationToken);
+
+            spreadExceptionTypes = new HashSet<INamedTypeSymbol>(
+                ProcessNullable(context.Compilation, context.SemanticModel, returnStatementSyntax.Expression, null, spreadExceptionTypes),
+                SymbolEqualityComparer.Default);
+
+            foreach (var t in spreadExceptionTypes.Distinct(SymbolEqualityComparer.Default))
+            {
+                AnalyzeExceptionThrowingNode(context, returnStatementSyntax.Expression, (INamedTypeSymbol)t!, settings);
+            }
+
+            return;
+        }
+
         // Collect exceptions that will surface when enumeration happens
         var exceptionTypes = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
 
