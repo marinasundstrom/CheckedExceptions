@@ -26,7 +26,7 @@ public class MaterializeEnumerableCodeFixProvider : CodeFixProvider
     {
         var root = await context.Document.GetSyntaxRootAsync(context.CancellationToken).ConfigureAwait(false);
         var diagnostic = context.Diagnostics.First();
-        var node = root?.FindNode(diagnostic.Location.SourceSpan) as ExpressionSyntax;
+        var node = GetExpression(root, diagnostic);
         if (node is null)
             return;
 
@@ -44,7 +44,7 @@ public class MaterializeEnumerableCodeFixProvider : CodeFixProvider
         if (root is null)
             return document;
 
-        var expression = root.FindNode(diagnostic.Location.SourceSpan) as ExpressionSyntax;
+        var expression = GetExpression(root, diagnostic);
         if (expression is null)
             return document;
 
@@ -71,4 +71,7 @@ public class MaterializeEnumerableCodeFixProvider : CodeFixProvider
 
         return document.WithSyntaxRoot(newRoot);
     }
+
+    private static ExpressionSyntax? GetExpression(SyntaxNode? root, Diagnostic diagnostic)
+        => root?.FindNode(diagnostic.Location.SourceSpan) as ExpressionSyntax;
 }

@@ -31,12 +31,9 @@ public class SurroundWithTryCatchCodeFixProvider : CodeFixProvider
         var cancellationToken = context.CancellationToken;
         var root = await context.Document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
         var diagnostic = diagnostics.First();
-        var node = root.FindNode(diagnostic.Location.SourceSpan);
-
-        if (node is ArgumentSyntax argument)
-        {
-            node = argument.Expression;
-        }
+        var node = GetNode(root, diagnostic);
+        if (node is null)
+            return;
 
         if (IsInExpressionBody(node, out _))
         {
@@ -118,9 +115,9 @@ public class SurroundWithTryCatchCodeFixProvider : CodeFixProvider
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
         if (root is null) return document;
 
-        var node = root.FindNode(diagnostics.First().Location.SourceSpan);
-        if (node is ArgumentSyntax argument)
-            node = argument.Expression;
+        var node = GetNode(root, diagnostics.First());
+        if (node is null)
+            return document;
 
         if (!IsInExpressionBody(node, out var rootExpression))
             return document;
@@ -257,9 +254,9 @@ public class SurroundWithTryCatchCodeFixProvider : CodeFixProvider
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
         if (root is null) return document;
 
-        var node = root.FindNode(diagnostics.First().Location.SourceSpan);
-        if (node is ArgumentSyntax argument)
-            node = argument.Expression;
+        var node = GetNode(root, diagnostics.First());
+        if (node is null)
+            return document;
 
         StatementSyntax? statement = node is GlobalStatementSyntax g ? g.Statement : node.FirstAncestorOrSelf<StatementSyntax>();
         if (statement is null)
@@ -438,6 +435,16 @@ public class SurroundWithTryCatchCodeFixProvider : CodeFixProvider
         }
 
         return document.WithSyntaxRoot(newRoot);
+    }
+
+    private static SyntaxNode? GetNode(SyntaxNode root, Diagnostic diagnostic)
+    {
+        var node = root.FindNode(diagnostic.Location.SourceSpan);
+        if (node is ArgumentSyntax argument)
+        {
+            node = argument.Expression;
+        }
+        return node;
     }
 
     private static TryStatementSyntax CreateTryStatement(IEnumerable<string> exceptionTypeNames, List<StatementSyntax> statementsToWrap)

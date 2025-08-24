@@ -29,13 +29,10 @@ public class AddThrowsDeclarationCodeFixProvider : CodeFixProvider
     public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
     {
         var diagnostics = context.Diagnostics;
-
         var cancellationToken = context.CancellationToken;
         var root = await context.Document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-        var node = root.FindNode(diagnostics.First().Location.SourceSpan);
-
-        // This fix is not applicable to top-level statements
-        if (node.IsInTopLevelStatement())
+        var node = GetDiagnosticNode(root, diagnostics.First());
+        if (node is null)
             return;
 
         var diagnosticsCount = diagnostics.Length;
@@ -56,7 +53,9 @@ public class AddThrowsDeclarationCodeFixProvider : CodeFixProvider
 
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
 
-        var node = root.FindNode(diagnostics.First().Location.SourceSpan);
+        var node = GetDiagnosticNode(root, diagnostics.First());
+        if (node is null)
+            return document;
 
         var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
 
@@ -188,6 +187,14 @@ public class AddThrowsDeclarationCodeFixProvider : CodeFixProvider
         }
 
         return document;
+    }
+
+    private static SyntaxNode? GetDiagnosticNode(SyntaxNode root, Diagnostic diagnostic)
+    {
+        var node = root.FindNode(diagnostic.Location.SourceSpan);
+
+        // This fix is not applicable to top-level statements
+        return node.IsInTopLevelStatement() ? null : node;
     }
 
     private IEnumerable<AttributeSyntax>? GetThrowsAttributes(SyntaxNode ancestor)

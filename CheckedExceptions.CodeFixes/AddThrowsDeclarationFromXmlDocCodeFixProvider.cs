@@ -36,27 +36,7 @@ public class AddThrowsDeclarationFromXmlDocCodeFixProvider : CodeFixProvider
         if (root is null)
             return;
 
-        var node = root.FindNode(diagnostics.First().Location.SourceSpan);
-
-        SyntaxNode? targetNode = null;
-
-        if (node is GlobalStatementSyntax globalStatement)
-        {
-            targetNode = globalStatement.Statement as LocalFunctionStatementSyntax;
-        }
-        else if (node is PropertyDeclarationSyntax propertyDeclaration)
-        {
-            targetNode = propertyDeclaration;
-        }
-        else if (node is AccessorDeclarationSyntax accessorDeclaration)
-        {
-            targetNode = accessorDeclaration;
-        }
-        else
-        {
-            targetNode = (SyntaxNode?)node.FirstAncestorOrSelf<LocalFunctionStatementSyntax>()
-                ?? node.FirstAncestorOrSelf<BaseMethodDeclarationSyntax>();
-        }
+        var targetNode = GetTargetNode(root, diagnostics.First());
 
         if (targetNode is null)
             return;
@@ -80,27 +60,7 @@ public class AddThrowsDeclarationFromXmlDocCodeFixProvider : CodeFixProvider
         if (root is null)
             return document;
 
-        var node = root.FindNode(diagnostics.First().Location.SourceSpan);
-
-        SyntaxNode? targetNode = null;
-
-        if (node is GlobalStatementSyntax globalStatement)
-        {
-            targetNode = globalStatement.Statement as LocalFunctionStatementSyntax;
-        }
-        else if (node is PropertyDeclarationSyntax propertyDeclaration)
-        {
-            targetNode = propertyDeclaration;
-        }
-        else if (node is AccessorDeclarationSyntax accessorDeclaration)
-        {
-            targetNode = accessorDeclaration;
-        }
-        else
-        {
-            targetNode = (SyntaxNode?)node.FirstAncestorOrSelf<LocalFunctionStatementSyntax>()
-                ?? node.FirstAncestorOrSelf<BaseMethodDeclarationSyntax>();
-        }
+        var targetNode = GetTargetNode(root, diagnostics.First());
 
         if (targetNode is null)
             return document;
@@ -178,5 +138,26 @@ public class AddThrowsDeclarationFromXmlDocCodeFixProvider : CodeFixProvider
         var newRoot = root.ReplaceNode(targetNode, newNode);
 
         return document.WithSyntaxRoot(newRoot);
+    }
+
+    private static SyntaxNode? GetTargetNode(SyntaxNode root, Diagnostic diagnostic)
+    {
+        var node = root.FindNode(diagnostic.Location.SourceSpan);
+
+        if (node is GlobalStatementSyntax globalStatement)
+        {
+            return globalStatement.Statement as LocalFunctionStatementSyntax;
+        }
+        else if (node is PropertyDeclarationSyntax propertyDeclaration)
+        {
+            return propertyDeclaration;
+        }
+        else if (node is AccessorDeclarationSyntax accessorDeclaration)
+        {
+            return accessorDeclaration;
+        }
+
+        return (SyntaxNode?)node.FirstAncestorOrSelf<LocalFunctionStatementSyntax>()
+            ?? node.FirstAncestorOrSelf<BaseMethodDeclarationSyntax>();
     }
 }

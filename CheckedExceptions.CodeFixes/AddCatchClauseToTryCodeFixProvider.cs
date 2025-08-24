@@ -25,43 +25,13 @@ public class AddCatchClauseToTryCodeFixProvider : CodeFixProvider
     public sealed override async Task RegisterCodeFixesAsync(CodeFixContext context)
     {
         var diagnostics = context.Diagnostics;
-
         var cancellationToken = context.CancellationToken;
         var root = await context.Document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
         var diagnostic = diagnostics.First();
-        var node = root.FindNode(diagnostic.Location.SourceSpan);
 
-        // This is the throw site — could be any expression
-        var throwSite = node;
-
-        // 🔎 Case 1: expression-bodied lambda → no fix possible
-        if (TryGetEnclosingDeferredContext(throwSite) is LambdaExpressionSyntax lambda &&
-            lambda.Body is ExpressionSyntax)
+        if (GetTargetStatement(root, diagnostic) is null)
         {
-            return; // ❌ can't wrap an expression-bodied lambda in try/catch
-        }
-
-        // 🔎 Case 2: inside any lambda or local function
-        if (TryGetEnclosingDeferredContext(throwSite) is { } deferredContext)
-        {
-            var innerTry = throwSite.FirstAncestorOrSelf<TryStatementSyntax>();
-            if (innerTry is null || !deferredContext.Span.Contains(innerTry.Span))
-            {
-                return; // ❌ inside deferred context, but not protected by a nested try
-            }
-        }
-
-        // ✅ Normal case: check for enclosing try that covers this throw site
-        var tryStatement = throwSite.FirstAncestorOrSelf<TryStatementSyntax>();
-        if (tryStatement?.Block is null || !tryStatement.Block.DescendantNodes().Contains(throwSite))
-        {
-            return; // ❌ not inside runtime flow of a try
-        }
-
-        // We need the closest statement
-        if (throwSite is ExpressionSyntax)
-        {
-            throwSite = throwSite.FirstAncestorOrSelf<StatementSyntax>();
+            return;
         }
 
         var diagnosticsCount = diagnostics.Length;
@@ -80,6 +50,46 @@ public class AddCatchClauseToTryCodeFixProvider : CodeFixProvider
             ?? node.FirstAncestorOrSelf<LocalFunctionStatementSyntax>();
     }
 
+    private static StatementSyntax? GetTargetStatement(SyntaxNode root, Diagnostic diagnostic)
+    {
+        var node = root.FindNode(diagnostic.Location.SourceSpan);
+
+        // This is the throw site — could be any expression
+        var throwSite = node;
+
+        // 🔎 Case 1: expression-bodied lambda → no fix possible
+        if (TryGetEnclosingDeferredContext(throwSite) is LambdaExpressionSyntax lambda &&
+            lambda.Body is ExpressionSyntax)
+        {
+            return null; // ❌ can't wrap an expression-bodied lambda in try/catch
+        }
+
+        // 🔎 Case 2: inside any lambda or local function
+        if (TryGetEnclosingDeferredContext(throwSite) is { } deferredContext)
+        {
+            var innerTry = throwSite.FirstAncestorOrSelf<TryStatementSyntax>();
+            if (innerTry is null || !deferredContext.Span.Contains(innerTry.Span))
+            {
+                return null; // ❌ inside deferred context, but not protected by a nested try
+            }
+        }
+
+        // ✅ Normal case: check for enclosing try that covers this throw site
+        var tryStatement = throwSite.FirstAncestorOrSelf<TryStatementSyntax>();
+        if (tryStatement?.Block is null || !tryStatement.Block.DescendantNodes().Contains(throwSite))
+        {
+            return null; // ❌ not inside runtime flow of a try
+        }
+
+        // We need the closest statement
+        if (throwSite is ExpressionSyntax)
+        {
+            throwSite = throwSite.FirstAncestorOrSelf<StatementSyntax>();
+        }
+
+        return throwSite as StatementSyntax;
+    }
+
     private async Task<Document> AddTryCatchAsync(Document document, IEnumerable<Diagnostic> diagnostics, CancellationToken cancellationToken)
     {
         // Retrieve exception types from diagnostics
@@ -87,15 +97,17 @@ public class AddCatchClauseToTryCodeFixProvider : CodeFixProvider
             .Select(diagnostic => diagnostic.Properties.ContainsKey("ExceptionType") ? diagnostic.Properties["ExceptionType"]! : string.Empty);
 
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
-
         if (root is null)
         {
             return document;
         }
 
         var diagnostic = diagnostics.First();
-        var node = root.FindNode(diagnostic.Location.SourceSpan);
-        var statement = (StatementSyntax)(node is ExpressionSyntax expr ? expr.FirstAncestorOrSelf<StatementSyntax>()! : node);
+        var statement = GetTargetStatement(root, diagnostic);
+        if (statement is null)
+        {
+            return document;
+        }
 
         var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
 
