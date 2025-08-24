@@ -98,6 +98,27 @@ public class LinqTest
         return q0.FirstOrDefault();
     }
 
+    private static IEnumerable<int> Cast3_2()
+    {
+        IEnumerable<object> xs2 = [];
+        var q0 = xs2
+            .Where((x) => x is not null)
+            .Cast<int>();
+
+        return [.. q0];
+    }
+
+    private static IEnumerable<int> Cast3_3()
+    {
+        IEnumerable<object> xs2 = [];
+        var q0 = xs2
+            .Where((x) => x is not null)
+            .Cast<int>();
+
+        IEnumerable<int> items = [.. q0];
+        return items;
+    }
+
     private static IEnumerable<int> Cast4()
     {
         IEnumerable<object> xs2 = [];
