@@ -38,12 +38,12 @@ public class SurroundWithTryCatchCodeFixProvider : CodeFixProvider
             node = argument.Expression;
         }
 
-        if (IsInExpressionBody(node, out var rootExpression))
+        if (IsInExpressionBody(node, out _))
         {
             context.RegisterCodeFix(
                 CodeAction.Create(
                     title: TitleAddTryCatch,
-                    createChangedDocument: c => AddTryCatchToExpressionBodyAsync(context.Document, rootExpression!, diagnostics, c),
+                    createChangedDocument: c => AddTryCatchToExpressionBodyAsync(context.Document, diagnostics, c),
                     equivalenceKey: TitleAddTryCatch),
                 diagnostics);
 
@@ -57,7 +57,7 @@ public class SurroundWithTryCatchCodeFixProvider : CodeFixProvider
         context.RegisterCodeFix(
             CodeAction.Create(
                 title: TitleAddTryCatch,
-                createChangedDocument: c => AddTryCatchAroundStatementAsync(context.Document, statement, diagnostics, WrapStrategy.MinimalTransitive, c),
+                createChangedDocument: c => AddTryCatchAroundStatementAsync(context.Document, diagnostics, WrapStrategy.MinimalTransitive, c),
                 equivalenceKey: TitleAddTryCatch),
             diagnostics);
     }
@@ -113,10 +113,19 @@ public class SurroundWithTryCatchCodeFixProvider : CodeFixProvider
         return false;
     }
 
-    private async Task<Document> AddTryCatchToExpressionBodyAsync(Document document, ExpressionSyntax expression, ImmutableArray<Diagnostic> diagnostics, CancellationToken cancellationToken)
+    private async Task<Document> AddTryCatchToExpressionBodyAsync(Document document, ImmutableArray<Diagnostic> diagnostics, CancellationToken cancellationToken)
     {
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
         if (root is null) return document;
+
+        var node = root.FindNode(diagnostics.First().Location.SourceSpan);
+        if (node is ArgumentSyntax argument)
+            node = argument.Expression;
+
+        if (!IsInExpressionBody(node, out var rootExpression))
+            return document;
+
+        var expression = rootExpression!;
 
         SyntaxNode newRoot = default!;
 
@@ -238,7 +247,6 @@ public class SurroundWithTryCatchCodeFixProvider : CodeFixProvider
 
     private async Task<Document> AddTryCatchAroundStatementAsync(
         Document document,
-        StatementSyntax statement,
         IEnumerable<Diagnostic> diagnostics,
         WrapStrategy strategy,
         CancellationToken cancellationToken)
@@ -248,6 +256,14 @@ public class SurroundWithTryCatchCodeFixProvider : CodeFixProvider
 
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
         if (root is null) return document;
+
+        var node = root.FindNode(diagnostics.First().Location.SourceSpan);
+        if (node is ArgumentSyntax argument)
+            node = argument.Expression;
+
+        StatementSyntax? statement = node is GlobalStatementSyntax g ? g.Statement : node.FirstAncestorOrSelf<StatementSyntax>();
+        if (statement is null)
+            return document;
 
         var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
         SyntaxNode newRoot;

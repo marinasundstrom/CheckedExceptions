@@ -68,14 +68,42 @@ public class AddThrowsDeclarationFromXmlDocCodeFixProvider : CodeFixProvider
                 title: diagnosticsCount > 1
                     ? Title.Replace("declaration", "declarations")
                     : Title,
-                createChangedDocument: c => ApplyCodefix(context.Document, targetNode, diagnostics, c),
+                createChangedDocument: c => ApplyCodefix(context.Document, diagnostics, c),
                 equivalenceKey: Title),
             diagnostics);
     }
 
-    private static async Task<Document> ApplyCodefix(Document document, SyntaxNode targetNode, IEnumerable<Diagnostic> diagnostics, CancellationToken cancellationToken)
+    private static async Task<Document> ApplyCodefix(Document document, IEnumerable<Diagnostic> diagnostics, CancellationToken cancellationToken)
     {
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+
+        if (root is null)
+            return document;
+
+        var node = root.FindNode(diagnostics.First().Location.SourceSpan);
+
+        SyntaxNode? targetNode = null;
+
+        if (node is GlobalStatementSyntax globalStatement)
+        {
+            targetNode = globalStatement.Statement as LocalFunctionStatementSyntax;
+        }
+        else if (node is PropertyDeclarationSyntax propertyDeclaration)
+        {
+            targetNode = propertyDeclaration;
+        }
+        else if (node is AccessorDeclarationSyntax accessorDeclaration)
+        {
+            targetNode = accessorDeclaration;
+        }
+        else
+        {
+            targetNode = (SyntaxNode?)node.FirstAncestorOrSelf<LocalFunctionStatementSyntax>()
+                ?? node.FirstAncestorOrSelf<BaseMethodDeclarationSyntax>();
+        }
+
+        if (targetNode is null)
+            return document;
 
         // Collect exception type names from diagnostics
         var exceptionsToAdd = diagnostics

@@ -44,17 +44,19 @@ public class AddThrowsDeclarationCodeFixProvider : CodeFixProvider
         context.RegisterCodeFix(
         CodeAction.Create(
             title: diagnosticsCount > 1 ? TitleAddThrowsAttribute.Replace("declaration", "declarations") : TitleAddThrowsAttribute,
-            createChangedDocument: c => AddThrowsAttributeAsync(context.Document, node, diagnostics, c),
+            createChangedDocument: c => AddThrowsAttributeAsync(context.Document, diagnostics, c),
             equivalenceKey: TitleAddThrowsAttribute),
         diagnostics);
     }
 
-    private async Task<Document> AddThrowsAttributeAsync(Document document, SyntaxNode node, IEnumerable<Diagnostic> diagnostics, CancellationToken cancellationToken)
+    private async Task<Document> AddThrowsAttributeAsync(Document document, IEnumerable<Diagnostic> diagnostics, CancellationToken cancellationToken)
     {
         // Attempt to retrieve the exception type from diagnostic arguments
         var exceptionTypeNames = diagnostics.Select(diagnostic => diagnostic.Properties["ExceptionType"]);
 
         var root = await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false);
+
+        var node = root.FindNode(diagnostics.First().Location.SourceSpan);
 
         var semanticModel = await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false);
 
