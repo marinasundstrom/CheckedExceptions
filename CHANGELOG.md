@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [2.2.3] - 2025-08-24
+
 ### Fixed
 
 - PR [#298](https://github.com/marinasundstrom/CheckedExceptions/pull/298) Report LINQ exceptions for spread elements in collection expressions
