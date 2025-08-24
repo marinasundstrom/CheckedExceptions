@@ -371,10 +371,13 @@ partial class CheckedExceptionsAnalyzer
         var collectionExpressions = expression.DescendantNodesAndSelf().OfType<CollectionExpressionSyntax>();
         foreach (var collectionExpr in collectionExpressions)
         {
-            var op = semanticModel.GetOperation(collectionExpr);
-            if (op is not null)
+            foreach (var spread in collectionExpr.Elements.OfType<SpreadElementSyntax>())
             {
-                CollectEnumerationExceptions(op, exceptions, compilation, semanticModel, settings, default);
+                var op = semanticModel.GetOperation(spread.Expression);
+                if (op is not null)
+                {
+                    CollectEnumerationExceptions(op, exceptions, compilation, semanticModel, settings, default);
+                }
             }
         }
     }

@@ -333,21 +333,7 @@ partial class CheckedExceptionsAnalyzer
             break;
         }
 
-        if (inner is ICollectionExpressionOperation collExpr && collExpr.Syntax is CollectionExpressionSyntax ces)
-        {
-            foreach (var element in ces.Elements)
-            {
-                if (element is SpreadElementSyntax spreadSyntax)
-                {
-                    var spreadOp = semanticModel.GetOperation(spreadSyntax.Expression, ct);
-                    if (spreadOp is not null)
-                    {
-                        CollectEnumerationExceptions(spreadOp, exceptionTypes, compilation, semanticModel, settings, ct);
-                    }
-                }
-            }
-            return;
-        }
+        // Collection expression spread elements are handled by callers.
 
         if (inner is IInvocationOperation inv &&
             IsLinqExtension(inv.TargetMethod, settings) &&
