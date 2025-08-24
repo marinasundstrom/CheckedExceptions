@@ -306,7 +306,7 @@ partial class CheckedExceptionsAnalyzer
         return false;
     }
 
-    private void CollectEnumerationExceptions(
+    private static void CollectEnumerationExceptions(
         IOperation collection,
         HashSet<INamedTypeSymbol> exceptionTypes,
         Compilation compilation,
@@ -333,6 +333,8 @@ partial class CheckedExceptionsAnalyzer
             break;
         }
 
+        // Collection expression spread elements are handled by callers.
+
         if (inner is IInvocationOperation inv &&
             IsLinqExtension(inv.TargetMethod, settings) &&
             LinqKnowledge.TerminalOps.Contains(GetLinqName(inv.TargetMethod)))
@@ -341,7 +343,7 @@ partial class CheckedExceptionsAnalyzer
         }
 
         // Walk upstream through the LINQ chain, harvesting [Throws] on deferred operators.
-        CollectDeferredChainExceptions_ForEnumeration(collection, exceptionTypes, semanticModel.Compilation, semanticModel, settings, ct);
+        CollectDeferredChainExceptions_ForEnumeration(inner, exceptionTypes, semanticModel.Compilation, semanticModel, settings, ct);
     }
 
     private static void CollectDeferredChainExceptions_ForEnumeration(

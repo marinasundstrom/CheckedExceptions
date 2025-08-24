@@ -391,6 +391,59 @@ public partial class LinqTest
     }
 
     [Fact]
+    public async Task SpreadMaterializesQuery()
+    {
+        var test = /* lang=c#-test */ """
+            #nullable enable
+            using System;
+            using System.Collections.Generic;
+            using System.Linq;
+
+            IEnumerable<int> Cast4()
+            {
+                IEnumerable<object> xs2 = [];
+                var q0 = xs2.Where(x => x is not null).Cast<int>();
+                return [.. q0];
+            }
+            """;
+
+        var expected = Verifier.UnhandledException("InvalidCastException")
+            .WithSpan(10, 13, 10, 18);
+
+        await Verifier.VerifyAnalyzerAsync(test, setup: o =>
+        {
+            o.ExpectedDiagnostics.Add(expected);
+        }, executable: true);
+    }
+
+    [Fact]
+    public async Task Spread()
+    {
+        var test = /* lang=c#-test */ """
+            #nullable enable
+            using System;
+            using System.Collections.Generic;
+            using System.Linq;
+
+            IEnumerable<int> Cast4()
+            {
+                IEnumerable<object> xs2 = [];
+                var q0 = xs2.Where(x => x is not null).Cast<int>();
+                IEnumerable<int> foo = [.. q0];
+                return foo;
+            }
+            """;
+
+        var expected = Verifier.UnhandledException("InvalidCastException")
+            .WithSpan(10, 29, 10, 34);
+
+        await Verifier.VerifyAnalyzerAsync(test, setup: o =>
+        {
+            o.ExpectedDiagnostics.Add(expected);
+        }, executable: true);
+    }
+
+    [Fact]
     public async Task ReturnQuery()
     {
         var test = /* lang=c#-test */ """

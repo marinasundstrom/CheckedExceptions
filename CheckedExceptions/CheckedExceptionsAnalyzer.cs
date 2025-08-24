@@ -260,6 +260,39 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         context.RegisterSyntaxNodeAction(AnalyzeForeachStatement, SyntaxKind.ForEachStatement);
         context.RegisterSyntaxNodeAction(AnalyzeReturnStatement, SyntaxKind.ReturnStatement);
         context.RegisterSyntaxNodeAction(AnalyzeArgument, SyntaxKind.Argument);
+        context.RegisterSyntaxNodeAction(AnalyzeSpreadElement, SyntaxKind.SpreadElement);
+    }
+
+    private void AnalyzeSpreadElement(SyntaxNodeAnalysisContext context)
+    {
+        var spreadSyntax = (SpreadElementSyntax)context.Node;
+
+        var settings = GetAnalyzerSettings(context.Options);
+
+        if (!settings.IsLinqSupportEnabled)
+            return;
+
+        if (!settings.IsLinqEnumerableBoundaryWarningsEnabled)
+            return;
+
+        var semanticModel = context.SemanticModel;
+
+        var spreadOp = semanticModel.GetOperation(spreadSyntax.Expression, context.CancellationToken);
+        if (spreadOp is null)
+            return;
+
+        var exceptionTypes = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
+
+        CollectEnumerationExceptions(spreadOp, exceptionTypes, context.Compilation, semanticModel, settings, context.CancellationToken);
+
+        exceptionTypes = new HashSet<INamedTypeSymbol>(
+            ProcessNullable(context.Compilation, semanticModel, spreadSyntax.Expression, null, exceptionTypes),
+            SymbolEqualityComparer.Default);
+
+        foreach (var t in exceptionTypes.Distinct(SymbolEqualityComparer.Default))
+        {
+            AnalyzeExceptionThrowingNode(context, spreadSyntax, (INamedTypeSymbol?)t, settings);
+        }
     }
 
     private void AnalyzeArgument(SyntaxNodeAnalysisContext context)
@@ -285,6 +318,12 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
         if (argumentSyntax.Expression is null)
             return;
+
+        if (argumentSyntax.Expression is CollectionExpressionSyntax coll &&
+            coll.Elements.Any(e => e is SpreadElementSyntax))
+        {
+            return;
+        }
 
         // If the argument materializes the sequence (e.g., ToArray()),
         // the invocation analysis will handle diagnostics. Skip boundary reporting.
@@ -335,6 +374,12 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         if (returnStatementSyntax.Expression is null)
             return;
 
+        if (returnStatementSyntax.Expression is CollectionExpressionSyntax coll &&
+            coll.Elements.Any(e => e is SpreadElementSyntax))
+        {
+            return;
+        }
+
         // Collect exceptions that will surface when enumeration happens
         var exceptionTypes = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
 
@@ -384,6 +429,12 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         var op = semanticModel.GetOperation(forEachSyntax);
         if (op is not IForEachLoopOperation forEachOp)
             return;
+
+        if (forEachSyntax.Expression is CollectionExpressionSyntax coll &&
+            coll.Elements.Any(e => e is SpreadElementSyntax))
+        {
+            return;
+        }
 
         // Collect exceptions that will surface when enumeration happens
         var exceptionTypes = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);

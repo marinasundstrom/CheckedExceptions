@@ -367,6 +367,19 @@ partial class CheckedExceptionsAnalyzer
                 }
             }
         }
+
+        var collectionExpressions = expression.DescendantNodesAndSelf().OfType<CollectionExpressionSyntax>();
+        foreach (var collectionExpr in collectionExpressions)
+        {
+            foreach (var spread in collectionExpr.Elements.OfType<SpreadElementSyntax>())
+            {
+                var op = semanticModel.GetOperation(spread.Expression);
+                if (op is not null)
+                {
+                    CollectEnumerationExceptions(op, exceptions, compilation, semanticModel, settings, default);
+                }
+            }
+        }
     }
 
     private static HashSet<INamedTypeSymbol>? GetCaughtExceptions(SyntaxList<CatchClauseSyntax> catchClauses, SemanticModel semanticModel)
