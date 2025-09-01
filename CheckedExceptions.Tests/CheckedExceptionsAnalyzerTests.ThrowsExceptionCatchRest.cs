@@ -18,6 +18,8 @@ public partial class CheckedExceptionsAnalyzerTests
                 [Throws(typeof(InvalidOperationException), typeof(Exception))]
                 public void TestMethod()
                 {
+                    // Throws "FormatException" and "OverflowException"
+                    var x = int.Parse("42");
                     throw new InvalidOperationException();
                 }
             }
@@ -40,6 +42,8 @@ public partial class CheckedExceptionsAnalyzerTests
                 [Throws(typeof(InvalidOperationException), typeof(Exception))]
                 public void TestMethod()
                 {
+                    // Throws "FormatException" and "OverflowException"
+                    var x = int.Parse("42");
                     throw new InvalidOperationException();
                 }
             }
