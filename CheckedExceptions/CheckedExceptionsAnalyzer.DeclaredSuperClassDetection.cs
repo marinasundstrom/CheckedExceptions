@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Threading;
 
 using Microsoft.CodeAnalysis;
@@ -13,6 +14,7 @@ partial class CheckedExceptionsAnalyzer
         ThrowsContext context)
     {
         var semanticModel = context.SemanticModel;
+        var settings = GetAnalyzerSettings(context.Options);
         var declaredTypes = new HashSet<INamedTypeSymbol>(SymbolEqualityComparer.Default);
         var typeToExprMap = new Dictionary<INamedTypeSymbol, TypeOfExpressionSyntax>(SymbolEqualityComparer.Default);
 
@@ -30,6 +32,18 @@ partial class CheckedExceptionsAnalyzer
 
                     declaredTypes.Add(exceptionType);
                     typeToExprMap[exceptionType] = typeOfExpr;
+                }
+            }
+        }
+
+        if (settings.TreatThrowsExceptionAsCatchRestEnabled)
+        {
+            foreach (var type in declaredTypes.ToArray())
+            {
+                if (type.Name == "Exception" && type.ContainingNamespace?.ToDisplayString() == "System")
+                {
+                    declaredTypes.Remove(type);
+                    typeToExprMap.Remove(type);
                 }
             }
         }

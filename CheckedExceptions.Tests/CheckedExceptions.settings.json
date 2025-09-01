@@ -12,6 +12,7 @@
     "disableLinqImplicitlyDeclaredExceptions": false,
     "disableControlFlowAnalysis": false,
     "enableLegacyRedundancyChecks": false,
+    "treatThrowsExceptionAsCatchRest": false,
     "disableBaseExceptionDeclaredDiagnostic": false,
     "disableBaseExceptionThrownDiagnostic": false
 }

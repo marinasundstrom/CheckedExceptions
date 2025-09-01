@@ -191,6 +191,7 @@ Control flow analysis is also used to determine whether declarations are truly n
 * **Duplicate declarations** → **`THROW005`**
 
 * **Already covered by base type** → **`THROW008`**
+  (suppressed when `treatThrowsExceptionAsCatchRest` is enabled and the base type is `System.Exception`)
 
 ### Invalid placement (Core analysis)
 
@@ -469,6 +470,17 @@ These options control whether to warn about the usage of base type `Exception`.
 ```
 
 > If another analyzer is used, it might warn about the use of base type `Exceptions` instead.
+
+
+### Treat `[Throws(typeof(Exception))]` as catch-all
+
+Allows `[Throws(typeof(Exception))]` to act as a catch-all for undeclared exceptions and suppresses diagnostic `THROW008` for redundant declarations covered by `System.Exception`. The base-type declaration diagnostic (`THROW003`) remains active and can be disabled via `disableBaseExceptionDeclaredDiagnostic`.
+
+```json
+{
+    "treatThrowsExceptionAsCatchRest": true
+}
+```
 
 
 ### Disable LINQ support

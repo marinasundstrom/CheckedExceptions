@@ -58,6 +58,12 @@ public partial class AnalyzerSettings
     [JsonIgnore]
     internal bool BaseExceptionThrownDiagnosticEnabled => !DisableBaseExceptionThrownDiagnostic;
 
+    [JsonPropertyName("treatThrowsExceptionAsCatchRest")]
+    public bool TreatThrowsExceptionAsCatchRest { get; set; } = false;
+
+    [JsonIgnore]
+    internal bool TreatThrowsExceptionAsCatchRestEnabled => TreatThrowsExceptionAsCatchRest;
+
     [JsonPropertyName("ignoredExceptions")]
     public IEnumerable<string> IgnoredExceptions { get; set; } = new List<string>();
 

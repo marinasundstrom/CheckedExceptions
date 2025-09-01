@@ -42,6 +42,11 @@
       "default": false,
       "description": "Indicates whether the analyzer should not warn when throwing base type 'Exception'."
     },
+    "treatThrowsExceptionAsCatchRest": {
+      "type": "boolean",
+      "default": false,
+        "description": "Treat [Throws(typeof(Exception))] as a catch-all for remaining exceptions and suppress hierarchy redundancy checks; the base-type diagnostic remains active."
+    },
     "ignoredExceptions": {
       "type": "array",
       "items": {
