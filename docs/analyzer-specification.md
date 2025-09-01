@@ -482,6 +482,23 @@ Allows `[Throws(typeof(Exception))]` to act as a catch-all for undeclared except
 }
 ```
 
+This can be handy in unit tests where only assertion failures are relevant. Setup code might throw additional exceptions that you do not want to enumerate individually. Declaring `Exception` covers those extra cases while still allowing specific assertion exceptions to be declared:
+
+```csharp
+[Fact]
+[Throws(typeof(NotNullException), typeof(Exception))]
+public void Test()
+{
+    // Might throw 'FormatException' and 'OverflowException'
+    var number = int.Parse("42");
+
+    // Might throw 'NotNullException'
+    Assert.NotNull(null);
+}
+```
+
+With `treatThrowsExceptionAsCatchRest` enabled, `[Throws(typeof(Exception))]` suppresses diagnostics for the uninteresting `FormatException` and `OverflowException`, while the `NotNullException` declaration keeps the focus on assertion-related failures.
+
 
 ### Disable LINQ support
 
