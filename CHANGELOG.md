@@ -11,7 +11,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - PR [#301](https://github.com/marinasundstrom/CheckedExceptions/pull/301) Allow treating `Exception` in `[Throws]` as a catch-all via `treatThrowsExceptionAsCatchRest` setting (base-type diagnostic unchanged)
-- PR [#PR_NUMBER](https://github.com/marinasundstrom/CheckedExceptions/pull/PR_NUMBER) Document test-case scenario for `treatThrowsExceptionAsCatchRest` in analyzer specification
 
 ## [2.2.3] - 2025-08-24
 
