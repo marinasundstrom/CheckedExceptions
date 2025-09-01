@@ -203,7 +203,6 @@ Control flow analysis is also used to determine whether declarations are truly n
 
 * **Throwing `System.Exception` directly** → **`THROW004`**
 * **Declaring `[Throws(typeof(Exception))]`** → **`THROW003`**
-  (suppressed when `treatThrowsExceptionAsCatchRest` is enabled)
 
 ---
 
@@ -475,7 +474,7 @@ These options control whether to warn about the usage of base type `Exception`.
 
 ### Treat `[Throws(typeof(Exception))]` as catch-all
 
-Allows `[Throws(typeof(Exception))]` to act as a catch-all for undeclared exceptions and suppresses diagnostics `THROW003` and `THROW008`.
+Allows `[Throws(typeof(Exception))]` to act as a catch-all for undeclared exceptions and suppresses diagnostic `THROW008` for redundant declarations covered by `System.Exception`. The base-type declaration diagnostic (`THROW003`) remains active and can be disabled via `disableBaseExceptionDeclaredDiagnostic`.
 
 ```json
 {

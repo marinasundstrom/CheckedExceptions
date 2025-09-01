@@ -1,3 +1,5 @@
+using System.Linq;
+
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Testing;
 
@@ -32,7 +34,7 @@ public partial class CheckedExceptionsAnalyzerTests
     }
 
     [Fact]
-    public async Task DeclaringExceptionWithSpecific_TreatAsCatchRest_ShouldNotReportDiagnostics()
+    public async Task DeclaringExceptionWithSpecific_TreatAsCatchRest_ShouldReportBaseDiagnostic()
     {
         var test = /* lang=c#-test */ """
             using System;
@@ -49,6 +51,9 @@ public partial class CheckedExceptionsAnalyzerTests
             }
             """;
 
+        var expected = Verifier.AvoidDeclaringTypeException()
+            .WithSpan(5, 55, 5, 64);
+
         await Verifier.VerifyAnalyzerAsync(test, t =>
         {
             t.TestState.AdditionalFiles.Add(("CheckedExceptions.settings.json", """
@@ -58,6 +63,15 @@ public partial class CheckedExceptionsAnalyzerTests
                 "treatThrowsExceptionAsCatchRest": true
             }
             """));
+
+            var allDiagnostics = CheckedExceptionsAnalyzer.AllDiagnosticsIds;
+            t.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdRedundantTypedCatchClause);
+            t.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdRedundantExceptionDeclaration);
+            t.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdUnreachableCode);
+            t.DisabledDiagnostics.Add(CheckedExceptionsAnalyzer.DiagnosticIdUnreachableCodeHidden);
+            t.DisabledDiagnostics.AddRange(allDiagnostics.Except(new[] { expected.Id }));
+
+            t.ExpectedDiagnostics.Add(expected);
         });
     }
 }

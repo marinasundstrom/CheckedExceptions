@@ -34,7 +34,6 @@ partial class CheckedExceptionsAnalyzer
                         continue;
 
                     if (settings.BaseExceptionDeclaredDiagnosticEnabled &&
-                        !settings.TreatThrowsExceptionAsCatchRestEnabled &&
                         type.Name == generalExceptionName &&
                         type.ContainingNamespace?.ToDisplayString() == generalExceptionNamespace)
                     {

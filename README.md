@@ -163,7 +163,8 @@ Add `CheckedExceptions.settings.json`:
   // If true, basic redundancy checks are available when control flow analysis is disabled (default: false).
   "enableLegacyRedundancyChecks": false,
 
-  // If true, declaring [Throws(typeof(Exception))] acts as a catch-all and suppresses redundancy checks (default: false).
+  // If true, declaring [Throws(typeof(Exception))] acts as a catch-all and suppresses hierarchy redundancy checks; the base-type
+  // warning (THROW003) remains unless "disableBaseExceptionDeclaredDiagnostic" is set (default: false).
   "treatThrowsExceptionAsCatchRest": false,
 
   // If true, the analyzer will not warn about declaring base type Exception with [Throws] (default: false).

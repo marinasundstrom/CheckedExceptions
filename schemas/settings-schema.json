@@ -45,7 +45,7 @@
     "treatThrowsExceptionAsCatchRest": {
       "type": "boolean",
       "default": false,
-      "description": "Treat [Throws(typeof(Exception))] as a catch-all for remaining exceptions."
+        "description": "Treat [Throws(typeof(Exception))] as a catch-all for remaining exceptions and suppress hierarchy redundancy checks; the base-type diagnostic remains active."
     },
     "ignoredExceptions": {
       "type": "array",
