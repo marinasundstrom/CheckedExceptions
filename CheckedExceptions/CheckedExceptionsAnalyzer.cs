@@ -179,7 +179,7 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
         title: "Redundant catch clause",
         messageFormat: "Redundant catch clause",
         category: "Control flow",
-        defaultSeverity: DiagnosticSeverity.Warning,
+        defaultSeverity: DiagnosticSeverity.Info,
         isEnabledByDefault: true,
         description: "A typed catch clause is redundant because it does not handle any exceptions thrown in the associated try block.",
         customTags: [WellKnownDiagnosticTags.Unnecessary]);
