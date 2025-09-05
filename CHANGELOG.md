@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - PR [#PR_NUMBER](https://github.com/marinasundstrom/CheckedExceptions/pull/PR_NUMBER) Replace `ignoredExceptions` and `informationalExceptions` with explicit `exceptions` classification map
+- PR [#PR_NUMBER](https://github.com/marinasundstrom/CheckedExceptions/pull/PR_NUMBER) Document explicit exception taxonomy and strict default for unlisted types in README and docs
 
 ## [2.2.3] - 2025-08-24
 

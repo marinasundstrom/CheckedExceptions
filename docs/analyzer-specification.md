@@ -335,13 +335,15 @@ public int Value { set => throw new InvalidOperationException(); }
 
 ---
 
-## Ignored exceptions (Core analysis)
+## Exception classification (Core analysis)
 
-You can configure ignored exception types in `CheckedExceptions.settings.json`.
+`CheckedExceptions.settings.json` contains an explicit `exceptions` map that classifies each exception type as `Ignored`, `Informational`, or `Strict`.
 
-Ignored exceptions will not produce *unhandled* diagnostics, but are still reported for awareness:
+- **Ignored** – no diagnostics are produced.
+- **Informational** – diagnostics are reported but `[Throws]` is not required.
+- **Strict** – exceptions must be caught or declared.
 
-* **Ignored exception propagated** → **`THROW002`**
+Any exception not listed defaults to **Strict**, so unclassified types will trigger `THROW001` until they are handled or declared.
 
 ---
 

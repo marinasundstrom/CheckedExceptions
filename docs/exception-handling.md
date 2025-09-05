@@ -43,10 +43,13 @@ This document outlines the behavior of the analyzer.
 
 ## Overview
 
-The **CheckedExceptions Analyzer** enhances exception management in your C# projects by:
+The **CheckedExceptions Analyzer** serves three purposes:
 
-1. **Identifying Exception Sources**: Detecting `throw` statements or method calls where exceptions may be thrown or propagated.
-2. **Reporting Diagnostics**: Flagging unhandled exceptions, prompting developers to handle them explicitly or declare their propagation.
+1. **Discover potential exceptions** so you know which code paths might fail.
+2. **Help you propagate exceptions explicitly** by requiring `[Throws]` declarations when you choose not to handle them locally.
+3. **Provide control flow analysis** that highlights unreachable code and redundant catch blocks.
+
+To keep this analysis deterministic, configuration is an explicit taxonomy. Each entry in `CheckedExceptions.settings.json` maps an exception type to `Ignored`, `Informational`, or `Strict`. Any type not present defaults to **Strict**, meaning uncaught, undeclared exceptions will trigger diagnostics until you catch them or annotate them with `[Throws]`.
 
 ---
 
@@ -518,6 +521,8 @@ Add the settings file to your `.csproj`:
 - **`Ignored`**: Exceptions with this classification are completely ignored—no diagnostics or error reports will be generated.
 - **`Informational`**: Exceptions generate informational diagnostics but do not require `[Throws]` declarations.
 - **`Strict`**: Exceptions must be handled or declared; missing `[Throws]` results in warnings.
+
+Any exception type that doesn't appear in the `exceptions` map defaults to **Strict**.
 
 ## Performance Considerations
 

@@ -130,6 +130,8 @@ dotnet_diagnostic.THROW003.severity = warning
 
 A baseline template is available in `default-settings.json`.
 
+The analyzer reads a single `exceptions` dictionary that explicitly classifies each exception type as `Ignored`, `Informational`, or `Strict`. Any exception not listed defaults to `Strict`, so an unclassified throw will trigger a diagnostic unless it's caught or declared with `[Throws]`.
+
 Add `CheckedExceptions.settings.json`:
 
 ```json
