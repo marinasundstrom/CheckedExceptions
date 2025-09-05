@@ -26,6 +26,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - PR [#304](https://github.com/marinasundstrom/CheckedExceptions/pull/PR_NUMBER) Support legacy `ignoredExceptions` and `informationalExceptions` settings by translating them to `exceptions`
 
+### Fixed
+
+- PR [#PR_NUMBER](https://github.com/marinasundstrom/CheckedExceptions/pull/PR_NUMBER) Account for LINQ pipeline exceptions when analyzing foreach statements inside try-catch blocks
+
 ## [2.2.3] - 2025-08-24
 
 ### Fixed
