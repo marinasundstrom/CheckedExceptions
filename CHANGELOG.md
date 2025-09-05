@@ -11,20 +11,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - PR [#301](https://github.com/marinasundstrom/CheckedExceptions/pull/301) Allow treating `Exception` in `[Throws]` as a catch-all via `treatThrowsExceptionAsCatchRest` setting (base-type diagnostic unchanged)
-- PR [#PR_NUMBER](https://github.com/marinasundstrom/CheckedExceptions/pull/PR_NUMBER) Provide comprehensive baseline exception classifications in `default-settings.json`
-- PR [#PR_NUMBER](https://github.com/marinasundstrom/CheckedExceptions/pull/PR_NUMBER) Introduce `NonStrict` exception classification and `defaultExceptionClassification` setting
-- PR [#PR_NUMBER](https://github.com/marinasundstrom/CheckedExceptions/pull/PR_NUMBER) Document `NonStrict` declaration/catch behavior and add regression tests
-- PR [#PR_NUMBER](https://github.com/marinasundstrom/CheckedExceptions/pull/PR_NUMBER) Add configuration guide for selecting default exception classification
+- PR [#304](https://github.com/marinasundstrom/CheckedExceptions/pull/304) Provide comprehensive baseline exception classifications in `default-settings.json`
+- PR [#305](https://github.com/marinasundstrom/CheckedExceptions/pull/305) Introduce `NonStrict` exception classification and `defaultExceptionClassification` setting
+- PR [#305](https://github.com/marinasundstrom/CheckedExceptions/pull/305) Document `NonStrict` declaration/catch behavior and add regression tests
+- PR [#305](https://github.com/marinasundstrom/CheckedExceptions/pull/305) Add configuration guide for selecting default exception classification
 
 ### Changed
 
-- PR [#PR_NUMBER](https://github.com/marinasundstrom/CheckedExceptions/pull/PR_NUMBER) Replace `ignoredExceptions` and `informationalExceptions` with explicit `exceptions` classification map
-- PR [#PR_NUMBER](https://github.com/marinasundstrom/CheckedExceptions/pull/PR_NUMBER) Document explicit exception taxonomy and strict default for unlisted types in README and docs
-- PR [#PR_NUMBER](https://github.com/marinasundstrom/CheckedExceptions/pull/PR_NUMBER) Unlisted exceptions now default to `NonStrict` producing low-severity diagnostics
+- PR [#304](https://github.com/marinasundstrom/CheckedExceptions/pull/304) Replace `ignoredExceptions` and `informationalExceptions` with explicit `exceptions` classification map
+- PR [#304](https://github.com/marinasundstrom/CheckedExceptions/pull/304) Document explicit exception taxonomy and strict default for unlisted types in README and docs
+- PR [#304](https://github.com/marinasundstrom/CheckedExceptions/pull/304) Unlisted exceptions now default to `NonStrict` producing low-severity diagnostics
 
 ### Deprecated
 
-- PR [#PR_NUMBER](https://github.com/marinasundstrom/CheckedExceptions/pull/PR_NUMBER) Support legacy `ignoredExceptions` and `informationalExceptions` settings by translating them to `exceptions`
+- PR [#304](https://github.com/marinasundstrom/CheckedExceptions/pull/PR_NUMBER) Support legacy `ignoredExceptions` and `informationalExceptions` settings by translating them to `exceptions`
 
 ## [2.2.3] - 2025-08-24
 
