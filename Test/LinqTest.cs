@@ -22,13 +22,38 @@ public class LinqTest
     private static void ExplicitlyDeclaredThrows()
     {
         IEnumerable<int> items = [];
-        var query = items.Where([Throws(typeof(FormatException), typeof(OverflowException))] (x) => x == int.Parse("10"));
+        var query = items.Where((x) => x == int.Parse("10"));
         var x = query;
         var r = x.Select((z) => 2);
 
         foreach (var n in query) { }
 
+        try
+        {
+            foreach (var n in query) { }
+        }
+        catch (OverflowException exc)
+        {
+
+        }
+        catch
+        {
+
+        }
+
         foreach (var item in r)
+        {
+
+        }
+
+        try
+        {
+            foreach (var item in r)
+            {
+
+            }
+        }
+        catch
         {
 
         }

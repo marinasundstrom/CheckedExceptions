@@ -161,6 +161,40 @@ public partial class LinqTest
     }
 
     [Fact]
+    public async Task ForEachCaughtByCatchAll()
+    {
+        var test = /* lang=c#-test */ """
+            #nullable enable
+            using System;
+            using System.Collections.Generic;
+            using System.Linq;
+
+            IEnumerable<int> items = [];
+            var query = items.Where(x => int.Parse("10") == x);
+            try
+            {
+                foreach (var item in query) { }
+            }
+            catch
+            {
+            }
+            """;
+
+        var expected = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdImplicitlyDeclaredException)
+            .WithArguments("FormatException")
+            .WithSpan(7, 34, 7, 45);
+
+        var expected2 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdImplicitlyDeclaredException)
+            .WithArguments("OverflowException")
+            .WithSpan(7, 34, 7, 45);
+
+        await Verifier.VerifyAnalyzerAsync(test, setup: o =>
+        {
+            o.ExpectedDiagnostics.AddRange(expected, expected2);
+        }, executable: true);
+    }
+
+    [Fact]
     public async Task PassDelegateByVariable()
     {
         var test = /* lang=c#-test */ """

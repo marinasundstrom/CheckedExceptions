@@ -376,6 +376,13 @@ partial class CheckedExceptionsAnalyzer
                 }
             }
         }
+
+        // Capture exceptions from deferred enumerable pipelines directly referenced by the expression itself
+        var exprOp = semanticModel.GetOperation(expression);
+        if (exprOp is not null)
+        {
+            CollectEnumerationExceptions(exprOp, exceptions, compilation, semanticModel, settings, default);
+        }
     }
 
     private static HashSet<INamedTypeSymbol>? GetCaughtExceptions(SyntaxList<CatchClauseSyntax> catchClauses, SemanticModel semanticModel)
