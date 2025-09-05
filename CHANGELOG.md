@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - PR [#PR_NUMBER](https://github.com/marinasundstrom/CheckedExceptions/pull/PR_NUMBER) Provide comprehensive baseline exception classifications in `default-settings.json`
 - PR [#PR_NUMBER](https://github.com/marinasundstrom/CheckedExceptions/pull/PR_NUMBER) Introduce `NonStrict` exception classification and `defaultExceptionClassification` setting
 - PR [#PR_NUMBER](https://github.com/marinasundstrom/CheckedExceptions/pull/PR_NUMBER) Document `NonStrict` declaration/catch behavior and add regression tests
+- PR [#PR_NUMBER](https://github.com/marinasundstrom/CheckedExceptions/pull/PR_NUMBER) Add configuration guide for selecting default exception classification
 
 ### Changed
 
