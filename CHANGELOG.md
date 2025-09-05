@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [2.5.0] - 2025-09-05
+
 ### Added
 
 - PR [#301](https://github.com/marinasundstrom/CheckedExceptions/pull/301) Allow treating `Exception` in `[Throws]` as a catch-all via `treatThrowsExceptionAsCatchRest` setting (base-type diagnostic unchanged)
@@ -24,7 +26,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Deprecated
 
-- PR [#304](https://github.com/marinasundstrom/CheckedExceptions/pull/PR_NUMBER) Support legacy `ignoredExceptions` and `informationalExceptions` settings by translating them to `exceptions`
+- PR [#304](https://github.com/marinasundstrom/CheckedExceptions/pull/304) Support legacy `ignoredExceptions` and `informationalExceptions` settings by translating them to `exceptions`
 
 ## [2.2.3] - 2025-08-24
 
