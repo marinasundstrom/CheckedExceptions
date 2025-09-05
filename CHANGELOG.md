@@ -8,6 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+
+- PR [#306](https://github.com/marinasundstrom/CheckedExceptions/pull/306) Account for LINQ pipeline exceptions when analyzing foreach statements inside try-catch blocks
+
+## [2.5.0] - 2025-09-05
+
 ### Added
 
 - PR [#301](https://github.com/marinasundstrom/CheckedExceptions/pull/301) Allow treating `Exception` in `[Throws]` as a catch-all via `treatThrowsExceptionAsCatchRest` setting (base-type diagnostic unchanged)
@@ -24,11 +30,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Deprecated
 
-- PR [#304](https://github.com/marinasundstrom/CheckedExceptions/pull/PR_NUMBER) Support legacy `ignoredExceptions` and `informationalExceptions` settings by translating them to `exceptions`
-
-### Fixed
-
-- PR [#PR_NUMBER](https://github.com/marinasundstrom/CheckedExceptions/pull/PR_NUMBER) Account for LINQ pipeline exceptions when analyzing foreach statements inside try-catch blocks
+- PR [#304](https://github.com/marinasundstrom/CheckedExceptions/pull/304) Support legacy `ignoredExceptions` and `informationalExceptions` settings by translating them to `exceptions`
 
 ## [2.2.3] - 2025-08-24
 
