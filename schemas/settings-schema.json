@@ -49,28 +49,29 @@
     },
     "ignoredExceptions": {
       "type": "array",
-      "items": {
-        "type": "string",
-        "pattern": "^!?[a-zA-Z0-9_.]+\\*?$"
-      },
-      "description": "A list of fully qualified exception type names or glob-like patterns to be ignored. Entries may optionally start with '!' to indicate exceptions that should not be ignored."
+      "items": { "type": "string" },
+      "deprecated": true,
+      "description": "Deprecated. Use 'exceptions' instead."
     },
     "informationalExceptions": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "deprecated": true,
+      "description": "Deprecated. Use 'exceptions' instead."
+    },
+    "exceptions": {
       "type": "object",
       "additionalProperties": {
         "type": "string",
         "enum": [
-          "Throw",
-          "Propagation",
-          "Always"
+          "Ignored",
+          "Informational",
+          "Strict"
         ]
       },
-      "description": "A mapping of fully qualified exception type names to their informational handling strategy."
+      "description": "Explicit classification for exception types."
     }
   },
-  "required": [
-    "ignoredExceptions",
-    "informationalExceptions"
-  ],
+  "required": [],
   "additionalProperties": false
 }

@@ -43,10 +43,13 @@ This document outlines the behavior of the analyzer.
 
 ## Overview
 
-The **CheckedExceptions Analyzer** enhances exception management in your C# projects by:
+The **CheckedExceptions Analyzer** serves three purposes:
 
-1. **Identifying Exception Sources**: Detecting `throw` statements or method calls where exceptions may be thrown or propagated.
-2. **Reporting Diagnostics**: Flagging unhandled exceptions, prompting developers to handle them explicitly or declare their propagation.
+1. **Discover potential exceptions** so you know which code paths might fail.
+2. **Help you propagate exceptions explicitly** by requiring `[Throws]` declarations when you choose not to handle them locally.
+3. **Provide control flow analysis** that highlights unreachable code and redundant catch blocks.
+
+To keep this analysis deterministic, configuration is an explicit taxonomy. Each entry in `CheckedExceptions.settings.json` maps an exception type to `Ignored`, `Informational`, or `Strict`. Any type not present defaults to **Strict**, meaning uncaught, undeclared exceptions will trigger diagnostics until you catch them or annotate them with `[Throws]`.
 
 ---
 
@@ -485,22 +488,24 @@ You can customize how exceptions are reported by adding a `CheckedExceptions.set
 
 #### Example Configuration
 
+A baseline template is available in `default-settings.json`.
+
 Create a `CheckedExceptions.settings.json` file with the following structure:
 
 ```json
 {
-    "ignoredExceptions": [
-        "System.ArgumentNullException"
-    ],
-    "informationalExceptions": {
-        "System.NotImplementedException": "Throw",
-        "System.IO.IOException": "Propagation",
-        "System.TimeoutException": "Always"
+    "exceptions": {
+        "System.ArgumentNullException": "Ignored",
+        "System.NotImplementedException": "Informational",
+        "System.IO.IOException": "Informational",
+        "System.TimeoutException": "Informational"
     }
 }
 ```
 
 There is a JSON schema provided.
+
+> **Migration note:** The older `ignoredExceptions` and `informationalExceptions` settings are still understood but deprecated. Entries are automatically converted into the `exceptions` dictionary.
 
 **Note:** Ignoring `System.ArgumentNullException` may not be necessary when nullable annotations are enabled, as the analyzer already handles this scenario.
 ### Registering the File
@@ -515,22 +520,11 @@ Add the settings file to your `.csproj`:
 
 ### Behavior
 
-- **`ignoredExceptions`**: Exceptions listed here will be completely ignored—no diagnostics or error reports will be generated.
-- **`informationalExceptions`**: Exceptions listed here will generate informational diagnostics but won't be reported as errors.
+- **`Ignored`**: Exceptions with this classification are completely ignored—no diagnostics or error reports will be generated.
+- **`Informational`**: Exceptions generate informational diagnostics but do not require `[Throws]` declarations.
+- **`Strict`**: Exceptions must be handled or declared; missing `[Throws]` results in warnings.
 
-### Informational Exceptions Modes
-
-The `informationalExceptions` section allows you to specify the context in which an exception should be treated as informational. The available modes are:
-
-| Mode          | Description                                                                                                       |
-|---------------|-------------------------------------------------------------------------------------------------------------------|
-| `Throw`       | The exception is considered informational when thrown directly within the method.                                |
-| `Propagation` | The exception is considered informational when propagated (re-thrown or passed up the call stack).                |
-| `Always`      | The exception is always considered informational, regardless of context.                                         |
-
-**Example Scenario:**
-
-- **`System.IO.IOException`**: When thrown directly (e.g., within a method), it might be critical. However, when propagated from a utility method like `System.Console.WriteLine`, it’s unlikely and can be treated as informational.
+Any exception type that doesn't appear in the `exceptions` map defaults to **Strict**.
 
 ## Performance Considerations
 

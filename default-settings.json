@@ -1,0 +1,43 @@
+{
+  "exceptions": {
+    "System.ArgumentNullException": "Ignored",
+    "System.ArgumentOutOfRangeException": "Ignored",
+    "System.ArgumentException": "Ignored",
+    "System.FormatException": "Ignored",
+
+    "System.InvalidOperationException": "Informational",
+    "System.NotSupportedException": "Informational",
+    "System.InvalidCastException": "Informational",
+    "System.NullReferenceException": "Informational",
+    "System.IndexOutOfRangeException": "Informational",
+    "System.DivideByZeroException": "Informational",
+    "System.OverflowException": "Informational",
+    "System.ArithmeticException": "Informational",
+    "System.ObjectDisposedException": "Informational",
+    "System.OutOfMemoryException": "Informational",
+    "System.StackOverflowException": "Informational",
+    "System.TypeInitializationException": "Informational",
+    "System.MemberAccessException": "Informational",
+    "System.UnauthorizedAccessException": "Informational",
+    "System.ThreadAbortException": "Informational",
+    "System.ExecutionEngineException": "Informational",
+    "System.AccessViolationException": "Informational",
+    "System.AppDomainUnloadedException": "Informational",
+    "System.InsufficientMemoryException": "Informational",
+    "System.Runtime.InteropServices.SEHException": "Informational",
+
+    "System.Exception": "Strict",
+    "System.ApplicationException": "Strict",
+    "System.IO.IOException": "Strict",
+    "System.IO.EndOfStreamException": "Strict",
+    "System.IO.FileNotFoundException": "Strict",
+    "System.IO.DirectoryNotFoundException": "Strict",
+    "System.IO.PathTooLongException": "Strict",
+    "System.IO.DriveNotFoundException": "Strict",
+    "System.Net.WebException": "Strict",
+    "System.Net.Sockets.SocketException": "Strict",
+    "System.TimeoutException": "Strict",
+    "System.Data.SqlClient.SqlException": "Strict"
+  }
+}
+

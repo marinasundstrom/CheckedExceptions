@@ -96,8 +96,8 @@ public static class CSharpAnalyzerVerifier<TAnalyzer, TVerifier>
                     "System.NotImplementedException"
                 ],
                 "informationalExceptions": {
-                    "System.IO.IOException": "Always",
-                    "System.TimeoutException": "Always"
+                    "System.IO.IOException": "Propagation",
+                    "System.TimeoutException": "Propagation"
                 }
             }
             """"));

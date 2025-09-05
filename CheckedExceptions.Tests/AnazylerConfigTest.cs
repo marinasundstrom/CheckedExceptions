@@ -73,8 +73,8 @@ public partial class AnaylzerConfigTest
         var expected1 = Verifier.Informational("IOException")
             .WithSpan(9, 21, 9, 39);
 
-        var expected2 = Verifier.Diagnostic(CheckedExceptionsAnalyzer.DiagnosticIdRedundantCatchAllClause)
-            .WithSpan(11, 9, 11, 14);
+        var expected2 = Verifier.Informational("IOException")
+            .WithSpan(13, 13, 13, 19);
 
         await Verifier.VerifyAnalyzerAsync2(test, expected1, expected2);
     }

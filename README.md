@@ -128,21 +128,19 @@ dotnet_diagnostic.THROW003.severity = warning
 
 ### JSON Settings
 
+A baseline template is available in `default-settings.json`.
+
+The analyzer reads a single `exceptions` dictionary that explicitly classifies each exception type as `Ignored`, `Informational`, or `Strict`. Any exception not listed defaults to `Strict`, so an unclassified throw will trigger a diagnostic unless it's caught or declared with `[Throws]`.
+
 Add `CheckedExceptions.settings.json`:
 
 ```json
 {
-  // Exceptions to completely ignore during analysis (Glob pattern).
-  "ignoredExceptions": [
-    "System.*",
-    "System.ArgumentNullException",
-    "!System.InvalidOperationException"
-  ],
-
-  // Exceptions to ignore but still report as informational diagnostics.
-  "informationalExceptions": {
-    "System.IO.IOException": "Propagation",
-    "System.TimeoutException": "Always"
+  "exceptions": {
+    "System.ArgumentNullException": "Ignored",
+    "System.IO.IOException": "Informational",
+    "System.TimeoutException": "Informational",
+    "System.Exception": "Strict"
   },
 
   // If true, exceptions will not be read from XML documentation (default: false).
@@ -175,6 +173,8 @@ Add `CheckedExceptions.settings.json`:
   "disableBaseExceptionThrownDiagnostic": false
 }
 ```
+
+> **Migration note:** Legacy `ignoredExceptions` and `informationalExceptions` settings are still recognized but have been deprecated. They are automatically translated to the unified `exceptions` map.
 
 > **Control flow analysis** powers redundancy checks (e.g. unreachable code, redundant catches, unused exception declarations).
 > Disabling it may improve analyzer performance slightly at the cost of precision.

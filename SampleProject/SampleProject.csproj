@@ -10,21 +10,16 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Sundstrom.CheckedExceptions">
-      <PrivateAssets>all</PrivateAssets>
-      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
-    </PackageReference>
-
-    <!-- <ProjectReference Include="..\CheckedExceptions\CheckedExceptions.csproj"
+    <ProjectReference Include="..\CheckedExceptions\CheckedExceptions.csproj"
       PrivateAssets="all"
       ReferenceOutputAssembly="true"
       OutputItemType="Analyzer"
-      SetTargetFramework="TargetFramework=netstandard2.0" /> -->
+      SetTargetFramework="TargetFramework=netstandard2.0" />
   </ItemGroup>
-
 
   <ItemGroup>
     <AdditionalFiles Include="CheckedExceptions.settings.json" />
   </ItemGroup>
 
 </Project>
+

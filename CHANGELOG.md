@@ -11,6 +11,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - PR [#301](https://github.com/marinasundstrom/CheckedExceptions/pull/301) Allow treating `Exception` in `[Throws]` as a catch-all via `treatThrowsExceptionAsCatchRest` setting (base-type diagnostic unchanged)
+- PR [#PR_NUMBER](https://github.com/marinasundstrom/CheckedExceptions/pull/PR_NUMBER) Provide comprehensive baseline exception classifications in `default-settings.json`
+
+### Changed
+
+- PR [#PR_NUMBER](https://github.com/marinasundstrom/CheckedExceptions/pull/PR_NUMBER) Replace `ignoredExceptions` and `informationalExceptions` with explicit `exceptions` classification map
+- PR [#PR_NUMBER](https://github.com/marinasundstrom/CheckedExceptions/pull/PR_NUMBER) Document explicit exception taxonomy and strict default for unlisted types in README and docs
+
+### Deprecated
+
+- PR [#PR_NUMBER](https://github.com/marinasundstrom/CheckedExceptions/pull/PR_NUMBER) Support legacy `ignoredExceptions` and `informationalExceptions` settings by translating them to `exceptions`
 
 ## [2.2.3] - 2025-08-24
 

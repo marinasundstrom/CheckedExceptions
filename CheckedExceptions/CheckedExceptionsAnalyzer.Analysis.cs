@@ -48,22 +48,17 @@ partial class CheckedExceptionsAnalyzer
         // For each thrown exception, check if it is handled
         foreach (var exceptionType in thrownExceptions.Distinct(SymbolEqualityComparer.Default).OfType<INamedTypeSymbol>())
         {
-            var exceptionName = exceptionType.ToDisplayString();
+            var classification = GetExceptionClassification(exceptionType, settings);
 
-            if (FilterIgnored(settings, exceptionName))
+            if (classification is ExceptionClassification.Ignored)
             {
-                // Completely ignore this exception
                 continue;
             }
-            else if (settings.InformationalExceptions.TryGetValue(exceptionName, out var mode))
+            else if (classification is ExceptionClassification.Informational)
             {
-                if (ShouldIgnore(throwStatement, mode))
-                {
-                    // Report as THROW002 (Info level)
-                    var diagnostic = Diagnostic.Create(RuleIgnoredException, GetSignificantLocation(throwStatement), exceptionType.Name);
-                    context.ReportDiagnostic(diagnostic);
-                    continue;
-                }
+                var diagnostic = Diagnostic.Create(RuleIgnoredException, GetSignificantLocation(throwStatement), exceptionType.Name);
+                context.ReportDiagnostic(diagnostic);
+                continue;
             }
 
             // ① handled by any typed catch BEFORE the general catch?
@@ -168,7 +163,7 @@ partial class CheckedExceptionsAnalyzer
                 var exceptionType = semanticModel.GetTypeInfo(throwStatement.Expression).Type as INamedTypeSymbol;
                 if (exceptionType is not null)
                 {
-                    if (ShouldIncludeException(exceptionType, throwStatement, settings))
+                    if (ShouldIncludeException(exceptionType, settings))
                     {
                         exceptions.Add(exceptionType);
                     }
@@ -199,7 +194,7 @@ partial class CheckedExceptionsAnalyzer
                 var exceptionType = semanticModel.GetTypeInfo(throwExpression.Expression).Type as INamedTypeSymbol;
                 if (exceptionType is not null)
                 {
-                    if (ShouldIncludeException(exceptionType, throwExpression, settings))
+                    if (ShouldIncludeException(exceptionType, settings))
                     {
                         exceptions.Add(exceptionType);
                     }
@@ -225,7 +220,7 @@ partial class CheckedExceptionsAnalyzer
 
                     foreach (var exceptionType in exceptionTypes)
                     {
-                        if (ShouldIncludeException(exceptionType, invocation, settings))
+                        if (ShouldIncludeException(exceptionType, settings))
                         {
                             exceptions.Add(exceptionType);
                         }
@@ -250,7 +245,7 @@ partial class CheckedExceptionsAnalyzer
 
                     foreach (var exceptionType in exceptionTypes)
                     {
-                        if (ShouldIncludeException(exceptionType, invocation, settings))
+                        if (ShouldIncludeException(exceptionType, settings))
                         {
                             exceptions.Add(exceptionType);
                         }
@@ -282,7 +277,7 @@ partial class CheckedExceptionsAnalyzer
 
                 foreach (var exceptionType in exceptionTypes)
                 {
-                    if (ShouldIncludeException(exceptionType, objectCreation, settings))
+                    if (ShouldIncludeException(exceptionType, settings))
                     {
                         exceptions.Add(exceptionType);
                     }
@@ -301,7 +296,7 @@ partial class CheckedExceptionsAnalyzer
 
                 foreach (var exceptionType in exceptionTypes)
                 {
-                    if (ShouldIncludeException(exceptionType, memberAccess, settings))
+                    if (ShouldIncludeException(exceptionType, settings))
                     {
                         exceptions.Add(exceptionType);
                     }
@@ -319,7 +314,7 @@ partial class CheckedExceptionsAnalyzer
 
                 foreach (var exceptionType in exceptionTypes)
                 {
-                    if (ShouldIncludeException(exceptionType, elementAccess, settings))
+                    if (ShouldIncludeException(exceptionType, settings))
                     {
                         exceptions.Add(exceptionType);
                     }
@@ -339,7 +334,7 @@ partial class CheckedExceptionsAnalyzer
                 {
                     if (exceptionType is not null)
                     {
-                        if (ShouldIncludeException(exceptionType, identifier, settings))
+                        if (ShouldIncludeException(exceptionType, settings))
                         {
                             exceptions.Add(exceptionType);
                         }
@@ -361,7 +356,7 @@ partial class CheckedExceptionsAnalyzer
 
             if (invalidCastException is not null)
             {
-                if (ShouldIncludeException(invalidCastException, castExpression, settings))
+                if (ShouldIncludeException(invalidCastException, settings))
                 {
                     exceptions.Add(invalidCastException);
                 }
