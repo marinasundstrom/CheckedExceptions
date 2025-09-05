@@ -69,6 +69,11 @@ public static class CSharpCodeFixVerifier<TAnalyzer, TCodeFix, TVerifier>
 
         setup?.Invoke(test);
 
+        if (!test.TestState.AdditionalFiles.Any(f => f.filename == "CheckedExceptions.settings.json"))
+        {
+            test.TestState.AdditionalFiles.Add(("CheckedExceptions.settings.json", "{\n  \"defaultExceptionClassification\": \"Strict\"\n}"));
+        }
+
         return test.RunAsync();
     }
 

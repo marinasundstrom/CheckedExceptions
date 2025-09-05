@@ -49,7 +49,7 @@ The **CheckedExceptions Analyzer** serves three purposes:
 2. **Help you propagate exceptions explicitly** by requiring `[Throws]` declarations when you choose not to handle them locally.
 3. **Provide control flow analysis** that highlights unreachable code and redundant catch blocks.
 
-To keep this analysis deterministic, configuration is an explicit taxonomy. Each entry in `CheckedExceptions.settings.json` maps an exception type to `Ignored`, `Informational`, or `Strict`. Any type not present defaults to **Strict**, meaning uncaught, undeclared exceptions will trigger diagnostics until you catch them or annotate them with `[Throws]`.
+To keep this analysis deterministic, configuration is an explicit taxonomy. Each entry in `CheckedExceptions.settings.json` maps an exception type to `Ignored`, `Informational`, `NonStrict`, or `Strict`. Any type not present defaults to **NonStrict**, meaning unclassified exceptions raise low-severity diagnostics but do not require `[Throws]` or a `catch` block.
 
 ---
 
@@ -494,11 +494,12 @@ Create a `CheckedExceptions.settings.json` file with the following structure:
 
 ```json
 {
+    "defaultExceptionClassification": "NonStrict",
     "exceptions": {
         "System.ArgumentNullException": "Ignored",
         "System.NotImplementedException": "Informational",
-        "System.IO.IOException": "Informational",
-        "System.TimeoutException": "Informational"
+        "System.IO.IOException": "Strict",
+        "System.TimeoutException": "NonStrict"
     }
 }
 ```
@@ -522,9 +523,10 @@ Add the settings file to your `.csproj`:
 
 - **`Ignored`**: Exceptions with this classification are completely ignored—no diagnostics or error reports will be generated.
 - **`Informational`**: Exceptions generate informational diagnostics but do not require `[Throws]` declarations.
+- **`NonStrict`**: Exceptions generate low-severity diagnostics but do not require `[Throws]` declarations or a `catch` block. You may still declare or catch them, and doing so isn't considered redundant.
 - **`Strict`**: Exceptions must be handled or declared; missing `[Throws]` results in warnings.
 
-Any exception type that doesn't appear in the `exceptions` map defaults to **Strict**.
+Only exceptions classified as `Ignored` are filtered out entirely. Any exception type that doesn't appear in the `exceptions` map defaults to **NonStrict**, remaining part of the analysis.
 
 ## Performance Considerations
 

@@ -1,4 +1,5 @@
 {
+    "defaultExceptionClassification": "Strict",
     "exceptions": {
         "System.ArgumentNullException": "Ignored",
         "System.NotImplementedException": "Informational",

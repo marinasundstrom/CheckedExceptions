@@ -45,7 +45,13 @@
     "treatThrowsExceptionAsCatchRest": {
       "type": "boolean",
       "default": false,
-        "description": "Treat [Throws(typeof(Exception))] as a catch-all for remaining exceptions and suppress hierarchy redundancy checks; the base-type diagnostic remains active."
+      "description": "Treat [Throws(typeof(Exception))] as a catch-all for remaining exceptions and suppress hierarchy redundancy checks; the base-type diagnostic remains active."
+    },
+    "defaultExceptionClassification": {
+      "type": "string",
+      "enum": ["Ignored", "Informational", "NonStrict", "Strict"],
+      "description": "Classification applied to exceptions not listed in 'exceptions'.",
+      "default": "NonStrict"
     },
     "ignoredExceptions": {
       "type": "array",
@@ -66,6 +72,7 @@
         "enum": [
           "Ignored",
           "Informational",
+          "NonStrict",
           "Strict"
         ]
       },
@@ -75,3 +82,4 @@
   "required": [],
   "additionalProperties": false
 }
+

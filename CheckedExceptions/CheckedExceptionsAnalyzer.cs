@@ -51,12 +51,12 @@ public partial class CheckedExceptionsAnalyzer : DiagnosticAnalyzer
 
     private static readonly DiagnosticDescriptor RuleIgnoredException = new DiagnosticDescriptor(
         DiagnosticIdIgnoredException,
-        "Ignored exception may cause runtime issues",
-        "Exception '{0}' is ignored by configuration but may cause runtime issues if unhandled",
+        "Non-strict exception may cause runtime issues",
+        "Exception '{0}' is not strictly enforced and may cause runtime issues if unhandled",
         "Usage",
         DiagnosticSeverity.Info,
         isEnabledByDefault: true,
-        description: "Informs about exceptions excluded from analysis but which may still propagate at runtime if not properly handled.");
+        description: "Informs about exceptions that are not strictly enforced but which may still propagate at runtime if not properly handled.");
 
     private static readonly DiagnosticDescriptor RuleGeneralThrow = new(
         DiagnosticIdGeneralThrow,

@@ -15,7 +15,7 @@ partial class CheckedExceptionsAnalyzer
             return classification;
         }
 
-        return ExceptionClassification.Strict;
+        return settings.DefaultExceptionClassification;
     }
 
     public static bool ShouldIncludeException(
