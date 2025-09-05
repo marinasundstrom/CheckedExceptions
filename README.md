@@ -174,6 +174,8 @@ Add `CheckedExceptions.settings.json`:
 }
 ```
 
+> **Migration note:** Legacy `ignoredExceptions` and `informationalExceptions` settings are still recognized but have been deprecated. They are automatically translated to the unified `exceptions` map.
+
 > **Control flow analysis** powers redundancy checks (e.g. unreachable code, redundant catches, unused exception declarations).
 > Disabling it may improve analyzer performance slightly at the cost of precision.
 

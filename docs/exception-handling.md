@@ -505,6 +505,8 @@ Create a `CheckedExceptions.settings.json` file with the following structure:
 
 There is a JSON schema provided.
 
+> **Migration note:** The older `ignoredExceptions` and `informationalExceptions` settings are still understood but deprecated. Entries are automatically converted into the `exceptions` dictionary.
+
 **Note:** Ignoring `System.ArgumentNullException` may not be necessary when nullable annotations are enabled, as the analyzer already handles this scenario.
 ### Registering the File
 

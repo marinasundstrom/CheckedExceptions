@@ -66,6 +66,44 @@ public partial class AnalyzerSettings
 
     [JsonPropertyName("exceptions")]
     public IDictionary<string, ExceptionClassification> Exceptions { get; set; } = new Dictionary<string, ExceptionClassification>();
+
+    [JsonPropertyName("ignoredExceptions")]
+    [Obsolete("Use 'exceptions' instead.")]
+    public IList<string>? IgnoredExceptions
+    {
+        get => null;
+        set
+        {
+            if (value is null)
+            {
+                return;
+            }
+
+            foreach (var exception in value)
+            {
+                Exceptions[exception] = ExceptionClassification.Ignored;
+            }
+        }
+    }
+
+    [JsonPropertyName("informationalExceptions")]
+    [Obsolete("Use 'exceptions' instead.")]
+    public IDictionary<string, string>? InformationalExceptions
+    {
+        get => null;
+        set
+        {
+            if (value is null)
+            {
+                return;
+            }
+
+            foreach (var exception in value.Keys)
+            {
+                Exceptions[exception] = ExceptionClassification.Informational;
+            }
+        }
+    }
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]

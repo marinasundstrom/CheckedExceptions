@@ -345,6 +345,8 @@ public int Value { set => throw new InvalidOperationException(); }
 
 Any exception not listed defaults to **Strict**, so unclassified types will trigger `THROW001` until they are handled or declared.
 
+> **Migration note:** Legacy `ignoredExceptions` and `informationalExceptions` properties are still processed for backward compatibility, but they are deprecated and translated into entries in the `exceptions` map.
+
 ---
 
 ## Casts and conversions (Core analysis, refined by control flow)
