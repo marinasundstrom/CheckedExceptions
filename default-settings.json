@@ -1,4 +1,5 @@
 {
+  "defaultExceptionClassification": "NonStrict",
   "exceptions": {
     "System.ArgumentNullException": "Ignored",
     "System.ArgumentOutOfRangeException": "Ignored",

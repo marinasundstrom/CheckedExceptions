@@ -130,16 +130,18 @@ dotnet_diagnostic.THROW003.severity = warning
 
 A baseline template is available in `default-settings.json`.
 
-The analyzer reads a single `exceptions` dictionary that explicitly classifies each exception type as `Ignored`, `Informational`, or `Strict`. Any exception not listed defaults to `Strict`, so an unclassified throw will trigger a diagnostic unless it's caught or declared with `[Throws]`.
+The analyzer reads a single `exceptions` dictionary that explicitly classifies each exception type as `Ignored`, `Informational`, `NonStrict`, or `Strict`. Any exception not listed defaults to `NonStrict`, so an unclassified throw will trigger a low-severity diagnostic but won't require `[Throws]` or a `catch`.
 
 Add `CheckedExceptions.settings.json`:
 
 ```json
 {
+  // Default classification for exceptions not listed (default: NonStrict)
+  "defaultExceptionClassification": "NonStrict",
   "exceptions": {
     "System.ArgumentNullException": "Ignored",
     "System.IO.IOException": "Informational",
-    "System.TimeoutException": "Informational",
+    "System.TimeoutException": "NonStrict",
     "System.Exception": "Strict"
   },
 
@@ -194,7 +196,7 @@ Register in `.csproj`:
 | ID         | Message                                                                 |
 |------------|-------------------------------------------------------------------------|
 | `THROW001` | ❗ Unhandled exception: must be caught or declared                      |
-| `THROW002` | ℹ️ Ignored exception may cause runtime issues                           |
+| `THROW002` | ℹ️ Non-strict exception may cause runtime issues                       |
 | `THROW003` | 🚫 Avoid declaring exception type `System.Exception`                    |
 | `THROW004` | 🚫 Avoid throwing exception base type `System.Exception`                |
 | `THROW005` | 🔁 Duplicate declarations of the same exception type in `[Throws]`      |

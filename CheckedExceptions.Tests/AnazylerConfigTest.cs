@@ -78,4 +78,31 @@ public partial class AnaylzerConfigTest
 
         await Verifier.VerifyAnalyzerAsync2(test, expected1, expected2);
     }
+
+    [Fact(DisplayName = "Unlisted exception defaults to NonStrict")]
+    public async Task UnlistedExceptionDefaultsToNonStrict_ShouldReportInfoDiagnostic()
+    {
+        var test = /* lang=c#-test */ """
+            using System;
+
+            public class TestClass
+            {
+                public void TestMethod()
+                {
+                    throw new InvalidOperationException();
+                }
+            }
+            """;
+
+        var expected = Verifier.Informational("InvalidOperationException")
+            .WithSpan(7, 9, 7, 47);
+
+        await Verifier.VerifyAnalyzerAsync(test, t =>
+        {
+            t.TestState.AdditionalFiles.Add(("CheckedExceptions.settings.json", "{}"));
+            var allDiagnostics = CheckedExceptionsAnalyzer.AllDiagnosticsIds;
+            t.DisabledDiagnostics.AddRange(allDiagnostics.Except(new[] { expected.Id }));
+            t.ExpectedDiagnostics.Add(expected);
+        });
+    }
 }

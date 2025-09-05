@@ -337,13 +337,14 @@ public int Value { set => throw new InvalidOperationException(); }
 
 ## Exception classification (Core analysis)
 
-`CheckedExceptions.settings.json` contains an explicit `exceptions` map that classifies each exception type as `Ignored`, `Informational`, or `Strict`.
+`CheckedExceptions.settings.json` contains an explicit `exceptions` map that classifies each exception type as `Ignored`, `Informational`, `NonStrict`, or `Strict`.
 
 - **Ignored** – no diagnostics are produced.
 - **Informational** – diagnostics are reported but `[Throws]` is not required.
+- **NonStrict** – diagnostics are reported at low severity without requiring `[Throws]` or a `catch` block.
 - **Strict** – exceptions must be caught or declared.
 
-Any exception not listed defaults to **Strict**, so unclassified types will trigger `THROW001` until they are handled or declared.
+Any exception not listed defaults to **NonStrict**, so unclassified types will trigger `THROW002` until they are handled or declared.
 
 > **Migration note:** Legacy `ignoredExceptions` and `informationalExceptions` properties are still processed for backward compatibility, but they are deprecated and translated into entries in the `exceptions` map.
 

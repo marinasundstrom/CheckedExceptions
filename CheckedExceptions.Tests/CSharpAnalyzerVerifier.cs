@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Testing;
@@ -92,6 +93,7 @@ public static class CSharpAnalyzerVerifier<TAnalyzer, TVerifier>
             test.TestState.AdditionalFiles.Add(("CheckedExceptions.settings.json",
             """"
             {
+                "defaultExceptionClassification": "Strict",
                 "ignoredExceptions": [
                     "System.NotImplementedException"
                 ],
@@ -126,6 +128,11 @@ public static class CSharpAnalyzerVerifier<TAnalyzer, TVerifier>
         }
 
         setup?.Invoke(test);
+
+        if (!test.TestState.AdditionalFiles.Any(f => f.filename == "CheckedExceptions.settings.json"))
+        {
+            test.TestState.AdditionalFiles.Add(("CheckedExceptions.settings.json", "{\n  \"defaultExceptionClassification\": \"Strict\"\n}"));
+        }
 
         return test.RunAsync();
     }

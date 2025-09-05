@@ -58,6 +58,7 @@ public partial class CheckedExceptionsAnalyzerTests
         {
             t.TestState.AdditionalFiles.Add(("CheckedExceptions.settings.json", """
             {
+                "defaultExceptionClassification": "Strict",
                 "exceptions": {},
                 "treatThrowsExceptionAsCatchRest": true
             }

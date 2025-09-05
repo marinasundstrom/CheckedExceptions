@@ -1,8 +1,9 @@
 {
+    "defaultExceptionClassification": "NonStrict",
     "exceptions": {
         "System.NotImplementedException": "Informational",
         "System.IO.IOException": "Informational",
-        "System.TimeoutException": "Informational"
+        "System.TimeoutException": "NonStrict"
     },
     "disableXmlDocInterop": false,
     "disableLinqSupport": false,

@@ -64,6 +64,9 @@ public partial class AnalyzerSettings
     [JsonIgnore]
     internal bool TreatThrowsExceptionAsCatchRestEnabled => TreatThrowsExceptionAsCatchRest;
 
+    [JsonPropertyName("defaultExceptionClassification")]
+    public ExceptionClassification DefaultExceptionClassification { get; set; } = ExceptionClassification.NonStrict;
+
     [JsonPropertyName("exceptions")]
     public IDictionary<string, ExceptionClassification> Exceptions { get; set; } = new Dictionary<string, ExceptionClassification>();
 
@@ -111,5 +114,6 @@ public enum ExceptionClassification
 {
     Ignored,
     Informational,
+    NonStrict,
     Strict
 }

@@ -54,7 +54,8 @@ partial class CheckedExceptionsAnalyzer
             {
                 continue;
             }
-            else if (classification is ExceptionClassification.Informational)
+            else if (classification is ExceptionClassification.Informational
+                || classification is ExceptionClassification.NonStrict)
             {
                 var diagnostic = Diagnostic.Create(RuleIgnoredException, GetSignificantLocation(throwStatement), exceptionType.Name);
                 context.ReportDiagnostic(diagnostic);
