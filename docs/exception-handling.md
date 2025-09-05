@@ -523,10 +523,10 @@ Add the settings file to your `.csproj`:
 
 - **`Ignored`**: Exceptions with this classification are completely ignored—no diagnostics or error reports will be generated.
 - **`Informational`**: Exceptions generate informational diagnostics but do not require `[Throws]` declarations.
-- **`NonStrict`**: Exceptions generate low-severity diagnostics but do not require `[Throws]` declarations or a `catch` block.
+- **`NonStrict`**: Exceptions generate low-severity diagnostics but do not require `[Throws]` declarations or a `catch` block. You may still declare or catch them, and doing so isn't considered redundant.
 - **`Strict`**: Exceptions must be handled or declared; missing `[Throws]` results in warnings.
 
-Any exception type that doesn't appear in the `exceptions` map defaults to **NonStrict**.
+Only exceptions classified as `Ignored` are filtered out entirely. Any exception type that doesn't appear in the `exceptions` map defaults to **NonStrict**, remaining part of the analysis.
 
 ## Performance Considerations
 

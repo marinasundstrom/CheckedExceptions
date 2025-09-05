@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - PR [#301](https://github.com/marinasundstrom/CheckedExceptions/pull/301) Allow treating `Exception` in `[Throws]` as a catch-all via `treatThrowsExceptionAsCatchRest` setting (base-type diagnostic unchanged)
 - PR [#PR_NUMBER](https://github.com/marinasundstrom/CheckedExceptions/pull/PR_NUMBER) Provide comprehensive baseline exception classifications in `default-settings.json`
 - PR [#PR_NUMBER](https://github.com/marinasundstrom/CheckedExceptions/pull/PR_NUMBER) Introduce `NonStrict` exception classification and `defaultExceptionClassification` setting
+- PR [#PR_NUMBER](https://github.com/marinasundstrom/CheckedExceptions/pull/PR_NUMBER) Document `NonStrict` declaration/catch behavior and add regression tests
 
 ### Changed
 

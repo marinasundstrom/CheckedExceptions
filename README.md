@@ -130,7 +130,7 @@ dotnet_diagnostic.THROW003.severity = warning
 
 A baseline template is available in `default-settings.json`.
 
-The analyzer reads a single `exceptions` dictionary that explicitly classifies each exception type as `Ignored`, `Informational`, `NonStrict`, or `Strict`. Any exception not listed defaults to `NonStrict`, so an unclassified throw will trigger a low-severity diagnostic but won't require `[Throws]` or a `catch`.
+The analyzer reads a single `exceptions` dictionary that explicitly classifies each exception type as `Ignored`, `Informational`, `NonStrict`, or `Strict`. Any exception not listed defaults to `NonStrict`, so an unclassified throw will trigger a low-severity diagnostic but won't require `[Throws]` or a `catch`. `NonStrict` exceptions remain part of analysis—you may still declare or catch them, and doing so isn't considered redundant. Only exceptions classified as `Ignored` are completely filtered out.
 
 Add `CheckedExceptions.settings.json`:
 
