@@ -128,21 +128,17 @@ dotnet_diagnostic.THROW003.severity = warning
 
 ### JSON Settings
 
+A baseline template is available in `default-settings.json`.
+
 Add `CheckedExceptions.settings.json`:
 
 ```json
 {
-  // Exceptions to completely ignore during analysis (Glob pattern).
-  "ignoredExceptions": [
-    "System.*",
-    "System.ArgumentNullException",
-    "!System.InvalidOperationException"
-  ],
-
-  // Exceptions to ignore but still report as informational diagnostics.
-  "informationalExceptions": {
-    "System.IO.IOException": "Propagation",
-    "System.TimeoutException": "Always"
+  "exceptions": {
+    "System.ArgumentNullException": "Ignored",
+    "System.IO.IOException": "Informational",
+    "System.TimeoutException": "Informational",
+    "System.Exception": "Strict"
   },
 
   // If true, exceptions will not be read from XML documentation (default: false).

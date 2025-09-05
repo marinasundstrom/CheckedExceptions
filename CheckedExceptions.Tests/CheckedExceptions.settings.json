@@ -1,11 +1,9 @@
 {
-    "ignoredExceptions": [
-        "System.ArgumentNullException"
-    ],
-    "informationalExceptions": {
-        "System.NotImplementedException": "Propagation",
-        "System.IO.IOException": "Propagation",
-        "System.TimeoutException": "Always"
+    "exceptions": {
+        "System.ArgumentNullException": "Ignored",
+        "System.NotImplementedException": "Informational",
+        "System.IO.IOException": "Informational",
+        "System.TimeoutException": "Informational"
     },
     "disableXmlDocInterop": false,
     "disableLinqSupport": false,

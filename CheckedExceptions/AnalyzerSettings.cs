@@ -64,17 +64,14 @@ public partial class AnalyzerSettings
     [JsonIgnore]
     internal bool TreatThrowsExceptionAsCatchRestEnabled => TreatThrowsExceptionAsCatchRest;
 
-    [JsonPropertyName("ignoredExceptions")]
-    public IEnumerable<string> IgnoredExceptions { get; set; } = new List<string>();
-
-    [JsonPropertyName("informationalExceptions")]
-    public IDictionary<string, ExceptionMode> InformationalExceptions { get; set; } = new Dictionary<string, ExceptionMode>();
+    [JsonPropertyName("exceptions")]
+    public IDictionary<string, ExceptionClassification> Exceptions { get; set; } = new Dictionary<string, ExceptionClassification>();
 }
 
 [JsonConverter(typeof(JsonStringEnumConverter))]
-public enum ExceptionMode
+public enum ExceptionClassification
 {
-    Throw = 1,
-    Propagation = 2,
-    Always = Throw | Propagation
+    Ignored,
+    Informational,
+    Strict
 }

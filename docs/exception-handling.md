@@ -485,17 +485,17 @@ You can customize how exceptions are reported by adding a `CheckedExceptions.set
 
 #### Example Configuration
 
+A baseline template is available in `default-settings.json`.
+
 Create a `CheckedExceptions.settings.json` file with the following structure:
 
 ```json
 {
-    "ignoredExceptions": [
-        "System.ArgumentNullException"
-    ],
-    "informationalExceptions": {
-        "System.NotImplementedException": "Throw",
-        "System.IO.IOException": "Propagation",
-        "System.TimeoutException": "Always"
+    "exceptions": {
+        "System.ArgumentNullException": "Ignored",
+        "System.NotImplementedException": "Informational",
+        "System.IO.IOException": "Informational",
+        "System.TimeoutException": "Informational"
     }
 }
 ```
@@ -515,22 +515,9 @@ Add the settings file to your `.csproj`:
 
 ### Behavior
 
-- **`ignoredExceptions`**: Exceptions listed here will be completely ignored—no diagnostics or error reports will be generated.
-- **`informationalExceptions`**: Exceptions listed here will generate informational diagnostics but won't be reported as errors.
-
-### Informational Exceptions Modes
-
-The `informationalExceptions` section allows you to specify the context in which an exception should be treated as informational. The available modes are:
-
-| Mode          | Description                                                                                                       |
-|---------------|-------------------------------------------------------------------------------------------------------------------|
-| `Throw`       | The exception is considered informational when thrown directly within the method.                                |
-| `Propagation` | The exception is considered informational when propagated (re-thrown or passed up the call stack).                |
-| `Always`      | The exception is always considered informational, regardless of context.                                         |
-
-**Example Scenario:**
-
-- **`System.IO.IOException`**: When thrown directly (e.g., within a method), it might be critical. However, when propagated from a utility method like `System.Console.WriteLine`, it’s unlikely and can be treated as informational.
+- **`Ignored`**: Exceptions with this classification are completely ignored—no diagnostics or error reports will be generated.
+- **`Informational`**: Exceptions generate informational diagnostics but do not require `[Throws]` declarations.
+- **`Strict`**: Exceptions must be handled or declared; missing `[Throws]` results in warnings.
 
 ## Performance Considerations
 

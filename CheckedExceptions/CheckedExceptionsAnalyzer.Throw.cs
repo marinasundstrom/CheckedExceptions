@@ -39,22 +39,17 @@ partial class CheckedExceptionsAnalyzer
         if (exceptionType is null)
             return;
 
-        var exceptionName = exceptionType.ToDisplayString();
+        var classification = GetExceptionClassification(exceptionType, settings);
 
-        if (FilterIgnored(settings, exceptionName))
+        if (classification is ExceptionClassification.Ignored)
         {
-            // Completely ignore this exception
             return;
         }
-        else if (settings.InformationalExceptions.TryGetValue(exceptionName, out var mode))
+        else if (classification is ExceptionClassification.Informational)
         {
-            if (ShouldIgnore(node, mode))
-            {
-                // Report as THROW002 (Info level)
-                var diagnostic = Diagnostic.Create(RuleIgnoredException, GetSignificantLocation(node), exceptionType.Name);
-                reportDiagnostic(diagnostic);
-                return;
-            }
+            var diagnostic = Diagnostic.Create(RuleIgnoredException, GetSignificantLocation(node), exceptionType.Name);
+            reportDiagnostic(diagnostic);
+            return;
         }
 
         if (settings.BaseExceptionThrownDiagnosticEnabled)

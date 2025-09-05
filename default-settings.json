@@ -1,0 +1,18 @@
+{
+  "exceptions": {
+    "System.ArgumentNullException": "Ignored",
+    "System.ArgumentOutOfRangeException": "Ignored",
+    "System.InvalidOperationException": "Informational",
+    "System.IO.IOException": "Informational",
+    "System.TimeoutException": "Informational",
+    "System.InvalidCastException": "Informational",
+    "System.NullReferenceException": "Informational",
+    "System.OutOfMemoryException": "Informational",
+    "System.UnauthorizedAccessException": "Informational",
+    "System.Exception": "Strict",
+    "System.ApplicationException": "Strict",
+    "System.IO.EndOfStreamException": "Strict",
+    "System.Net.WebException": "Strict"
+  }
+}
+

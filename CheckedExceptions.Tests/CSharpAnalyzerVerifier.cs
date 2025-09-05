@@ -92,12 +92,10 @@ public static class CSharpAnalyzerVerifier<TAnalyzer, TVerifier>
             test.TestState.AdditionalFiles.Add(("CheckedExceptions.settings.json",
             """"
             {
-                "ignoredExceptions": [
-                    "System.NotImplementedException"
-                ],
-                "informationalExceptions": {
-                    "System.IO.IOException": "Always",
-                    "System.TimeoutException": "Always"
+                "exceptions": {
+                    "System.NotImplementedException": "Ignored",
+                    "System.IO.IOException": "Informational",
+                    "System.TimeoutException": "Informational"
                 }
             }
             """"));

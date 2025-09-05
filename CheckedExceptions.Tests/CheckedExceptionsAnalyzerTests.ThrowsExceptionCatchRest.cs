@@ -58,8 +58,7 @@ public partial class CheckedExceptionsAnalyzerTests
         {
             t.TestState.AdditionalFiles.Add(("CheckedExceptions.settings.json", """
             {
-                "ignoredExceptions": [],
-                "informationalExceptions": {},
+                "exceptions": {},
                 "treatThrowsExceptionAsCatchRest": true
             }
             """));
