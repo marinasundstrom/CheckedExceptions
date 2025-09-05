@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+## [2.5.1] - 2025-09-05
+
 ### Fixed
 
 - PR [#306](https://github.com/marinasundstrom/CheckedExceptions/pull/306) Account for LINQ pipeline exceptions when analyzing foreach statements inside try-catch blocks
