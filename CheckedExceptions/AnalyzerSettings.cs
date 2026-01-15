@@ -65,7 +65,7 @@ public partial class AnalyzerSettings
     internal bool TreatThrowsExceptionAsCatchRestEnabled => TreatThrowsExceptionAsCatchRest;
 
     [JsonPropertyName("defaultExceptionClassification")]
-    public ExceptionClassification DefaultExceptionClassification { get; set; } = ExceptionClassification.NonStrict;
+    public ExceptionClassification DefaultExceptionClassification { get; set; } = ExceptionClassification.Strict;
 
     [JsonPropertyName("exceptions")]
     public IDictionary<string, ExceptionClassification> Exceptions { get; set; } = new Dictionary<string, ExceptionClassification>();

@@ -1,5 +1,5 @@
 {
-    "defaultExceptionClassification": "NonStrict",
+    "defaultExceptionClassification": "Strict",
     "exceptions": {
         "System.NotImplementedException": "Informational",
         "System.IO.IOException": "Informational",

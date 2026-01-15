@@ -126,23 +126,31 @@ dotnet_diagnostic.THROW003.severity = warning
 </PropertyGroup>
 ```
 
+---
+
 ### JSON Settings
 
-A baseline template is available in `default-settings.json`. For guidance on choosing the right default classification for your project, see the [configuration guide](docs/configuration-guide.md).
+A baseline template is available in `default-settings.json`. For guidance on choosing the right defaults for your project, see the [configuration guide](docs/configuration-guide.md).
 
-The analyzer reads a single `exceptions` dictionary that explicitly classifies each exception type as `Ignored`, `Informational`, `NonStrict`, or `Strict`. Any exception not listed defaults to `NonStrict`, so an unclassified throw will trigger a low-severity diagnostic but won't require `[Throws]` or a `catch`. `NonStrict` exceptions remain part of analysis—you may still declare or catch them, and doing so isn't considered redundant. Only exceptions classified as `Ignored` are completely filtered out.
+The analyzer uses a single `exceptions` dictionary that classifies each exception type as `Ignored`, `Informational`, `NonStrict`, or `Strict`.
+
+**By default, exceptions are treated as `Strict`.**
+This means that any exception not explicitly classified must be **caught or declared** using `[Throws]`.
+
+You can relax this behavior by classifying specific exception types as `NonStrict`, which lowers the severity and allows them to propagate without requiring a declaration. `NonStrict` exceptions are still fully analyzed — you may catch or declare them explicitly, and doing so is not considered redundant.
+
+Only exceptions classified as `Ignored` are completely excluded from analysis.
 
 Add `CheckedExceptions.settings.json`:
 
 ```json
 {
-  // Default classification for exceptions not listed (default: NonStrict)
-  "defaultExceptionClassification": "NonStrict",
+  // Default classification for exceptions not listed (default: Strict)
+  "defaultExceptionClassification": "Strict",
   "exceptions": {
     "System.ArgumentNullException": "Ignored",
     "System.IO.IOException": "Informational",
-    "System.TimeoutException": "NonStrict",
-    "System.Exception": "Strict"
+    "System.TimeoutException": "NonStrict"
   },
 
   // If true, exceptions will not be read from XML documentation (default: false).
@@ -154,7 +162,7 @@ Add `CheckedExceptions.settings.json`:
   // If true, implicit exception inference in LINQ lambdas is disabled and declarations are required (default: false).
   "disableLinqImplicitlyDeclaredExceptions": false,
 
-  // If true, no diagnostics will be issued on contract boundaries, such as arguments to methods and  return statements (default: false).
+  // If true, no diagnostics will be issued on contract boundaries, such as arguments to methods and return statements (default: false).
   "disableLinqEnumerableBoundaryWarnings": false,
 
   // If true, control flow analysis, with redundancy checks, is disabled (default: false).
@@ -163,8 +171,8 @@ Add `CheckedExceptions.settings.json`:
   // If true, basic redundancy checks are available when control flow analysis is disabled (default: false).
   "enableLegacyRedundancyChecks": false,
 
-  // If true, declaring [Throws(typeof(Exception))] acts as a catch-all and suppresses hierarchy redundancy checks; the base-type
-  // warning (THROW003) remains unless "disableBaseExceptionDeclaredDiagnostic" is set (default: false).
+  // If true, declaring [Throws(typeof(Exception))] acts as a catch-all and suppresses hierarchy redundancy checks;
+  // the base-type warning (THROW003) remains unless "disableBaseExceptionDeclaredDiagnostic" is set (default: false).
   "treatThrowsExceptionAsCatchRest": false,
 
   // If true, the analyzer will not warn about declaring base type Exception with [Throws] (default: false).
@@ -174,19 +182,6 @@ Add `CheckedExceptions.settings.json`:
   // Set to true if you use another analyzer reporting a similar diagnostic.
   "disableBaseExceptionThrownDiagnostic": false
 }
-```
-
-> **Migration note:** Legacy `ignoredExceptions` and `informationalExceptions` settings are still recognized but have been deprecated. They are automatically translated to the unified `exceptions` map.
-
-> **Control flow analysis** powers redundancy checks (e.g. unreachable code, redundant catches, unused exception declarations).
-> Disabling it may improve analyzer performance slightly at the cost of precision.
-
-Register in `.csproj`:
-
-```xml
-<ItemGroup>
-  <AdditionalFiles Include="CheckedExceptions.settings.json" />
-</ItemGroup>
 ```
 
 ---
