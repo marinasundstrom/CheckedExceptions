@@ -51,7 +51,7 @@
       "type": "string",
       "enum": ["Ignored", "Informational", "NonStrict", "Strict"],
       "description": "Classification applied to exceptions not listed in 'exceptions'.",
-      "default": "NonStrict"
+      "default": "Strict"
     },
     "ignoredExceptions": {
       "type": "array",
@@ -82,4 +82,3 @@
   "required": [],
   "additionalProperties": false
 }
-

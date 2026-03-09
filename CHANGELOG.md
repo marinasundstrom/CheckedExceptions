@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Fixed
+
+- PR [#PR_NUMBER](https://github.com/marinasundstrom/CheckedExceptions/pull/PR_NUMBER) Restore `Strict` as the default exception classification for unlisted exceptions in settings defaults, schema, tests, and docs
+
 ## [2.5.1] - 2025-09-05
 
 ### Fixed

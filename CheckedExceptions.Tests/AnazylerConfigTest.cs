@@ -79,8 +79,8 @@ public partial class AnaylzerConfigTest
         await Verifier.VerifyAnalyzerAsync2(test, expected1, expected2);
     }
 
-    [Fact(DisplayName = "Unlisted exception defaults to NonStrict")]
-    public async Task UnlistedExceptionDefaultsToNonStrict_ShouldReportInfoDiagnostic()
+    [Fact(DisplayName = "Unlisted exception defaults to Strict")]
+    public async Task UnlistedExceptionDefaultsToStrict_ShouldReportUnhandledDiagnostic()
     {
         var test = /* lang=c#-test */ """
             using System;
@@ -94,7 +94,7 @@ public partial class AnaylzerConfigTest
             }
             """;
 
-        var expected = Verifier.Informational("InvalidOperationException")
+        var expected = Verifier.UnhandledException("InvalidOperationException")
             .WithSpan(7, 9, 7, 47);
 
         await Verifier.VerifyAnalyzerAsync(test, t =>

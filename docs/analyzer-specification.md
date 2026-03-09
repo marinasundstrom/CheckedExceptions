@@ -344,7 +344,7 @@ public int Value { set => throw new InvalidOperationException(); }
 - **NonStrict** – diagnostics are reported at low severity without requiring `[Throws]` or a `catch` block.
 - **Strict** – exceptions must be caught or declared.
 
-Any exception not listed defaults to **NonStrict**, so unclassified types will trigger `THROW002` until they are handled or declared.
+Any exception not listed defaults to **Strict**, so unclassified types must be handled or declared, otherwise they trigger `THROW001`.
 
 > **Migration note:** Legacy `ignoredExceptions` and `informationalExceptions` properties are still processed for backward compatibility, but they are deprecated and translated into entries in the `exceptions` map.
 

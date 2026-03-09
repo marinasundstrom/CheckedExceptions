@@ -1,5 +1,5 @@
 {
-  "defaultExceptionClassification": "NonStrict",
+  "defaultExceptionClassification": "Strict",
   "exceptions": {
     "System.ArgumentNullException": "Ignored",
     "System.ArgumentOutOfRangeException": "Ignored",
@@ -41,4 +41,3 @@
     "System.Data.SqlClient.SqlException": "Strict"
   }
 }
-

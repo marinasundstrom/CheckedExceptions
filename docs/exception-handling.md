@@ -49,7 +49,7 @@ The **CheckedExceptions Analyzer** serves three purposes:
 2. **Help you propagate exceptions explicitly** by requiring `[Throws]` declarations when you choose not to handle them locally.
 3. **Provide control flow analysis** that highlights unreachable code and redundant catch blocks.
 
-To keep this analysis deterministic, configuration is an explicit taxonomy. Each entry in `CheckedExceptions.settings.json` maps an exception type to `Ignored`, `Informational`, `NonStrict`, or `Strict`. Any type not present defaults to **NonStrict**, meaning unclassified exceptions raise low-severity diagnostics but do not require `[Throws]` or a `catch` block.
+To keep this analysis deterministic, configuration is an explicit taxonomy. Each entry in `CheckedExceptions.settings.json` maps an exception type to `Ignored`, `Informational`, `NonStrict`, or `Strict`. Any type not present defaults to **Strict**, meaning unclassified exceptions must be declared with `[Throws]` or handled with a `catch` block.
 
 ---
 
@@ -494,7 +494,7 @@ Create a `CheckedExceptions.settings.json` file with the following structure:
 
 ```json
 {
-    "defaultExceptionClassification": "NonStrict",
+    "defaultExceptionClassification": "Strict",
     "exceptions": {
         "System.ArgumentNullException": "Ignored",
         "System.NotImplementedException": "Informational",
@@ -526,7 +526,7 @@ Add the settings file to your `.csproj`:
 - **`NonStrict`**: Exceptions generate low-severity diagnostics but do not require `[Throws]` declarations or a `catch` block. You may still declare or catch them, and doing so isn't considered redundant.
 - **`Strict`**: Exceptions must be handled or declared; missing `[Throws]` results in warnings.
 
-Only exceptions classified as `Ignored` are filtered out entirely. Any exception type that doesn't appear in the `exceptions` map defaults to **NonStrict**, remaining part of the analysis.
+Only exceptions classified as `Ignored` are filtered out entirely. Any exception type that doesn't appear in the `exceptions` map defaults to **Strict**, and is therefore enforced by contract/control-flow diagnostics.
 
 ## Performance Considerations
 
