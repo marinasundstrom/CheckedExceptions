@@ -20,6 +20,9 @@ on:
 jobs:
   build-publish:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
 
     steps:
       # Step 1: Checkout the repository
@@ -75,15 +78,21 @@ jobs:
           echo "path=$PACKAGE_PATH" >> $GITHUB_OUTPUT
         shell: bash
 
-      # Step 8: Publish to NuGet.org
+      # Step 8: Exchange the GitHub OIDC token for a short-lived NuGet API key
+      - name: NuGet login
+        if: ${{ github.event.inputs.publish_to_nuget == 'true' }}
+        id: nuget_login
+        uses: NuGet/login@v1
+        with:
+          user: marna.li
+
+      # Step 9: Publish to NuGet.org
       - name: Publish to NuGet.org
         if: ${{ github.event.inputs.publish_to_nuget == 'true' }}
-        env:
-          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
         run: |
           if [ -f "${{ steps.find_nupkg.outputs.path }}" ]; then
             dotnet nuget push "${{ steps.find_nupkg.outputs.path }}" \
-              --api-key $NUGET_API_KEY \
+              --api-key "${{ steps.nuget_login.outputs.NUGET_API_KEY }}" \
               --source https://api.nuget.org/v3/index.json \
               --skip-duplicate
           else
@@ -91,7 +100,7 @@ jobs:
             exit 1
           fi
 
-      # Step 9: Publish to Custom NuGet Feed
+      # Step 10: Publish to Custom NuGet Feed
       - name: Publish to Custom NuGet Feed
         if: ${{ github.event.inputs.publish_to_custom_feed == 'true' }}
         env:

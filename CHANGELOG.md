@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## Unreleased
 
+### Changed
+
+- PR [#PR_NUMBER](https://github.com/marinasundstrom/CheckedExceptions/pull/PR_NUMBER) Publish NuGet packages with trusted publishing instead of a long-lived API key
+
 ### Fixed
 
 - PR [#PR_NUMBER](https://github.com/marinasundstrom/CheckedExceptions/pull/PR_NUMBER) Restore `Strict` as the default exception classification for unlisted exceptions in settings defaults, schema, tests, and docs
